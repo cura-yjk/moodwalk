@@ -1,0 +1,51 @@
+.card-image {
+  height: 200px;
+  width: 480px;
+
+  border-radius: 24px;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  background-image:
+  linear-gradient(to right,
+  rgba(255, 255, 255, 1) 5%,
+  rgba(255, 255, 255, 0.7) 60%,
+  rgba(255, 255, 255, 0.4) 80%,
+  rgba(255, 255, 255, 0) 100%),
+  var(--card-image);
+
+  transition: 0.7s ease;
+
+  animation-name: fadeInBelow;
+  animation-duration: 1.5s;
+  animation-timing-function: ease-in;
+  animation-fill-mode: backwards;
+}
+
+.card-image:hover {
+  transform: translateY(-4px);
+
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.journey-cards {
+  display: flex;
+  flex-direction: column;
+
+  gap: 32px;
+}
+
+.journey-card {
+  text-decoration: none;
+  color: black;
+
+  position: relative;
+}
+
+.card-info {
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+}

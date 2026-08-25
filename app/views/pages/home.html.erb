@@ -1,32 +1,42 @@
 <div class="container">
   <% if user_signed_in? %>
-    <div class="greeting">
+    <h1 class="greeting my-4">
       <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
+    </h1>
+
+    <div class="subtitle">
+      <h4 class="mb-3">Where should we wander today?</h4>
+      <h6>📍 Starting from Meguro <%= link_to "Change", "#" %></h6>
     </div>
 
-    <h3>Where should we wander today?</h3>
-    <h6>📍 Starting from Meguro <%= link_to "Change", "#" %></h6>
+    <div id="suggest-container">
 
-    <% placeholder_images = ["https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-    "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
+      <% placeholder_images = ["https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+      "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+      "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
 
-    <div class="journey-cards">
-      <% @journeys.each do |journey| %>
-        <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
-          <div class="card-image" style="background-image: url('<%= placeholder_images %>');">
-            <div class="card-overlay">
-              <h4><%= journey.name %></h4>
-              <p>
-                <%= journey.description %>
-                <!--<%# if journey.estimated_duration_seconds.present? %>
-                  · <%#= (journey.estimated_duration_seconds / 60.0).round %> min
-                <%# end %>-->
-              </p>
+      <div class="journey-cards">
+        <% @journeys.each_with_index do |journey, index| %>
+          <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
+            <div class="card-image"
+            style="--card-image: url('<%= placeholder_images[index] %>');
+            animation-delay: <%= index * 0.3 %>s;">
+              <div class="card-overlay">
+                <div class="card-info">
+                  <h4><%= journey.name %></h4>
+                  <p>
+                    <%= journey.description %>
+                    <!--<%# if journey.estimated_duration_seconds.present? %>
+                      · <%#= (journey.estimated_duration_seconds / 60.0).round %> min
+                    <%# end %>-->
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          <% end %>
         <% end %>
-      <% end %>
+      </div>
+
     </div>
   <% end %>
 </div>
