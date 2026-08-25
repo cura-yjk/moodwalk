@@ -77,4 +77,4 @@ end
 gem 'activerecord-postgis-adapter'
 gem 'faraday'
 gem "ruby_llm"
-gem "ruby_llm-schema"
+# gem "ruby_llm-schema"

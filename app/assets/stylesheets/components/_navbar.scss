@@ -1,12 +1,33 @@
+.navbar {
+  position: fixed;
+  bottom: 0;
+
+  width: 76%;
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.15);
+
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 48px;
+
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.nav-icon {
+  font-size: 24px;
+}
+
 .navbar-lewagon {
   justify-content: space-between;
-  background: white;
+  background: none;
+  margin-top: auto;
 }
 
 .navbar-lewagon .navbar-collapse {
   flex-grow: 0;
 }
 
-.navbar-lewagon .navbar-brand img {
-  width: 40px;
-}
+// .highlight-icon {
+//   color: white;
+// }
