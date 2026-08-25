@@ -1,0 +1,32 @@
+<div class="preview-screen">
+  <div class="preview-header">
+    <%= link_to "←", root_path, class: "back-link" %>
+    <!-- Placeholder — no favorites/likes column on Journey yet -->
+    <button type="button" class="like-btn" disabled>♡</button>
+  </div>
+  <h1>Your walk is ready 🌿</h1>
+  <h2><%= @journey.name %></h2>
+  <p class="walk-stats">
+    <% if @journey.estimated_duration_seconds %>
+      <%= @journey.estimated_duration_seconds / 60 %> min
+    <% else %>
+      -- min
+    <% end %>
+    · Loop ·
+    <% if @journey.estimated_steps %>
+      ~<%= @journey.estimated_steps %> steps
+    <% else %>
+      -- steps
+    <% end %>
+  </p>
+  <!-- MAP PLACEHOLDER -->
+  <div class="route-map-placeholder" style="height: 280px; background: #ddd; display: flex; align-items: center; justify-content: center; border-radius: 12px;">
+    Map preview goes here
+  </div>
+  <ul class="route-highlights">
+    <li>🌿 Greenery along the way</li>
+    <li>☀️ Mostly open streets</li>
+    <li>🚶 Passes active areas</li>
+  </ul>
+  <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "start-walking-btn" %>
+</div>

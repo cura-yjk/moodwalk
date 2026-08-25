@@ -1,0 +1,9 @@
+<div class="walking-screen">
+  <h1><%= @journey.name %></h1>
+  <p>Started at <%= @walk.started_at.strftime("%H:%M") %></p>
+  <!-- MAP / NAV PLACEHOLDER -->
+  <div class="walking-map-placeholder" style="height: 300px; background: #ddd; display: flex; align-items: center; justify-content: center;">
+    Live nav placeholder
+  </div>
+  <%= button_to "Complete walk", complete_walk_path(@walk), method: :patch, class: "complete-btn" %>
+</div>
