@@ -1,0 +1,34 @@
+/* Hide the actual radio input visually, but keep it functional */
+.mood-radio-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Style the label itself as the clickable "button" */
+.mood-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background-color: #f0f0f0;
+}
+
+/* Highlight whichever one is currently selected */
+.mood-button.selected {
+  border-color: #4a7c59; /* matches the green in your mockup */
+}
+
+/* Also highlight on click even before a page reload, using :has()
+   (supported in modern browsers) — optional nice-to-have */
+.mood-button:has(.mood-radio-hidden:checked) {
+  border-color: #4a7c59;
+}
+
+.emoji {
+  font-size: 24px;
+}
