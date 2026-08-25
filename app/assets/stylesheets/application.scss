@@ -10,3 +10,18 @@
 // Your CSS partials
 @import "components/index";
 @import "pages/index";
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  margin: 0;
+
+  font-family: 'Quicksand', 'Arial';
+
+  background-image: linear-gradient(to bottom,
+   #D9F9FC 0%,
+   #d9f9fc 20%,
+   #E0FFD6 100%);
+}
