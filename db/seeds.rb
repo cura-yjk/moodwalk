@@ -7,3 +7,71 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+# db/seeds.rb
+puts "🧹 Cleaning database..."
+Walk.destroy_all
+Journey.destroy_all
+User.destroy_all
+
+puts "👤 Creating user..."
+user = User.create!(email: "admin@mail.com", name: "admin", password: "qwerty")
+
+puts "🗺️  Generating journeys via Mapbox..."
+
+journey_specs = [
+  { name: "Riverside Stroll", description: "A calm loop tracing the river, plenty of greenery.", distance: 1600 },
+  { name: "Park Escape",      description: "Quiet, mostly shaded park paths.",                     distance: 1300 },
+  { name: "Morning Refresh",  description: "A longer wander through open, active streets.",         distance: 1700 }
+]
+
+journeys = journey_specs.map do |spec|
+  result = JourneyGenerator.new(
+    lat: 35.6414,   # Meguro, Tokyo
+    lng: 139.7006,
+    target_distance_meters: spec[:distance]
+  ).call
+
+  if result.success?
+    journey = result.journey
+    journey.update!(name: spec[:name], description: spec[:description])
+    puts "  ✅ #{spec[:name]} (#{journey.distance_meters.round}m)"
+    journey
+  else
+    puts "  ❌ #{spec[:name]} failed: #{result.error}"
+    nil
+  end
+end.compact
+
+if journeys.empty?
+  puts "⚠️  No journeys were generated — check your Mapbox token before seeding walks."
+else
+  puts "🚶 Creating walk history..."
+
+  walk_specs = [
+    { journey: journeys[0], started_at: Time.zone.now - 1.hour, duration: 24.minutes, mood: "Calmer", steps: 2400, distance: 1.9, reflection: "Nice breeze by the river, felt great." },
+    { journey: journeys[0], started_at: 2.days.ago,              duration: 20.minutes, mood: "Good",   steps: 2100, distance: 1.6, reflection: "Quick stroll after lunch." },
+    { journey: journeys[1], started_at: 4.days.ago,              duration: 18.minutes, mood: "Calmer", steps: 1700, distance: 1.3, reflection: "Needed to clear my head before a meeting." },
+    { journey: journeys[2], started_at: 6.days.ago,              duration: 22.minutes, mood: "Good",   steps: 2300, distance: 1.7, reflection: "Morning walk before work, good start." },
+    { journey: journeys.sample, started_at: 8.days.ago,          duration: 25.minutes, mood: "Okay",   steps: 2600, distance: 2.0, reflection: "A bit tired, but glad I went." }
+  ]
+
+  walk_specs.each do |w|
+    next unless w[:journey]
+
+    Walk.create!(
+      user: user,
+      journey: w[:journey],
+      started_at: w[:started_at],
+      completed_at: w[:started_at] + w[:duration],
+      actual_distance: w[:distance],
+      actual_steps: w[:steps],
+      mood_after: w[:mood],
+      reflection: w[:reflection]
+    )
+  end
+
+  puts "✅ #{Walk.count} walks created for #{user.name}"
+end
+
+puts "🌱 Done seeding!"
