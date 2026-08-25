@@ -9,12 +9,14 @@
 
 // Components
 @import "components/animations";
+@import "components/buttons";
 @import "components/cards";
 @import "components/index";
+@import "components/map";
 
 // Pages
-@import "pages/index";
 @import "walks/edit";
+@import "pages/index";
 @import "pages/suggestions";
 
 body {

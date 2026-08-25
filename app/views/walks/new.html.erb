@@ -1,12 +1,10 @@
 <% content_for :head do %>
   <%= stylesheet_link_tag "vendor/mapbox-gl", "data-turbo-track": "reload" %>
 <% end %>
-<div class="preview-screen">
-  <div class="preview-header">
+<div class="preview-screen d-flex flex-column align-items-center">
+  <div class="preview-header my-4">
     <!-- Placeholder — no favorites/likes column on Journey yet -->
-    <button type="button" class="like-btn" disabled>
-      <i class="fa-regular fa-heart"></i>
-    </button>
+    <i class="fa-regular fa-heart"></i>
   </div>
   <h1>Your walk is ready 🌿</h1>
   <h2><%= @journey.name %></h2>
@@ -23,16 +21,23 @@
       -- steps
     <% end %>
   </p>
-  <div class="route-map"
+  <div  id="map-preview" class="route-map my-3"
        data-controller="map"
        data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
        data-map-route-value="<%= @journey.route_coordinates.to_json %>">
   </div>
-  <ul class="route-highlights">
-    <li>🌿 Greenery along the way</li>
-    <li>☀️ Mostly open streets</li>
-    <li>🚶 Passes active areas</li>
+  <ul class="route-highlights list-unstyled">
+    <li class="mb-2">🌿 Greenery along the way</li>
+    <li class="mb-2">☀️ Mostly open streets</li>
+    <li class="mb-2">🚶 Passes active areas</li>
   </ul>
-  <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "start-walking-btn" %>
+  <div class="submit-container d-flex align-items-center text-align-center gap-2">
+    <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "confirm-btn" %>
+    <button type="button" class="like-btn me-2" disabled>
+      <i class="fa-regular fa-heart"></i>
+    </button>
+    <span>7</span>
+  </div>
+
 </div>
