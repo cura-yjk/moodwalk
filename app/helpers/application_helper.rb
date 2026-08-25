@@ -1,4 +1,6 @@
 module ApplicationHelper
+  def active_icon_class(path)
+    "highlight-icon" if current_page?(path)
   def time_based_greeting
     current_time = Time.current.hour
     message = ""
