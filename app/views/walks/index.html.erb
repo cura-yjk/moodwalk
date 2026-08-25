@@ -1,0 +1,28 @@
+<div class="container">
+  <div class="page-header">
+    <h1>My Walks</h1>
+    <%= link_to "📅", calendar_path %> <!-- placeholder route, built in the next step -->
+  </div>
+
+  <!-- Visual-only tabs — no filtering logic, "All" is just hardcoded active -->
+  <div class="tabs">
+    <span class="tab active">All</span>
+    <span class="tab">Saved</span>
+    <span class="tab">Moods</span>
+  </div>
+
+  <% if @walks.empty? %>
+    <!-- Top-level empty state: this user has never completed a walk -->
+    <p class="empty-state">No walks yet — head out and start your first one!</p>
+  <% else %>
+    <!-- @grouped_walks only contains keys for buckets that actually have
+         walks in them, so an empty "Today" section simply won't appear -->
+    <% @grouped_walks.each do |section, walks_in_section| %>
+      <h3 class="section-header"><%= section %></h3>
+
+      <% walks_in_section.each do |walk| %>
+        <%= render "walk_card", walk: walk, section: section %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>
