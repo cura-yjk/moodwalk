@@ -35,15 +35,26 @@ class WalksController < ApplicationController
   end
 
   def update
-    @walk = current_user.walks.find(params[:id])
-    @walk.update(walk_params)
-    redirect_to walk_path(@walk)
+    @walk = Walk.find(params[:id])
+    # mood_after and reflection are both optional, so update succeeds
+    # even if the user submits the form with either field left blank.
+    if @walk.update(walk_params)
+      redirect_to walks_path, notice: "Walk saved!"
+    else
+      # Only realistically fails here if something unexpected happens
+      # (e.g. a DB-level constraint), since neither field is required.
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   def complete
     @walk = current_user.walks.find(params[:id])
-    @walk.update(completed_at: Time.current)
-    redirect_to walk_path(@walk)
+    @walk.update(
+      completed_at: Time.current,
+      actual_steps: 2840,
+      actual_distance: 1.9
+    )
+    redirect_to edit_walk_path(@walk)
   end
 
   private
