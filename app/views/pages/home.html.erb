@@ -12,9 +12,9 @@
     "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
 
     <div class="journey-cards">
-      <% @journeys.each do |journey| %>
+      <% @journeys.each_with_index do |journey, index| %>
         <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
-          <div class="card-image" style="background-image: url('<%= placeholder_images %>');">
+          <div class="card-image" style="background-image: url('<%= placeholder_images[index] %>');">
             <div class="card-overlay">
               <h4><%= journey.name %></h4>
               <p>
