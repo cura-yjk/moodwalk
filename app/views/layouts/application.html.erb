@@ -6,6 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Moodwalk">
     <meta name="mobile-web-app-capable" content="yes">
+    <%# Added this to stop animations being weird when refreshing %>
+    <meta name="turbo-cache-control" content="no-preview">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 

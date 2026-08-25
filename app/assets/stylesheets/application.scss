@@ -7,16 +7,21 @@
 @import "bootstrap";
 @import "font-awesome";
 
-// Your CSS partials
+// Components
+@import "components/animations";
+@import "components/cards";
 @import "components/index";
+
+// Pages
 @import "pages/index";
+@import "pages/suggestions";
 
 body {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100dvh;
-  margin: 0;
+  margin: 0 0 160px 0;
 
   font-family: 'Quicksand', 'Arial';
 
