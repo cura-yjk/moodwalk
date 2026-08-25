@@ -1,0 +1,26 @@
+<%= link_to walk_path(walk), class: "walk-card" do %>
+  <div class="walk-thumbnail">
+    <!-- Placeholder image per journey — same pattern as the home page cards -->
+    <%#= image_tag "park_path.jpg" %>
+  </div>
+
+  <div class="walk-details">
+    <h4><%= walk.journey.name %></h4>
+
+    <p class="walk-time">
+      <!-- Today shows a clock time ("6:30 PM"); other sections show a
+           day abbreviation ("Tue") instead — matches the mockup exactly -->
+      <% if section == "Today" %>
+        <%= walk.started_at.strftime("%-l:%M %p") %>
+      <% else %>
+        <%= walk.started_at.strftime("%a") %>
+      <% end %>
+      · <%= walk.duration_in_minutes %> min
+    </p>
+
+    <p class="walk-mood">
+      <%= mood_emoji(walk.mood_after) %> <%= walk.mood_after %>
+      · ↑ <%= walk.actual_distance %> km
+    </p>
+  </div>
+<% end %>

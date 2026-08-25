@@ -21,7 +21,13 @@ class WalksController < ApplicationController
 
   # placeholder index edit update complete tbc
   def index
-    @walks = current_user.walks
+    # includes(:journey) avoids an N+1 query — without it, Rails would
+    # hit the DB separately for each walk's journey.name in the view
+    @walks = current_user.walks.includes(:journey).order(started_at: :desc)
+    # Group the already-loaded walks into buckets by date.
+    # This happens in Ruby (not a second DB query) since @walks is small
+    # and already fully loaded — no need to hit the database again.
+    @grouped_walks = group_walks_by_date(@walks)
   end
 
   def edit
@@ -44,5 +50,31 @@ class WalksController < ApplicationController
 
   def walk_params
     params.require(:walk).permit(:mood_after, :reflection)
+  end
+
+  def group_walks_by_date(walks)
+    today = Date.current
+    yesterday = today - 1.day
+    this_week_range = today.beginning_of_week..today.end_of_week
+    last_week_range = (today.beginning_of_week - 1.week)..(today.beginning_of_week - 1.day)
+
+    walks.group_by do |walk|
+      walk_date = walk.started_at.to_date
+
+      if walk_date == today
+        "Today"
+      elsif walk_date == yesterday
+        "Yesterday"
+      elsif this_week_range.cover?(walk_date)
+        "This week"
+      elsif last_week_range.cover?(walk_date)
+        "Last week"
+      else
+        # Falls back to a month name for anything older — this single line
+        # handles all of history without ever needing a new elsif branch,
+        # no matter how far back a walk happened.
+        walk_date.strftime("%B %Y") # e.g. "July 2026"
+      end
+    end
   end
 end
