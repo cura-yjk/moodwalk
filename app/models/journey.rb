@@ -34,6 +34,23 @@ class Journey < ApplicationRecord
     [start_point.x, start_point.y]
   end
 
+  def turn_waypoints(angle_threshold: 30)
+    coords = route_coordinates # each pair is [lng, lat]
+    return [] if coords.size < 3
+
+    waypoints = [{ lat: coords[0][1], lng: coords[0][0], instruction: "start" }]
+
+    coords.each_cons(3) do |a, b, c|
+      delta = angle_delta(bearing(a, b), bearing(b, c))
+      next if delta.abs < angle_threshold
+
+      waypoints << { lat: b[1], lng: b[0], instruction: delta.positive? ? "right" : "left" }
+    end
+
+    waypoints << { lat: coords.last[1], lng: coords.last[0], instruction: "end" }
+    waypoints
+  end
+
   private
 
   # decodes one zigzag-encoded varint starting at `index`, returning [value, next_index]
@@ -52,5 +69,18 @@ class Journey < ApplicationRecord
     value = result.nobits?(1) ? (result >> 1) : ~(result >> 1)
     [value, index]
   end
+
   # rubocop:enable Metrics/MethodLength
+  def bearing(from, to)
+    lat1 = from[1] * Math::PI / 180
+    lat2 = to[1] * Math::PI / 180
+    dlng = (to[0] - from[0]) * Math::PI / 180
+    y = Math.sin(dlng) * Math.cos(lat2)
+    x = (Math.cos(lat1) * Math.sin(lat2)) - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(dlng))
+    ((Math.atan2(y, x) * 180 / Math::PI) + 360) % 360
+  end
+
+  def angle_delta(bearing_in, bearing_out)
+    (((bearing_out - bearing_in) + 540) % 360) - 180 # normalized to -180..180
+  end
 end
