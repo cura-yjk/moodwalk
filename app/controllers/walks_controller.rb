@@ -1,7 +1,7 @@
 class WalksController < ApplicationController
   def attach_photo
     @walk = current_user.walks.find(params[:id])
-    @walk.photo.attach(params[:photo])
+    @walk.update(walk_params)
     head :ok
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -68,7 +68,7 @@ class WalksController < ApplicationController
   private
 
   def walk_params
-    params.require(:walk).permit(:mood_after, :reflection)
+    params.require(:walk).permit(:mood_after, :reflection, :photo)
   end
 
   def group_walks_by_date(walks)

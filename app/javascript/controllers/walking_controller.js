@@ -226,10 +226,11 @@ export default class extends Controller {
   // instead of just hiding the button and discarding the file.
   photoTaken(event) {
     const file = event.target.files[0]
+    console.log("hi", file)
     if (!file) return
 
     const formData = new FormData()
-    formData.append("photo", file)
+    formData.append("walk[photo]", file)
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content
 
