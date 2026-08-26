@@ -1,0 +1,155 @@
+// Specific CSS for the walks#index history page (app/views/walks/index.html.erb)
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 1.25rem;
+}
+
+.calendar-icon-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 50%;
+  background-color: white;
+
+  color: $gray;
+  font-size: 18px;
+
+  transition: 0.3s ease;
+}
+
+.calendar-icon-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.15);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+
+  padding: 4px;
+
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+
+  margin-bottom: 1.5rem;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: $gray;
+  opacity: 0.6;
+
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.tab.active {
+  background-color: darkseagreen;
+  color: white;
+  opacity: 1;
+}
+
+.section-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(14, 0, 0, 0.5);
+
+  margin: 1.25rem 0 0.75rem;
+}
+
+.walk-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  padding: 12px;
+
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+
+  color: $gray;
+
+  margin-bottom: 12px;
+
+  transition: 0.3s ease;
+}
+
+.walk-thumbnail {
+  flex-shrink: 0;
+
+  width: 72px;
+  height: 72px;
+
+  border-radius: 16px;
+
+  background: linear-gradient(135deg, #d9f9fc, #eafee3);
+}
+
+.walk-details {
+  flex: 1;
+  min-width: 0;
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 700;
+
+    margin-bottom: 2px;
+  }
+}
+
+.walk-time {
+  font-size: 0.85rem;
+  color: rgba(14, 0, 0, 0.55);
+
+  margin-bottom: 4px;
+}
+
+.walk-mood {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 0.85rem;
+  color: rgba(14, 0, 0, 0.7);
+
+  margin-bottom: 0;
+}
+
+.mood-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+
+  border-radius: 50%;
+  background-color: rgba(30, 221, 136, 0.2);
+
+  font-size: 0.75rem;
+}
+
+.empty-state {
+  text-align: center;
+  color: rgba(14, 0, 0, 0.5);
+
+  margin-top: 3rem;
+}

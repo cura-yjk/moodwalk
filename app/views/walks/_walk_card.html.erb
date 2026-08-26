@@ -1,8 +1,5 @@
-<%= link_to walk_path(walk), class: "walk-card" do %>
-  <div class="walk-thumbnail">
-    <!-- Placeholder image per journey — same pattern as the home page cards -->
-    <%#= image_tag "park_path.jpg" %>
-  </div>
+<div class="walk-card">
+  <div class="walk-thumbnail"></div>
 
   <div class="walk-details">
     <h4><%= walk.journey.name %></h4>
@@ -19,8 +16,11 @@
     </p>
 
     <p class="walk-mood">
-      <%= mood_emoji(walk.mood_after) %> <%= walk.mood_after %>
-      · ↑ <%= walk.actual_distance %> km
+      <% if walk.mood_after.present? %>
+        <span class="mood-badge"><%= mood_emoji(walk.mood_after) %></span> <%= walk.mood_after %>
+        ·
+      <% end %>
+      <i class="fa-solid fa-person-walking"></i> <%= walk.actual_distance %> km
     </p>
   </div>
-<% end %>
+</div>
