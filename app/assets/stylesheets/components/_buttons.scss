@@ -17,3 +17,34 @@
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
 }
+
+.mood-btn {
+  background-color: rgba(184, 203, 187, 0.15);
+
+  padding: 12px 16px;
+
+  border-radius: 16px;
+  border: none;
+}
+
+.choice-btn {
+  background-color: rgba(240, 250, 242, 0.15);
+  color: #7A7A7A;
+
+  border: 1px solid #7A7A7A;
+  border-radius: 12px;
+
+  padding: 12px;
+}
+
+.done-btn {
+  border-radius: 16px;
+
+  background-color:darkseagreen;
+  border: none;
+
+  transition: 0.5s ease-in-out;
+  padding: 16px;
+
+  color: #f1f0f0;
+}

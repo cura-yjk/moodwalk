@@ -1,31 +1,35 @@
-<div class="container d-flex flex-column align-items-center">
+<div class="container d-flex flex-column align-items-center mt-5">
 
   <!-- Header copy matching the "walk complete" mockup -->
-  <h1 class="my-5">Walk complete! 🌿</h1>
-  <p>A little more of the world, discovered.</p>
+  <h1 class="mt-5">Walk complete! 🌿</h1>
+  <p class="mb-3">A little more of the world, discovered.</p>
 
   <!-- Hero image: shows the photo captured during the walk, if one exists.
      Falls back to a generic placeholder if the user skipped the camera step. -->
   <div class="walk-image">
     <% if @walk.photo.attached? %>
-      <%= image_tag @walk.photo %>
+      <%= image_tag @walk.photo,
+        class: "walk-image"
+      %>
     <% else %>
-      <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg" %>
+      <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+        class: "walk-image"
+      %>
     <% end %>
   </div>
 
   <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
   <div class="stats-row my-4">
-    <div class="stat">
-      <span class="stat-value"><%= @walk.actual_steps %></span>
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">👣 <%= @walk.actual_steps %></span>
       <span class="stat-label">steps</span>
     </div>
-    <div class="stat">
-      <span class="stat-value"><%= @walk.duration_in_minutes %> min</span>
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">⏲ <%= @walk.duration_in_minutes %> min</span>
       <span class="stat-label">walking</span>
     </div>
-    <div class="stat">
-      <span class="stat-value"><%= @walk.actual_distance %> km</span>
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">📍 <%= @walk.actual_distance %> km</span>
       <span class="stat-label">distance</span>
     </div>
   </div>
@@ -46,9 +50,9 @@
         { value: "Great", emoji: "😃" }
       ] %>
 
-      <div class="mood-selector">
+      <div class="mood-selector d-flex gap-4">
         <% mood_options.each do |mood| %>
-          <label class="mood-button <%= 'selected' if @walk.mood_after == mood[:value] %>">
+          <label class="mood-btn <%= 'selected' if @walk.mood_after == mood[:value] %>">
             <%= f.radio_button :mood_after, mood[:value],
                   checked: (@walk.mood_after == mood[:value]),
                   class: "mood-radio-hidden" %>
@@ -58,19 +62,19 @@
       </div>
   </div>
 
-    <h6 class="my-5 text-center">Anything you want to remember? (optional)</h6>
+    <h6 class="mt-5 text-center">Anything you want to remember? (optional)</h6>
     <%= f.text_area :reflection,
           placeholder: "A thought, a feeling, something you noticed...",
-          class: "mb-5", id: "journal-input",
+          class: "mb-3", id: "journal-input",
           rows: 3 %>
 
     <!-- Placeholder actions — not wired up yet, per your request -->
-    <div class="placeholder-actions mt-3">
-      <button type="button" class="confirm-btn" disabled>
+    <div class="placeholder-actions d-flex w-100 gap-2 my-2">
+      <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
         Save
         <i class="fa-regular fa-bookmark"></i>
       </button>
-      <button type="button" class="confirm-btn" disabled>
+      <button type="button" class="choice-btn w-50" disabled>
         Share
         <i class="fa-solid fa-share"></i>
       </button>
@@ -78,7 +82,7 @@
 
     <!-- The one real action on this page: submits mood_after + reflection,
          then WalksController#update redirects to walks#index -->
-    <%= f.submit "Done", class: "done-button mt-3 confirm-btn" %>
+    <%= f.submit "Done", class: "done-btn my-3 w-100" %>
   <% end %>
 
 </div>
