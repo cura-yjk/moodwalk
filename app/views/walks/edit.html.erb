@@ -1,7 +1,7 @@
-<div class="container">
+<div class="container d-flex flex-column align-items-center">
 
   <!-- Header copy matching the "walk complete" mockup -->
-  <h1>Walk complete! 🌿</h1>
+  <h1 class="my-5">Walk complete! 🌿</h1>
   <p>A little more of the world, discovered.</p>
 
   <!-- Placeholder hero image for the walk -->
@@ -11,7 +11,7 @@
   </div> -->
 
   <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
-  <div class="stats-row">
+  <div class="stats-row my-4">
     <div class="stat">
       <span class="stat-value"><%= @walk.actual_steps %></span>
       <span class="stat-label">steps</span>
@@ -27,45 +27,54 @@
   </div>
 
   <!-- Form for the two editable, optional fields: mood_after and reflection -->
-  <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
+  <div class="emoji-form d-flex flex-column align-items-center">
+    <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
 
-    <h4>How do you feel now?</h4>
+      <h4 class="my-4 text-center">How do you feel now?</h4>
 
-    <!-- Fixed set of 5 mood options — not stored in the DB as a table,
-         just a small array we define here since mood_after is a plain string -->
-    <% mood_options = [
-      { value: "Sad",   emoji: "😢" },
-      { value: "Down",  emoji: "🙁" },
-      { value: "Okay",  emoji: "😐" },
-      { value: "Good",  emoji: "🙂" },
-      { value: "Great", emoji: "😃" }
-    ] %>
+      <!-- Fixed set of 5 mood options — not stored in the DB as a table,
+          just a small array we define here since mood_after is a plain string -->
+      <% mood_options = [
+        { value: "Sad",   emoji: "😢" },
+        { value: "Down",  emoji: "🙁" },
+        { value: "Okay",  emoji: "😐" },
+        { value: "Good",  emoji: "🙂" },
+        { value: "Great", emoji: "😃" }
+      ] %>
 
-    <div class="mood-selector">
-      <% mood_options.each do |mood| %>
-        <label class="mood-button <%= 'selected' if @walk.mood_after == mood[:value] %>">
-          <%= f.radio_button :mood_after, mood[:value],
-                checked: (@walk.mood_after == mood[:value]),
-                class: "mood-radio-hidden" %>
-          <span class="emoji"><%= mood[:emoji] %></span>
-        </label>
-      <% end %>
-    </div>
+      <div class="mood-selector">
+        <% mood_options.each do |mood| %>
+          <label class="mood-button <%= 'selected' if @walk.mood_after == mood[:value] %>">
+            <%= f.radio_button :mood_after, mood[:value],
+                  checked: (@walk.mood_after == mood[:value]),
+                  class: "mood-radio-hidden" %>
+            <span class="emoji"><%= mood[:emoji] %></span>
+          </label>
+        <% end %>
+      </div>
+  </div>
 
-    <h6>Anything you want to remember? (optional)</h6>
+    <h6 class="my-5 text-center">Anything you want to remember? (optional)</h6>
     <%= f.text_area :reflection,
           placeholder: "A thought, a feeling, something you noticed...",
+          class: "mb-5", id: "journal-input",
           rows: 3 %>
 
     <!-- Placeholder actions — not wired up yet, per your request -->
-    <div class="placeholder-actions">
-      <button type="button" disabled>♡ Save Route</button>
-      <button type="button" disabled>⇪ Share</button>
+    <div class="placeholder-actions mt-3">
+      <button type="button" class="confirm-btn" disabled>
+        Save
+        <i class="fa-regular fa-bookmark"></i>
+      </button>
+      <button type="button" class="confirm-btn" disabled>
+        Share
+        <i class="fa-solid fa-share"></i>
+      </button>
     </div>
 
     <!-- The one real action on this page: submits mood_after + reflection,
          then WalksController#update redirects to walks#index -->
-    <%= f.submit "Done", class: "done-button" %>
+    <%= f.submit "Done", class: "done-button mt-3 confirm-btn" %>
   <% end %>
 
 </div>
