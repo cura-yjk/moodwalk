@@ -1,11 +1,7 @@
 <% content_for :head do %>
   <%= stylesheet_link_tag "vendor/mapbox-gl", "data-turbo-track": "reload" %>
 <% end %>
-<div class="preview-screen d-flex flex-column align-items-center">
-  <div class="preview-header my-4">
-    <!-- Placeholder — no favorites/likes column on Journey yet -->
-    <i class="fa-regular fa-heart"></i>
-  </div>
+<div class="preview-screen d-flex flex-column align-items-center my-5">
   <h1>Your walk is ready 🌿</h1>
   <h2><%= @journey.name %></h2>
   <p class="walk-stats">
@@ -35,9 +31,8 @@
   <div class="submit-container d-flex align-items-center text-align-center gap-2">
     <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "confirm-btn" %>
     <button type="button" class="like-btn me-2 btn btn-link" disabled>
-      <i class="fa-regular fa-heart"></i>
+      <i class="fa-regular fa-bookmark"></i>
     </button>
-    <span>7</span>
   </div>
 
 </div>
