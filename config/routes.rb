@@ -16,6 +16,7 @@ Rails.application.routes.draw do
   resources :walks, only: [ :show, :edit, :update, :index ] do
     member do
       patch :complete
+      patch :attach_photo
     end
   end
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)

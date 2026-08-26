@@ -1,4 +1,12 @@
 class WalksController < ApplicationController
+  def attach_photo
+    @walk = current_user.walks.find(params[:id])
+    @walk.photo.attach(params[:photo])
+    head :ok
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def new
     @journey = Journey.find(params[:journey_id])
   end

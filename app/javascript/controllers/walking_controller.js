@@ -34,7 +34,7 @@ const TURN_ANGLES = {
 
 export default class extends Controller {
   static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton"]
-  static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean }
+  static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean, attachPhotoUrl: String }
 
   connect() {
     this.arrived = false
@@ -222,11 +222,30 @@ export default class extends Controller {
     this.nextRowTarget.classList.add("next-instruction-hidden")
   }
 
-  // The camera button is a one-shot: once a photo's been taken for this walk,
-  // hide it rather than letting the user retake/replace it. Triggered by the
-  // file input's native change event (opens the device's default camera app).
-  photoTaken() {
-    this.cameraButtonTarget.classList.add("d-none")
+  // Now actually uploads the captured photo to Cloudinary via Active Storage,
+  // instead of just hiding the button and discarding the file.
+  photoTaken(event) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append("photo", file)
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content
+
+    fetch(this.attachPhotoUrlValue, {
+      method: "PATCH",
+      headers: { "X-CSRF-Token": csrfToken },
+      body: formData
+    })
+      .then((response) => {
+        if (response.ok) {
+          this.cameraButtonTarget.classList.add("d-none")
+        } else {
+          alert("Photo upload failed — try again.")
+        }
+      })
+      .catch(() => alert("Photo upload failed — check your connection."))
   }
 
   // Geolocation failure handler -- distinguishes "user said no" (permission

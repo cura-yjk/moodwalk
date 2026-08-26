@@ -8,59 +8,6 @@
 }
 
 // walks#show -- live walking screen (app/views/walks/show.html.erb)
-.camera-overlay {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-}
-
-.camera-video {
-  flex: 1;
-  width: 100%;
-  object-fit: cover;
-}
-
-.camera-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.camera-shutter {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 4px solid white;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.shutter-circle {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: white;
-}
-
-.camera-cancel {
-  color: white;
-  background: none;
-  border: none;
-  font-size: 16px;
-}
-
-/* Dim + change cursor once a photo's been taken, on top of the icon swap */
-.camera-btn.photo-taken {
-  opacity: 0.6;
-  pointer-events: none;
-}
 
 .walking-screen {
   position: relative;

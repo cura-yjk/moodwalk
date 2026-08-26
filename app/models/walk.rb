@@ -1,6 +1,7 @@
 class Walk < ApplicationRecord
   belongs_to :user
   belongs_to :journey
+  has_one_attached :photo
 
   # Duration isn't stored directly in the DB — we derive it from the
   # timestamps we already have. Returns nil if the walk hasn't been
