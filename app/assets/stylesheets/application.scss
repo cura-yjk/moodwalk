@@ -12,6 +12,7 @@
 @import "components/buttons";
 @import "components/cards";
 @import "components/index";
+@import "components/journal_input";
 @import "components/map";
 
 // Pages
@@ -23,7 +24,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   min-height: 100dvh;
+
+  margin-bottom: 24%;
 
   font-family: 'Quicksand', 'Arial';
 
