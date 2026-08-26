@@ -21,7 +21,7 @@
       -- steps
     <% end %>
   </p>
-  <div  id="map-preview" class="route-map my-3"
+  <div  class="map-preview" class="route-map my-3"
        data-controller="map"
        data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
@@ -34,7 +34,7 @@
   </ul>
   <div class="submit-container d-flex align-items-center text-align-center gap-2">
     <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "confirm-btn" %>
-    <button type="button" class="like-btn me-2" disabled>
+    <button type="button" class="like-btn me-2 btn btn-link" disabled>
       <i class="fa-regular fa-heart"></i>
     </button>
     <span>7</span>

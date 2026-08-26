@@ -5,13 +5,6 @@
      data-walking-waypoints-value="<%= @journey.turn_waypoints.to_json %>"
      data-walking-dev-mode-value="<%= Rails.env.development? %>">
   <div class="walking-background"><!-- placeholder for atmospheric bg --></div>
-  <label class="camera-btn" data-walking-target="cameraButton">
-    <input type="file" accept="image/*" capture="environment" class="d-none" data-action="change->walking#photoTaken">
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/>
-      <circle cx="12" cy="14" r="3.5"/>
-    </svg>
-  </label>
   <div class="walking-guidance">
     <div class="direction-arrow-wrap">
       <div class="direction-arrow" data-walking-target="arrow">
@@ -25,9 +18,22 @@
     <p class="instruction-text" data-walking-target="instructionText">Getting your location…</p>
   </div>
   <div class="walking-bottom">
-    <p class="next-instruction next-instruction-hidden" data-walking-target="nextRow">
-      <span class="next-instruction-label">THEN</span> <span data-walking-target="nextInstructionText"></span>
-    </p>
-    <%= button_to "X End Walk", complete_walk_path(@walk), method: :patch, class: "end-walk-btn" %>
+
+    <div class="user-view">
+        <p class="next-instruction next-instruction-hidden" data-walking-target="nextRow">
+          <span class="next-instruction-label d-flex flex-start">THEN</span>
+          <span data-walking-target="nextInstructionText"></span>
+        </p>
+
+        <label class="camera-btn" data-walking-target="cameraButton">
+          <input type="file" accept="image/*" capture="environment" class="d-none" data-action="change->walking#photoTaken">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/>
+              <circle cx="12" cy="14" r="3.5"/>
+            </svg>
+        </label>
+
+    </div>
+      <%= button_to "End Walk", complete_walk_path(@walk), method: :patch, class: "end-walk-btn" %>
   </div>
 </div>
