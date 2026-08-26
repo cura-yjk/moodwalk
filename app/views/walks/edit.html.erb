@@ -4,11 +4,15 @@
   <h1 class="my-5">Walk complete! 🌿</h1>
   <p>A little more of the world, discovered.</p>
 
-  <!-- Placeholder hero image for the walk -->
-  <!-- Swap this for something journey-specific later if you want it dynamic -->
-  <!-- <div class="walk-image">
-    <%#= image_tag "park_path.jpg" %>
-  </div> -->
+  <!-- Hero image: shows the photo captured during the walk, if one exists.
+     Falls back to a generic placeholder if the user skipped the camera step. -->
+  <div class="walk-image">
+    <% if @walk.photo.attached? %>
+      <%= image_tag @walk.photo %>
+    <% else %>
+      <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg" %>
+    <% end %>
+  </div>
 
   <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
   <div class="stats-row my-4">
