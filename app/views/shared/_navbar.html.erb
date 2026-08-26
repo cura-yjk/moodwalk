@@ -6,18 +6,19 @@
 
         <%# else %>
 
+            <%= link_to new_user_session_path, class: "nav-link" do %>
+              <i class="fa-solid fa-map-location-dot nav-icon
+              <%= active_icon_class(new_user_session_path) %>"
+              ></i>
+            <% end %>
+
+
             <%= link_to root_path, class: "nav-link" do %>
               <span class="material-symbols-outlined fs-1
               <%= active_icon_class(root_path) %>"
               >
               steps
               </span>
-            <% end %>
-
-            <%= link_to new_user_session_path, class: "nav-link" do %>
-              <i class="fa-solid fa-map-location-dot nav-icon
-              <%= active_icon_class(new_user_session_path) %>"
-              ></i>
             <% end %>
 
             <%= link_to new_user_session_path, class: "nav-link" do %>
