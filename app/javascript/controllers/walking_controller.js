@@ -1,12 +1,21 @@
-// app/javascript/controllers/walking_controller.js
 import { Controller } from "@hotwired/stimulus"
 
+// How close (in meters) the user needs to be to a waypoint before it counts
+// as "arrived" there — GPS accuracy means this can't be 0.
 const ARRIVAL_THRESHOLD_METERS = 8
+
+// Average meters per step, used to convert a raw distance into a rough step count.
 const STEP_LENGTH_METERS = 0.76
-const TURN_FLASH_MS = 1800 // how long the turn instruction shows before resetting to "straight"
-const SIMULATION_BASE_SPEED_MPS = 1.4 // average walking pace
+
+// How long a turn instruction ("Turn left") stays on screen before the app
+// moves on to the next leg and resets to the generic "keep going straight" state.
+const TURN_FLASH_MS = 1800
+
+// Simulated walking speed (meters/second) used only in dev-mode ?simulate= testing.
+const SIMULATION_BASE_SPEED_MPS = 1.4
 const SIMULATION_TICK_MS = 500
 
+// Display text for each waypoint's instruction type.
 const INSTRUCTION_LABELS = {
   start: "Keep going straight",
   left: "Turn left",
@@ -24,7 +33,7 @@ const TURN_ANGLES = {
 }
 
 export default class extends Controller {
-  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "cameraIcon", "checkIcon", "cameraOverlay", "video", "canvas"]
+  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton"]
   static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean }
 
   connect() {
@@ -41,16 +50,22 @@ export default class extends Controller {
       return
     }
 
+    // Dev-only shortcut to fake movement along the route instead of physically
+    // walking it during testing. Speed multiplier comes from the query param.
     if (this.devModeValue && params.has("simulate")) {
       this.startSimulation(parseFloat(params.get("simulate")) || 6)
       return
     }
 
+    // Bail out early with a clear message on devices/browsers with no
+    // geolocation support at all, rather than silently doing nothing.
     if (!("geolocation" in navigator)) {
       this.instructionTextTarget.textContent = "Location not supported on this device"
       return
     }
 
+    // Real-world tracking: fires handlePosition every time the device's
+    // location updates, for as long as this controller is connected.
     this.watchId = navigator.geolocation.watchPosition(
       (position) => this.handlePosition(position),
       (error) => this.handleError(error),
@@ -58,68 +73,8 @@ export default class extends Controller {
     )
   }
 
-  async openCamera() {
-    // Guard against reopening the camera after a photo's already been taken
-    if (this.cameraButtonTarget.disabled) return
-
-    try {
-      // facingMode: "environment" requests the rear camera specifically,
-      // matching what capture="environment" used to hint at
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }
-      })
-      this.videoTarget.srcObject = this.stream
-      this.cameraOverlayTarget.classList.remove("d-none")
-    } catch (error) {
-      // Most commonly hit if the user denies camera permission
-      console.error("Camera access failed:", error)
-      alert("Couldn't access the camera. Check your camera permissions and try again.")
-    }
-  }
-
-  capturePhoto() {
-    const video = this.videoTarget
-    const canvas = this.canvasTarget
-
-    // Match canvas size to the actual video resolution, not the on-screen
-    // display size, so the captured frame isn't stretched or cropped oddly
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext("2d").drawImage(video, 0, 0)
-
-    // toBlob is async — this is where you'd hand the image off to an
-    // upload later, if you ever add one. For now it's captured but unused,
-    // matching today's "nothing happens to the photo" behavior.
-    canvas.toBlob(() => {
-      this.photoTaken()
-    }, "image/jpeg", 0.9)
-
-    this.closeCamera()
-  }
-
-  cancelCamera() {
-    this.closeCamera()
-  }
-
-  closeCamera() {
-    // Releases the camera hardware — without this, the camera stays
-    // active in the background even after the overlay is hidden
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop())
-      this.stream = null
-    }
-    this.cameraOverlayTarget.classList.add("d-none")
-  }
-
-  // Updated: disables the button and swaps the icon rather than hiding
-  // the button entirely, so the user gets visible confirmation
-  photoTaken() {
-    this.cameraButtonTarget.disabled = true
-    this.cameraButtonTarget.classList.add("photo-taken")
-    this.cameraIconTarget.classList.add("d-none")
-    this.checkIconTarget.classList.remove("d-none")
-  }
-
+  // Stimulus calls this automatically when the element leaves the page --
+  // makes sure we're not still watching location or running timers afterward.
   disconnect() {
     this.stopTracking()
   }
@@ -129,9 +84,14 @@ export default class extends Controller {
   // and gated server-side by devModeValue so it can never activate outside development.
   startSimulation(speedMultiplier) {
     this.simulationDistance = 0
+
+    // On a fixed interval, calculate where a "virtual walker" would be by now
+    // and feed that position through the exact same handlePosition logic
+    // real GPS updates use -- so the guidance behaves identically either way.
     this.simulationTimer = setInterval(() => {
       const point = this.pointAtDistance(this.simulationDistance)
       if (!point) {
+        // Ran past the end of the route -- stop simulating.
         clearInterval(this.simulationTimer)
         return
       }
@@ -148,9 +108,13 @@ export default class extends Controller {
     const path = this.waypointsValue
     let remaining = distance
 
+    // Walk leg by leg (waypoint to waypoint) subtracting each leg's length
+    // from `remaining` until we find the leg the target distance falls within.
     for (let i = 0; i < path.length - 1; i++) {
       const legDistance = this.haversineMeters(path[i], path[i + 1])
       if (remaining <= legDistance) {
+        // `t` is how far along this specific leg (0 = start, 1 = end) --
+        // used to linearly interpolate the exact lat/lng along the way.
         const t = legDistance === 0 ? 0 : remaining / legDistance
         return {
           lat: path[i].lat + ((path[i + 1].lat - path[i].lat) * t),
@@ -160,9 +124,12 @@ export default class extends Controller {
       remaining -= legDistance
     }
 
+    // Distance requested is past the end of the entire route.
     return null
   }
 
+  // Visual-only indicator so it's obvious on screen that you're looking at
+  // a simulated walk, not a real GPS-tracked one.
   showSimulationBadge(speedMultiplier) {
     const badge = document.createElement("div")
     badge.textContent = `SIMULATING WALK (${speedMultiplier}x speed)`
@@ -170,6 +137,9 @@ export default class extends Controller {
     document.body.prepend(badge)
   }
 
+  // Cleans up anything that would otherwise keep running after the walk
+  // screen closes -- geolocation watcher, simulation interval, pending
+  // turn-flash timeout.
   stopTracking() {
     if (this.watchId) navigator.geolocation.clearWatch(this.watchId)
     if (this.simulationTimer) clearInterval(this.simulationTimer)
@@ -180,6 +150,8 @@ export default class extends Controller {
   // matter what the upcoming turn is -- the turn itself is only previewed in the
   // THEN row, and gets its moment on the main arrow in handleArrival below.
   handlePosition(position) {
+    // Ignore updates while we've already arrived, or while mid-transition
+    // between one waypoint and the next (avoids double-triggering arrival).
     if (this.arrived || this.transitioning) return
 
     const current = { lat: position.coords.latitude, lng: position.coords.longitude }
@@ -188,11 +160,15 @@ export default class extends Controller {
 
     const distance = this.haversineMeters(current, target)
 
+    // Close enough to the current target waypoint -- treat this as arrival
+    // there, rather than continuing to show "keep going straight."
     if (distance < ARRIVAL_THRESHOLD_METERS) {
       this.handleArrival(target)
       return
     }
 
+    // Still en route: reset the arrow to neutral, update the live step
+    // count based on remaining distance, and show the generic instruction.
     this.arrowTarget.style.transform = "rotate(0deg)"
     this.stepsCountTarget.textContent = Math.round(distance / STEP_LENGTH_METERS)
     this.instructionTextTarget.textContent = "Keep going straight"
@@ -209,6 +185,10 @@ export default class extends Controller {
       return
     }
 
+    // Briefly show the turn itself on the main arrow (rotated left/right),
+    // hide the "THEN" preview row since we're now doing that turn, then
+    // after TURN_FLASH_MS advance to the next waypoint and resume normal
+    // "keep going straight" guidance via the next handlePosition call.
     this.transitioning = true
     this.arrowTarget.style.transform = `rotate(${TURN_ANGLES[target.instruction] ?? 0}deg)`
     this.stepsCountTarget.textContent = "0"
@@ -228,6 +208,9 @@ export default class extends Controller {
     this.nextInstructionTextTarget.textContent = INSTRUCTION_LABELS[target.instruction] || "Continue"
   }
 
+  // Final state once the last waypoint is reached: swaps the arrow icon for
+  // a checkmark, zeroes out the step count, and stops all tracking/timers
+  // since there's nothing left to navigate toward.
   renderArrived() {
     this.arrived = true
     this.stopTracking()
@@ -240,19 +223,26 @@ export default class extends Controller {
   }
 
   // The camera button is a one-shot: once a photo's been taken for this walk,
-  // hide it rather than letting the user retake/replace it.
+  // hide it rather than letting the user retake/replace it. Triggered by the
+  // file input's native change event (opens the device's default camera app).
   photoTaken() {
     this.cameraButtonTarget.classList.add("d-none")
   }
 
+  // Geolocation failure handler -- distinguishes "user said no" (permission
+  // denied) from other transient issues (still waiting for a GPS fix, etc.)
+  // so the on-screen message tells the user what to actually do about it.
   handleError(error) {
     this.instructionTextTarget.textContent = error.code === error.PERMISSION_DENIED
       ? "Enable location access to continue"
       : "Waiting for a location signal…"
   }
 
+  // Standard haversine formula: great-circle distance in meters between two
+  // lat/lng points, accounting for the Earth's curvature (a flat-plane
+  // distance calculation would be noticeably wrong at this scale).
   haversineMeters(a, b) {
-    const R = 6371000
+    const R = 6371000 // Earth's radius in meters
     const dLat = (b.lat - a.lat) * Math.PI / 180
     const dLng = (b.lng - a.lng) * Math.PI / 180
     const lat1 = a.lat * Math.PI / 180
