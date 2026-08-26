@@ -24,7 +24,7 @@ const TURN_ANGLES = {
 }
 
 export default class extends Controller {
-  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton"]
+  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "cameraIcon", "checkIcon", "cameraOverlay", "video", "canvas"]
   static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean }
 
   connect() {
@@ -56,6 +56,68 @@ export default class extends Controller {
       (error) => this.handleError(error),
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
     )
+
+    async openCamera() {
+      // Guard against reopening the camera after a photo's already been taken
+      if (this.cameraButtonTarget.disabled) return
+
+      try {
+        // facingMode: "environment" requests the rear camera specifically,
+        // matching what capture="environment" used to hint at
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        })
+        this.videoTarget.srcObject = this.stream
+        this.cameraOverlayTarget.classList.remove("d-none")
+      } catch (error) {
+        // Most commonly hit if the user denies camera permission
+        console.error("Camera access failed:", error)
+        alert("Couldn't access the camera. Check your camera permissions and try again.")
+      }
+    }
+
+    capturePhoto() {
+      const video = this.videoTarget
+      const canvas = this.canvasTarget
+
+      // Match canvas size to the actual video resolution, not the on-screen
+      // display size, so the captured frame isn't stretched or cropped oddly
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      canvas.getContext("2d").drawImage(video, 0, 0)
+
+      // toBlob is async — this is where you'd hand the image off to an
+      // upload later, if you ever add one. For now it's captured but unused,
+      // matching today's "nothing happens to the photo" behavior.
+      canvas.toBlob(() => {
+        this.photoTaken()
+      }, "image/jpeg", 0.9)
+
+      this.closeCamera()
+    }
+
+    cancelCamera() {
+      this.closeCamera()
+    }
+
+    closeCamera() {
+      // Releases the camera hardware — without this, the camera stays
+      // active in the background even after the overlay is hidden
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => track.stop())
+        this.stream = null
+      }
+      this.cameraOverlayTarget.classList.add("d-none")
+    }
+
+    // Updated: disables the button and swaps the icon rather than hiding
+    // the button entirely, so the user gets visible confirmation
+    photoTaken() {
+      this.cameraButtonTarget.disabled = true
+      this.cameraButtonTarget.classList.add("photo-taken")
+      this.cameraIconTarget.classList.add("d-none")
+      this.checkIconTarget.classList.remove("d-none")
+    }
   }
 
   disconnect() {
