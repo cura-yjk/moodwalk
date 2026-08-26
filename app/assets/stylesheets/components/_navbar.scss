@@ -1,6 +1,6 @@
 .navbar {
-  position: fixed;
-  bottom: 0;
+  position: sticky;
+  // bottom: 0;
 
   width: 76%;
   backdrop-filter: blur(10px);
@@ -12,6 +12,8 @@
 
   padding: 12px 16px;
   margin-bottom: 24px;
+
+  flex-shrink: 0;
 }
 
 .nav-icon {

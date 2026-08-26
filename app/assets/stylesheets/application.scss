@@ -24,7 +24,6 @@ body {
   flex-direction: column;
   align-items: center;
   min-height: 100dvh;
-  margin: 0 0 160px 0;
 
   font-family: 'Quicksand', 'Arial';
 
@@ -32,4 +31,10 @@ body {
    #D9F9FC 0%,
    #D9F9FC 20%,
    #EAFEE3 100%);
+}
+
+.content {
+  flex: 1 0 auto;
+
+  padding: 24px;
 }
