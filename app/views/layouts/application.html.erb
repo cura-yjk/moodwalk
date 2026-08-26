@@ -36,6 +36,6 @@
   <body>
   <%= render "shared/flashes" %>
     <%= yield %>
-  <%= render "shared/navbar" %>
+  <%= render "shared/navbar" unless content_for?(:hide_navbar) %>
   </body>
 </html>

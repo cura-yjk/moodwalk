@@ -1,6 +1,159 @@
 // Specific CSS for the walks views
+
+// walks#new -- route preview (app/views/walks/new.html.erb)
 .route-map {
   height: 280px;
   border-radius: 12px;
   overflow: hidden;
+}
+
+// walks#show -- live walking screen (app/views/walks/show.html.erb)
+.walking-screen {
+  position: relative;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  color: #fff;
+  text-align: center;
+  overflow: hidden;
+}
+
+.walking-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: image-url("walking_background.png") center / cover no-repeat;
+}
+
+// Fills all the space between the top of the screen and the End Walk button,
+// centering the live direction guidance within it.
+.walking-guidance {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding-top: 4rem;
+}
+
+@keyframes arrow-spring-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  80% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+.direction-arrow-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: arrow-spring-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.direction-arrow {
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  // Spring easing (slight overshoot past the target angle) whenever the fixed
+  // per-leg direction changes at a waypoint -- not a fixed timer or a live bearing.
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  svg {
+    width: 3.5rem;
+    height: 3.5rem;
+    display: block;
+  }
+}
+
+.steps-remaining {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.instruction-text {
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0;
+}
+
+// One large tile filling the entire bottom portion of the screen -- bleeds past
+// the screen's own side/bottom padding to sit flush against the edges, with the
+// next-turn preview up top and the End Walk button nested inside at its base.
+.walking-bottom {
+  width: calc(100% + 3rem);
+  height: 20dvh;
+  margin: 0 -1.5rem calc(-1.5rem - env(safe-area-inset-bottom));
+  padding: 1.75rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.next-instruction {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.15rem;
+  font-weight: 600;
+
+  // Hidden during the turn-arrival flash, but keeps its layout space reserved
+  // (unlike display:none) so the bottom tile doesn't shrink/reflow at that moment.
+  &.next-instruction-hidden {
+    visibility: hidden;
+  }
+
+  .next-instruction-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.camera-btn {
+  position: absolute;
+  right: 1rem;
+  bottom: 36%;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: $green;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.end-walk-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 600;
 }
