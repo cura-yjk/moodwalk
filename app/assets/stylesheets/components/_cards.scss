@@ -1,33 +1,42 @@
 .card-image {
-  height: 12em;
+  height: 10em;
   width: 24em;
 
+  opacity: 0.9 !important;
+
   border-radius: 24px;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.3) !important;
 
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 
-  background-image:
-  linear-gradient(to right,
-  rgba(255, 255, 255, 1) 5%,
-  rgba(255, 255, 255, 0.7) 60%,
-  rgba(255, 255, 255, 0.4) 80%,
-  rgba(255, 255, 255, 0) 100%),
-  var(--card-image);
+  // color: #727272;
 
-  transition: 0.7s ease;
+  // background-image:
+  // linear-gradient(to right,
+  // rgb(240, 240, 240) 46%,
+  // rgba(255, 255, 255, 0.4) 66%,
+  // rgba(255, 255, 255, 0) 100%),
+  // var(--card-image);
+
+  background-image:
+  linear-gradient(rgba(181, 1209, 196, 0.34), rgba(62, 68, 65, 0.8)),
+  var(--card-image);
+  color: #faf8f1;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 
   animation-name: fadeInBelow;
   animation-duration: 1.5s;
   animation-timing-function: ease-in;
   animation-fill-mode: backwards;
+  transition: 0.7s ease;
 }
 
 .card-image:hover {
   transform: translateY(-4px);
 
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.22) !important;
 }
 
 // The walk-complete hero photo is a plain <img>, not a background-image

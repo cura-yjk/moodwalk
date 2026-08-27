@@ -33,19 +33,22 @@ body {
 
   font-family: 'Quicksand', 'Arial';
 
-  background-image: linear-gradient(to bottom,
-   #D9F9FC 0%,
-   #D9F9FC 20%,
-   #EAFEE3 100%);
+  background-color: #faf8f1;
+  color: #727272;
 
-  // The 16% margin-bottom above reserves clearance above the fixed navbar so
-  // scrollable page content doesn't end up hidden behind it. Pages that hide
-  // the navbar entirely (see content_for :hide_navbar) don't need that
-  // clearance -- and on a full-bleed 100dvh screen, the leftover margin was
-  // exposing raw white/html background below the page on real devices.
-  &.no-navbar {
-    margin-bottom: 0;
-  }
+  // background-image: linear-gradient(to bottom,
+  //  #D9F9FC 0%,
+  //  #D9F9FC 20%,
+  //  #EAFEE3 100%);
+
+  // // The 16% margin-bottom above reserves clearance above the fixed navbar so
+  // // scrollable page content doesn't end up hidden behind it. Pages that hide
+  // // the navbar entirely (see content_for :hide_navbar) don't need that
+  // // clearance -- and on a full-bleed 100dvh screen, the leftover margin was
+  // // exposing raw white/html background below the page on real devices.
+  // &.no-navbar {
+  //   margin-bottom: 0;
+  // }
 }
 
 .content {
