@@ -4,4 +4,4 @@
 //= link_tree ../../../vendor/javascript .js
 //= link popper.js
 //= link bootstrap.min.js
-//= link vendor/mapbox-gl.css
+//= link application.css
