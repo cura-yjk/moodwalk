@@ -17,7 +17,7 @@
 
     <p class="walk-mood">
       <% if walk.mood_after.present? %>
-        <span class="mood-badge"><%= mood_emoji(walk.mood_after) %></span> <%= walk.mood_after %>
+        <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span> <%= walk.mood_after %>
         ·
       <% end %>
       <i class="fa-solid fa-person-walking"></i> <%= walk.actual_distance %> km
