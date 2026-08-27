@@ -161,8 +161,9 @@
 
   border-radius: 50%;
 
-  background: rgba(167, 215, 184, 0.4);
+  background:rgba(143, 188, 143, 0.3);
   color: #fff;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 
   display: flex;
   align-items: center;
@@ -182,11 +183,12 @@
 
   padding: 0.9rem;
 
-  border-radius: 999px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.4);
 
-  background: rgba(167, 215, 184, 0.3);
   // box-shadow: 0 0 4px 4px rgba(0, 0, 0, 0.15);
   color: #fff;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
   font-weight: 600;
+  background:rgba(143, 188, 143, 0.3);
 }
