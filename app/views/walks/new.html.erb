@@ -1,7 +1,7 @@
 <div class="preview-screen d-flex flex-column align-items-center my-5">
   <div class="title-card">
-    <h1 class="mb-3">Your walk is ready 🌿</h1>
-    <h2 class="fw-bold"><%= @journey.name %></h2>
+    <h1 class="mb-3 walk-ready-title">Your walk is ready 🌿</h1>
+    <h2 class="journey-title editorial-title"><%= @journey.name %></h2>
     <p class="walk-stats fw-semibold fs-5">
       <% if @journey.estimated_duration_seconds %>
         <%= @journey.estimated_duration_seconds / 60 %> min
@@ -30,9 +30,8 @@
   <div class="placeholder-actions d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">
       <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
-        <%= link_to new_user_session_path, class: "nav-link text-transform-none" do %>
-          <i class="fa-solid fa-backward
-          "></i>
+        <%= link_to new_user_session_path, class: "nav-link text-transform-none d-flex align-items-center gap-3 justify-content-center w-100" do %>
+          <i class="fa-solid fa-backward"></i>
           Back
         <% end %>
       </button>
@@ -41,6 +40,9 @@
         Save
       </button>
     </div>
-    <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
+    <%= form_with url: journey_walks_path(@journey), scope: :walk, data: { controller: "carry-checkin-mood" } do |f| %>
+      <%= f.hidden_field :mood_before, data: { "carry-checkin-mood-target": "field" } %>
+      <%= f.submit "Start walking", class: "done-btn w-100" %>
+    <% end %>
   </div>
 </div>

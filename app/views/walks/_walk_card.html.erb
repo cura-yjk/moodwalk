@@ -20,7 +20,18 @@
     </p>
 
     <p class="walk-mood">
-      <% if walk.mood_after.present? %>
+      <% if walk.mood_before.present? && walk.mood_after.present? %>
+        <!-- Only shown when the user actually checked in before this walk
+             (see mood_before/sanitized_mood_before in WalksController) —
+             otherwise there's nothing meaningful to compare mood_after to. -->
+        <span class="mood-transition">
+          <span class="mood-badge"><%= image_tag mood_icon(walk.mood_before), alt: walk.mood_before, class: "mood-badge-icon" %></span>
+          <i class="fa-solid fa-arrow-right mood-transition-arrow"></i>
+          <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span>
+        </span>
+        <%= mood_change_label(walk.mood_after) %>
+        ·
+      <% elsif walk.mood_after.present? %>
         <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span> <%= walk.mood_after %>
         ·
       <% end %>

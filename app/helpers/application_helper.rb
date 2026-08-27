@@ -31,4 +31,19 @@ module ApplicationHelper
   def mood_icon(mood)
     MOOD_ICONS.fetch(mood)
   end
+
+  # Short comparative word for the walk-history card's before → after mood
+  # display (e.g. "Stressed → Calm" shows the "Calm" icon plus "Calmer"),
+  # rather than spelling out both mood names as text.
+  MOOD_CHANGE_LABELS = {
+    "Stressed" => "More stressed",
+    "Neutral" => "More neutral",
+    "Calm" => "Calmer",
+    "Good" => "Better",
+    "Energised" => "More energised"
+  }.freeze
+
+  def mood_change_label(mood_after)
+    MOOD_CHANGE_LABELS.fetch(mood_after, mood_after)
+  end
 end

@@ -82,6 +82,17 @@
   left: 16px;
 }
 
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.card-duration {
+  font-size: 1rem;
+  font-weight: normal;
+}
+
 .stats-row {
   display: flex;
   width: 100%;

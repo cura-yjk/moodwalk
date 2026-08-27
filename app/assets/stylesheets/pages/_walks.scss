@@ -7,6 +7,35 @@
   overflow: hidden;
 }
 
+// Same width as .map-preview (380px) so its left edge lines up with the
+// map's left edge instead of shrink-wrapping to its widest line and
+// centering independently under align-items-center on .preview-screen.
+.route-highlights {
+  width: 380px;
+  text-align: left;
+}
+
+// Centers the three title-card lines ("Your walk is ready", the journey
+// name, and the duration/loop/steps stats) relative to each other, rather
+// than each shrink-wrapping and left-aligning independently.
+.title-card {
+  text-align: center;
+}
+
+// Matches "Good morning, admin"'s style (.greeting, an h2 with no size/family
+// override -- so $headers-font, scaled down from the default h2 size).
+.walk-ready-title {
+  font-family: $headers-font;
+  font-size: 1.5rem;
+}
+
+// Matches "Where should we wander today?"'s style (.editorial-title on an h1
+// -- .editorial-title above supplies the font-family, this is a scaled-down
+// version of the h1 size).
+.journey-title {
+  font-size: 1.75rem;
+}
+
 // walks#show -- live walking screen (app/views/walks/show.html.erb)
 
 .walking-screen {

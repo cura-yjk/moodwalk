@@ -60,7 +60,7 @@
 }
 
 .tab.active {
-  background-color: darkseagreen;
+  background-color: #52774c;
   color: white;
   opacity: 1;
 }
@@ -147,6 +147,17 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
+}
+
+.mood-transition {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mood-transition-arrow {
+  font-size: 0.6rem;
+  color: rgba(14, 0, 0, 0.4);
 }
 
 .empty-state {

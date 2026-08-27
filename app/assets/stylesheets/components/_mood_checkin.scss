@@ -1,0 +1,149 @@
+// Optional homepage mood check-in: a small avatar (see shared/_mood_checkin
+// partial) plus the bottom sheet it opens. Kept in its own component file
+// since it's used from a single spot (the home header) but is a self
+// contained little widget, not page layout.
+//
+// Icons are the same ApplicationHelper::MOOD_ICONS artwork used by the
+// walk-complete mood picker (walks/_edit.scss's .mood-btn) -- each PNG
+// already renders as a filled colored circle with a face, so unlike a plain
+// icon font there's no background/color to set here, just sizing.
+
+$mood-checkin-fg: #4a7c59; // darker green -- matches walks/_edit.scss's
+                            // .mood-btn.selected border color
+
+// Positions the avatar at the top-right of whatever header row it's dropped
+// into (see the flex row wrapping it in pages/home.html.erb) -- the sheet and
+// its backdrop are fixed, so this wrapper otherwise takes up no extra space.
+.mood-checkin {
+  display: inline-flex;
+}
+
+.mood-checkin-avatar {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+
+  border: none;
+  border-radius: 50%;
+  background: none;
+
+  cursor: pointer;
+}
+
+.mood-checkin-avatar-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mood-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+
+  background-color: rgba(#000, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mood-sheet-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+// A small bottom sheet rather than a centered modal/card -- keeps the ask
+// ("how are you feeling?") feeling like a light tap-away aside, not a form.
+.mood-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 10px 24px calc(24px + env(safe-area-inset-bottom));
+
+  background-color: #faf8f1;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 16px rgba(#000, 0.08);
+
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+.mood-sheet.is-open {
+  transform: translateY(0);
+}
+
+.mood-sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin-bottom: 16px;
+
+  border-radius: 999px;
+  background-color: #e0ddd3;
+}
+
+.mood-sheet-title {
+  margin-bottom: 16px;
+
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-align: center;
+  color: #727272;
+}
+
+.mood-sheet-options {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+
+  margin-bottom: 12px;
+}
+
+// Same sizing/feel as walks/_edit.scss's .mood-btn (hover lift, active
+// press, green ring) so picking a mood here and on the walk-complete screen
+// feels like the same control.
+.mood-sheet-option {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.mood-sheet-option-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mood-sheet-option:hover {
+  transform: scale(1.12);
+}
+
+.mood-sheet-option:active {
+  transform: scale(0.96);
+  border-color: $mood-checkin-fg;
+}
+
+.mood-sheet-dismiss {
+  padding: 4px;
+
+  border: none;
+  background: none;
+  color: #a3a3a3;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
