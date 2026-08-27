@@ -1,5 +1,9 @@
 <div class="walk-card">
-  <div class="walk-thumbnail"></div>
+  <% if walk.photo.attached? %>
+    <div class="walk-thumbnail" style="background-image: url('<%= url_for(walk.photo) %>');"></div>
+  <% else %>
+    <div class="walk-thumbnail"></div>
+  <% end %>
 
   <div class="walk-details">
     <h4><%= walk.journey.name %></h4>

@@ -31,7 +31,7 @@ class WalksController < ApplicationController
   def index
     # includes(:journey) avoids an N+1 query — without it, Rails would
     # hit the DB separately for each walk's journey.name in the view
-    @walks = current_user.walks.includes(:journey).order(started_at: :desc)
+    @walks = current_user.walks.includes(:journey, photo_attachment: :blob).order(started_at: :desc)
     # Group the already-loaded walks into buckets by date.
     # This happens in Ruby (not a second DB query) since @walks is small
     # and already fully loaded — no need to hit the database again.
