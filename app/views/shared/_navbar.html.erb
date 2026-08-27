@@ -1,25 +1,50 @@
 <nav class="navbar navbar-expand-sm navbar-light navbar-lewagon">
   <div class="container-fluid"
     data-controller="nav">
-        <%= link_to walks_path, class: "nav-link" do %>
-          <i class="fa-solid fa-map-location-dot nav-icon
-          <%= active_icon_class(walks_path) %>"
-          ></i>
-        <% end %>
 
-        <%= link_to root_path, class: "nav-link" do %>
-          <span class="material-symbols-outlined fs-1
-          <%= active_icon_class(root_path) %>"
-          >
-          steps
-          </span>
-        <% end %>
+        <div class="d-flex flex-column align-items-center">
+          <div>
+            <%= link_to walks_path, class: "nav-link" do %>
+              <i class="fa-solid fa-map-location-dot nav-icon
+              <%= active_icon_class(walks_path) %>
+              <%= 'nav-active-highlight' if current_page?(walks_path) %>"
+              ></i>
+            <% end %>
+          </div>
+          <div class="nav-title">
+            History
+          </div>
+        </div>
 
-        <%= link_to new_user_session_path, class: "nav-link" do %>
-          <i class="fa-solid fa-users nav-icon
-          <%= active_icon_class(new_user_session_path) %>"
-          ></i>
-        <% end %>
+        <div class="d-flex flex-column align-items-center">
+          <div>
+            <%= link_to root_path, class: "nav-link" do %>
+            <i class="fa-solid fa-leaf nav-icon
+              <%= active_icon_class(root_path) %>
+              <%= 'nav-active-highlight' if current_page?(root_path) %>"
+            ></i>
+            <% end %>
+          </div>
+
+          <div class="nav-title">
+            Start
+          </div>
+        </div>
+
+        <div class="d-flex flex-column align-items-center">
+          <div>
+            <%= link_to new_user_session_path, class: "nav-link" do %>
+              <i class="fa-solid fa-users nav-icon
+              <%= active_icon_class(new_user_session_path) %>
+              <%= 'nav-active-highlight' if current_page?(new_user_session_path) %>"
+              ></i>
+            <% end %>
+          </div>
+          <div class="nav-title">
+            Explore
+          </div>
+        </div>
+
     </div>
   </div>
 </nav>
