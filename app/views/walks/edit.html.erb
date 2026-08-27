@@ -49,7 +49,7 @@
           mapping, not stored in the DB as a table — mood_after is a plain
           string, and this keeps the picker in sync with the icons shown
           elsewhere (e.g. the walks index) -->
-      <div class="mood-selector d-flex gap-4">
+      <div class="mood-selector d-flex justify-content-center gap-4">
         <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
           <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
             <%= f.radio_button :mood_after, value,

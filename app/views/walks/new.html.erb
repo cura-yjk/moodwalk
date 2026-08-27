@@ -3,33 +3,30 @@
     <h1 class="mb-3">Your walk is ready 🌿</h1>
     <h2 class="fw-bold"><%= @journey.name %></h2>
     <p class="walk-stats fw-semibold fs-5">
-    <% if @journey.estimated_duration_seconds %>
-      <%= @journey.estimated_duration_seconds / 60 %> min
-    <% else %>
-      -- min
-    <% end %>
-    · Loop ·
-    <% if @journey.estimated_steps %>
-      ~<%= @journey.estimated_steps %> steps
-    <% else %>
-      -- steps
-    <% end %>
-  </p>
+      <% if @journey.estimated_duration_seconds %>
+        <%= @journey.estimated_duration_seconds / 60 %> min
+      <% else %>
+        -- min
+      <% end %>
+      · Loop ·
+      <% if @journey.estimated_steps %>
+        ~<%= @journey.estimated_steps %> steps
+      <% else %>
+        -- steps
+      <% end %>
+    </p>
   </div>
-
   <div class="map-preview" class="route-map"
        data-controller="map"
        data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
        data-map-route-value="<%= @journey.route_coordinates.to_json %>">
   </div>
-
   <ul class="route-highlights list-unstyled">
     <li class="mb-1 fs-5">🌿 Greenery along the way</li>
     <li class="mb-1 fs-5">☀️ Mostly open streets</li>
     <li class="fs-5">🚶 Passes active areas</li>
   </ul>
-
   <div class="placeholder-actions d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">
       <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
@@ -39,12 +36,11 @@
           Back
         <% end %>
       </button>
-
       <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
         <i class="fa-regular fa-bookmark"></i>
         Save
       </button>
     </div>
-      <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
-    </div>
+    <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
+  </div>
 </div>
