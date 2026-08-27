@@ -1,13 +1,18 @@
-<div class="container d-flex flex-column justify-content-center align-items-center mt-5">
-  <% if user_signed_in? %>
-    <h1 class="greeting my-4">
-      <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
-    </h1>
+<div class="container d-flex flex-column justify-content-center align-items-center mt-5"
+id="suggestion-container"
+>
 
-    <div class="subtitle">
-      <h4 class="mb-3">Where should we wander today?</h4>
-      <h6>📍 Starting from Meguro <%= link_to "Change", "#" %></h6>
-    </div>
+  <div class="d-flex flex-column">
+    <% if user_signed_in? %>
+      <h2 class="greeting my-4">
+        <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
+      </h2>
+
+      <div class="subtitle">
+        <h1 class="mb-3">Where should we wander today?</h1>
+        <h6 class="mb-4">📍 Starting from Meguro <%= link_to "Change", "#", class: "link-btn" %></h6>
+      </div>
+  </div>
 
     <div id="suggest-container my-3">
 
