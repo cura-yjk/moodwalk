@@ -1,6 +1,7 @@
 .confirm-btn {
   background-color:darkseagreen;
   color: #f1f0f0;
+  font-weight: bold;
 
   border-radius: 16px;
   border: none;
@@ -21,11 +22,13 @@
 .link-btn {
   color: darkseagreen;
   text-decoration: none;
+  font-weight: bold;
 }
 
 .choice-btn {
   background-color: rgba(240, 250, 242, 0.15);
   color: #7A7A7A;
+  font-weight: bold;
 
   border: 1px solid #7A7A7A;
   border-radius: 12px;
@@ -40,6 +43,7 @@
   box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.15) !important;
 
   color: #f1f0f0;
+  font-weight: bold;
   background-color:darkseagreen;
 
   transition: 0.5s ease-in-out;

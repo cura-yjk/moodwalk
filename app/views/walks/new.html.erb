@@ -1,7 +1,8 @@
 <div class="preview-screen d-flex flex-column align-items-center my-5">
-  <h1 class="mb-3">Your walk is ready 🌿</h1>
-  <h2 class="fw-bold"><%= @journey.name %></h2>
-  <p class="walk-stats fw-semibold fs-5">
+  <div class="title-card">
+    <h1 class="mb-3">Your walk is ready 🌿</h1>
+    <h2 class="fw-bold"><%= @journey.name %></h2>
+    <p class="walk-stats fw-semibold fs-5">
     <% if @journey.estimated_duration_seconds %>
       <%= @journey.estimated_duration_seconds / 60 %> min
     <% else %>
@@ -14,6 +15,7 @@
       -- steps
     <% end %>
   </p>
+  </div>
 
   <div class="map-preview" class="route-map"
        data-controller="map"
