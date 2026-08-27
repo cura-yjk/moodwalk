@@ -1,11 +1,18 @@
-<div class="container d-flex flex-column align-items-center mt-5 p-0"
-id="journal-container"
->
+<% content_for :hide_navbar, true %>
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5 p-0">
+  <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
+       a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
+       the top, playing once on load. Sits behind all the real content below
+       but above the body's background gradient -- see .walk-complete-page /
+       .leaf-layer stacking in walks/_edit.scss. Purely decorative: it doesn't
+       change this page's layout or content. -->
+  <div class="leaf-layer" data-controller="leaves">
+    <div class="entrance-glow"></div>
+  </div>
 
   <!-- Header copy matching the "walk complete" mockup -->
   <h1 class="mt-5">Walk complete! 🌿</h1>
-  <p class="mb-3">A little more of the world, discovered.</p>
-
+  <p class="mb-3 text-center">A little more of the world,<br>discovered.</p>
   <!-- Hero image: shows the photo captured during the walk, if one exists.
      Falls back to a generic placeholder if the user skipped the camera step. -->
   <div class="walk-image">
@@ -19,7 +26,6 @@ id="journal-container"
       %>
     <% end %>
   </div>
-
   <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
   <div class="stats-row my-4">
     <div class="stats-card">
@@ -35,56 +41,43 @@ id="journal-container"
       <span class="stat-label">distance</span>
     </div>
   </div>
-
   <!-- Form for the two editable, optional fields: mood_after and reflection -->
   <div class="emoji-form d-flex flex-column align-items-center">
     <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
-
-      <h4 class="my-4 text-center">How do you feel now?</h4>
-
-      <!-- Fixed set of 5 mood options — not stored in the DB as a table,
-          just a small array we define here since mood_after is a plain string -->
-      <% mood_options = [
-        { value: "Sad",   emoji: "😢" },
-        { value: "Down",  emoji: "🙁" },
-        { value: "Okay",  emoji: "😐" },
-        { value: "Good",  emoji: "🙂" },
-        { value: "Great", emoji: "😃" }
-      ] %>
-
+      <h4 class="mt-3 mb-4 text-start mood-question">How do you feel now?</h4>
+      <!-- Mood options come from the shared ApplicationHelper::MOOD_ICONS
+          mapping, not stored in the DB as a table — mood_after is a plain
+          string, and this keeps the picker in sync with the icons shown
+          elsewhere (e.g. the walks index) -->
       <div class="mood-selector d-flex gap-4">
-        <% mood_options.each do |mood| %>
-          <label class="mood-btn <%= 'selected' if @walk.mood_after == mood[:value] %>">
-            <%= f.radio_button :mood_after, mood[:value],
-                  checked: (@walk.mood_after == mood[:value]),
+        <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
+          <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
+            <%= f.radio_button :mood_after, value,
+                  checked: (@walk.mood_after == value),
                   class: "mood-radio-hidden" %>
-            <span class="emoji"><%= mood[:emoji] %></span>
+            <%= image_tag image, alt: value, class: "mood-icon" %>
           </label>
         <% end %>
       </div>
+      <h6 class="mt-3 text-start">Anything you want to remember? (optional)</h6>
+      <%= f.text_area :reflection,
+            placeholder: "A thought, a feeling, something you noticed...",
+            class: "mb-3", id: "journal-input",
+            rows: 2 %>
+      <!-- Placeholder actions — not wired up yet, per your request -->
+      <div class="placeholder-actions d-flex w-100 gap-3 my-2">
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
+          <i class="fa-regular fa-heart"></i>
+          Save
+        </button>
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+          Share
+        </button>
+      </div>
+      <!-- The one real action on this page: submits mood_after + reflection,
+           then WalksController#update redirects to walks#index -->
+      <%= f.submit "Done", class: "done-btn mt-3 mb-5 w-100" %>
+    <% end %>
   </div>
-
-    <h6 class="mt-5 text-center">Anything you want to remember? (optional)</h6>
-    <%= f.text_area :reflection,
-          placeholder: "A thought, a feeling, something you noticed...",
-          class: "mb-3", id: "journal-input",
-          rows: 3 %>
-
-    <!-- Placeholder actions — not wired up yet, per your request -->
-    <div class="placeholder-actions d-flex w-100 gap-2 my-2">
-      <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
-        Save
-        <i class="fa-regular fa-bookmark"></i>
-      </button>
-      <button type="button" class="choice-btn w-50" disabled>
-        Share
-        <i class="fa-solid fa-share"></i>
-      </button>
-    </div>
-
-    <!-- The one real action on this page: submits mood_after + reflection,
-         then WalksController#update redirects to walks#index -->
-    <%= f.submit "Done", class: "done-btn mt-3 mb-5 w-100" %>
-  <% end %>
-
 </div>

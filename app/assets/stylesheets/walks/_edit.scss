@@ -6,29 +6,199 @@
 }
 
 /* Style the label itself as the clickable "button" */
-.mood-button {
+.mood-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
-  background-color: #f0f0f0;
+
+  transition: transform 0.15s ease;
+}
+
+/* A little lift on hover/press so the icons read as tappable even without
+   the background chip they used to have. */
+.mood-btn:hover {
+  transform: scale(1.12);
+}
+
+.mood-btn:active {
+  transform: scale(0.96);
 }
 
 /* Highlight whichever one is currently selected */
-.mood-button.selected {
+.mood-btn.selected {
   border-color: #4a7c59; /* matches the green in your mockup */
 }
 
 /* Also highlight on click even before a page reload, using :has()
    (supported in modern browsers) — optional nice-to-have */
-.mood-button:has(.mood-radio-hidden:checked) {
+.mood-btn:has(.mood-radio-hidden:checked) {
   border-color: #4a7c59;
 }
 
-.emoji {
-  font-size: 24px;
+/* The radio itself is visually hidden, so keyboard focus needs to show up
+   on the label instead -- otherwise tabbing through the picker gives no
+   visible feedback at all. */
+.mood-btn:has(.mood-radio-hidden:focus-visible) {
+  outline: 2px solid #4a7c59;
+  outline-offset: 3px;
+}
+
+.mood-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Smaller than the default h4 size, but still larger than the
+   "Anything you want to remember?" h6 prompt below it. */
+.mood-question {
+  font-size: 1.25rem;
+}
+
+/* Same 24em width as the hero image / reflection textarea, so the Save/Share
+   row lines up with them instead of stretching to the full container width
+   via the w-100 class in the view. */
+.placeholder-actions {
+  max-width: 24em;
+}
+
+// walks#edit -- entrance celebration (app/javascript/controllers/leaves_controller.js)
+//
+// .walk-complete-page has no visual/layout effect of its own (position:relative
+// with z-index:0, no offsets) -- it only opens a local stacking context so
+// .leaf-layer's negative z-index sinks it below the page's real (static)
+// content while staying above the body's own background gradient, instead of
+// sinking all the way behind that gradient (the well-known z-index:-1 pitfall
+// when there's no stacking-context ancestor to contain it).
+.walk-complete-page {
+  position: relative;
+  z-index: 0;
+}
+
+// Override the body's app-wide cream-to-green gradient with a solid cream
+// on this page only. body:has() lets us scope this without a dedicated
+// body class from the layout.
+body:has(.walk-complete-page) {
+  background-image: none;
+  background-color: #FAF8F1;
+}
+
+.leaf-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+// A brief warm highlight near the top of the screen, timed to the same
+// entrance window as the particles below -- not a permanent change to the
+// body's own cream-to-green gradient.
+.entrance-glow {
+  position: absolute;
+  inset: 0;
+
+  background: radial-gradient(ellipse 90% 55% at 50% 0%, rgba(255, 248, 224, 0.55), transparent 70%);
+  opacity: 0;
+
+  animation-name: glow-pulse;
+  animation-duration: 5.5s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes glow-pulse {
+  0% {
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  55% {
+    opacity: 0.35;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.particle {
+  position: absolute;
+  top: -6%;
+
+  width: var(--width);
+  height: var(--height);
+
+  background-color: var(--particle-color);
+  opacity: 0;
+  filter: blur(var(--blur));
+
+  translate: 0 0;
+  rotate: 0deg;
+
+  animation-name: particle-drift;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+  will-change: translate, rotate, opacity;
+}
+
+// Leaf silhouette via asymmetric border-radius.
+.particle--leaf {
+  border-radius: 0% 100% 0% 100%;
+}
+
+// Tiny soft dust/pollen-like particle.
+.particle--dot {
+  border-radius: 50%;
+}
+
+// Thin capsule read as a ribbon/streamer; the extra scale animation gives it
+// a gentle flutter as it's carried along, on top of the shared drift path.
+.particle--ribbon {
+  border-radius: 999px;
+
+  animation-name: particle-drift, ribbon-flutter;
+  animation-timing-function: ease-out, ease-in-out;
+  animation-fill-mode: forwards, forwards;
+}
+
+@keyframes particle-drift {
+  0% {
+    translate: 0 0;
+    rotate: var(--rotate-start);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: var(--peak-opacity);
+  }
+
+  70% {
+    opacity: var(--peak-opacity);
+  }
+
+  100% {
+    translate: var(--drift) var(--fall);
+    rotate: var(--rotate-end);
+    opacity: 0;
+  }
+}
+
+@keyframes ribbon-flutter {
+  0%,
+  100% {
+    scale: 1 1;
+  }
+
+  50% {
+    scale: 0.65 1;
+  }
 }

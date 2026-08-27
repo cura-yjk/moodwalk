@@ -35,7 +35,7 @@
     <%= render 'shared/ios_pwa_links' %>
   </head>
 
-  <body>
+  <body class="<%= "no-navbar" if content_for?(:hide_navbar) %>">
 
   <%= render "shared/flashes" %>
 

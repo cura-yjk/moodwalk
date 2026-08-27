@@ -138,13 +138,13 @@
   align-items: center;
   justify-content: center;
 
-  width: 20px;
-  height: 20px;
-
-  border-radius: 50%;
-  background-color: rgba(30, 221, 136, 0.2);
-
   font-size: 0.75rem;
+}
+
+.mood-badge-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .empty-state {

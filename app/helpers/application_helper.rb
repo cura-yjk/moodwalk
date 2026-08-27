@@ -17,21 +17,18 @@ module ApplicationHelper
     # current_time
   end
 
-  # Shared mood → emoji mapping. Centralizing this means the edit page's
+  # Shared mood → icon mapping. Centralizing this means the edit page's
   # mood picker and the index page's display always stay in sync — one
   # place to update if you add/change moods later.
-  MOOD_EMOJIS = {
-    "Sad" => "😢",
-    "Down" => "🙁",
-    "Okay" => "😐",
-    "Good" => "🙂",
-    "Great" => "😃",
-    "Calmer" => "😌"
+  MOOD_ICONS = {
+    "Stressed" => "moods/mood-stressed.png",
+    "Neutral" => "moods/mood-neutral.png",
+    "Calm" => "moods/mood-calm.png",
+    "Good" => "moods/mood-good.png",
+    "Energised" => "moods/mood-energised.png"
   }.freeze
 
-  def mood_emoji(mood)
-    # Fallback to a neutral emoji if a walk somehow has a mood value
-    # not in the list, rather than raising an error or showing blank.
-    MOOD_EMOJIS.fetch(mood, "🙂")
+  def mood_icon(mood)
+    MOOD_ICONS.fetch(mood)
   end
 end
