@@ -27,8 +27,8 @@ journey_specs = [
 
 journeys = journey_specs.map do |spec|
   result = JourneyGenerator.new(
-    lat: 35.6414,   # Meguro, Tokyo
-    lng: 139.7006,
+    lat: 35.63410765097896,   # Le Wagon, Tokyo
+    lng: 139.7081474537728,
     target_distance_meters: spec[:distance]
   ).call
 
