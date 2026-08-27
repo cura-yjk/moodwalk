@@ -13,13 +13,14 @@
 @import "components/cards";
 @import "components/containers";
 @import "components/index";
-@import "components/journal_input";
+@import "components/journal";
 @import "components/map";
 
 // Pages
 @import "walks/edit";
 @import "walks/index";
 @import "pages/index";
+@import "pages/preview";
 @import "pages/suggestions";
 
 body {

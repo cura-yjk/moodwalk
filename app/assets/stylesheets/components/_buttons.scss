@@ -1,16 +1,16 @@
 .confirm-btn {
-  border-radius: 16px;
-
   background-color:darkseagreen;
+  color: #f1f0f0;
+
+  border-radius: 16px;
   border: none;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.1) !important;
 
   transition: 0.5s ease-in-out;
 
   height: 40px;
   width: 140px;
   padding: 8px 16px;
-
-  color: #f1f0f0;
 }
 
 .confirm-btn:hover {
@@ -29,20 +29,21 @@
 
   border: 1px solid #7A7A7A;
   border-radius: 12px;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.1) !important;
 
   padding: 12px;
 }
 
 .done-btn {
-  border-radius: 16px;
-
-  background-color:darkseagreen;
   border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.15) !important;
+
+  color: #f1f0f0;
+  background-color:darkseagreen;
 
   transition: 0.5s ease-in-out;
   padding: 16px;
-
-  color: #f1f0f0;
 
   // Caps it to the same width as the hero image / reflection textarea above
   // (both 24em) so its edges line up instead of stretching to the full

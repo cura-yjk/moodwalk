@@ -1,7 +1,7 @@
 <div class="preview-screen d-flex flex-column align-items-center my-5">
-  <h1>Your walk is ready 🌿</h1>
-  <h2><%= @journey.name %></h2>
-  <p class="walk-stats">
+  <h1 class="mb-3">Your walk is ready 🌿</h1>
+  <h2 class="fw-bold"><%= @journey.name %></h2>
+  <p class="walk-stats fw-semibold fs-5">
     <% if @journey.estimated_duration_seconds %>
       <%= @journey.estimated_duration_seconds / 60 %> min
     <% else %>
@@ -14,22 +14,35 @@
       -- steps
     <% end %>
   </p>
-  <div  class="map-preview" class="route-map my-3"
+
+  <div class="map-preview" class="route-map"
        data-controller="map"
        data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
        data-map-route-value="<%= @journey.route_coordinates.to_json %>">
   </div>
-  <ul class="route-highlights list-unstyled">
-    <li class="mb-2">🌿 Greenery along the way</li>
-    <li class="mb-2">☀️ Mostly open streets</li>
-    <li class="mb-2">🚶 Passes active areas</li>
-  </ul>
-  <div class="submit-container d-flex align-items-center text-align-center gap-2">
-    <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "confirm-btn" %>
-    <button type="button" class="like-btn me-2 btn btn-link" disabled>
-      <i class="fa-regular fa-bookmark"></i>
-    </button>
-  </div>
 
+  <ul class="route-highlights list-unstyled">
+    <li class="mb-1 fs-5">🌿 Greenery along the way</li>
+    <li class="mb-1 fs-5">☀️ Mostly open streets</li>
+    <li class="fs-5">🚶 Passes active areas</li>
+  </ul>
+
+  <div class="placeholder-actions d-flex flex-column w-100 gap-3 my-2">
+    <div class="d-flex gap-2 mb-1">
+      <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
+        <%= link_to new_user_session_path, class: "nav-link text-transform-none" do %>
+          <i class="fa-solid fa-backward
+          "></i>
+          Back
+        <% end %>
+      </button>
+
+      <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
+        <i class="fa-regular fa-bookmark"></i>
+        Save
+      </button>
+    </div>
+      <%= button_to "Start walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
+    </div>
 </div>

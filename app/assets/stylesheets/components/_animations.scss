@@ -51,3 +51,18 @@
     transform: translateY(0);
   }
 }
+
+// fade in and out
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+    50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
