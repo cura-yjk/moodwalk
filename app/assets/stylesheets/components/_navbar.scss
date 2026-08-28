@@ -20,12 +20,8 @@
   font-size: 24px;
 }
 
-.nav-icon.nav-active-highlight {
-  color: #4cc338;
-  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
-}
 
-.nav-icon.nav-active-highlight >  {
+.nav-icon.nav-active-highlight {
   color: #4cc338;
   filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
 }
@@ -34,7 +30,7 @@
   font-size: 12px;
 }
 
-.nav-title.nav-title-highlight >  {
+.nav-title.nav-active-highlight {
   color: #4cc338;
   filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
 }
