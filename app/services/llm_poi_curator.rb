@@ -1,33 +1,8 @@
-# app/services/llm_poi_curator.rb
-#
-# Given a theme and a list of real nearby POIs (PoiFinder's output), asks
-# the LLM to:
-#   1. select 2-4 of the real candidate POIs that fit the theme
-#   2. put them in a sensible walking order
-#   3. write a short, grounded description of the route
-#
-# Uses RubyLLM's structured output (`with_schema`) instead of hand-rolled
-# JSON parsing, so the shape of the response is guaranteed rather than
-# hoped for.
-#
-# Usage:
-#   poi_result = PoiFinder.new(lat:, lng:, categories: THEMES[:nature_escape][:categories]).call
-#   curation   = LlmPoiCurator.new(theme_key: :nature_escape, pois: poi_result.pois).call
-#
-#   if curation.success?
-#     curation.waypoints    # => [{ id:, name:, category:, lat:, lng: }, ...] in walking order
-#     curation.description  # => "..."
-#   else
-#     curation.error
-#   end
-
 require "ruby_llm/schema" # gem 'ruby_llm-schema'
 
 class LlmPoiCurator
   Result = Struct.new(:success?, :waypoints, :description, :error, keyword_init: true)
 
-  # Structured output schema — guarantees the LLM returns exactly this
-  # shape instead of us parsing free-text JSON.
   class SelectionSchema < RubyLLM::Schema
     array :selected_poi_ids, of: :string,
                              description: "2-4 ids from the provided candidate list, in walking order"
@@ -103,16 +78,12 @@ class LlmPoiCurator
     MSG
   end
 
-  # Only send the LLM what it needs to choose and order — not lat/lng,
-  # which it has no use for and could hallucinate around.
   def poi_list_as_json
     @pois.map { |poi| poi.slice(:id, :name, :category) }.to_json
   end
 
-  # Map the LLM's chosen ids back to full POI hashes (with real lat/lng),
-  # preserving the order the LLM chose, and silently dropping any id that
-  # doesn't match a real candidate (defensive — schema doesn't guarantee
-  # the ids are ones we actually sent).
+  # Silently drops any id that doesn't match a real candidate (defensive --
+  # schema doesn't guarantee the ids are ones we actually sent).
   def resolve_waypoints(selected_ids)
     return [] if selected_ids.blank?
 

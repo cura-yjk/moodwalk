@@ -7,12 +7,8 @@ class PagesController < ApplicationController
 
   private
 
-  # Journey.near (see app/models/journey.rb) does the actual PostGIS
-  # distance query. If some themes aren't represented nearby yet, generate
-  # them now via RouteBuilder so the homepage never shows fewer than the
-  # full theme set when a route exists for it. Themes RouteBuilder can't
-  # find anything for (no nearby POIs, etc.) just don't produce a card --
-  # nothing to surface mid-page-load if one theme comes up empty.
+  # Backfills any theme with no nearby journey yet via RouteBuilder, so the
+  # homepage never shows fewer than the full theme set once routes exist.
   def nearby_journeys
     lat = current_user.current_latitude
     lng = current_user.current_longitude
