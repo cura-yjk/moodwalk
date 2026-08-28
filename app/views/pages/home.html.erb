@@ -4,7 +4,6 @@
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
 id="suggestion-container" data-controller="geolocation"
 >
-
   <div class="d-flex flex-column">
     <%# Everything below only shows for logged-in users -- signed-out visitors %>
     <%# see an empty page (presumably a landing/marketing view lives elsewhere). %>
@@ -18,7 +17,6 @@ id="suggestion-container" data-controller="geolocation"
         <%# how they're feeling right now. %>
         <%= render "shared/mood_checkin" %>
       </div>
-
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
           <%# A separate Stimulus controller ("location-search") handles toggling %>
@@ -47,6 +45,10 @@ id="suggestion-container" data-controller="geolocation"
               <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
             </div>
           </div>
+          <div>
+            <%= link_to "Change", "#", class: "link-btn" %>
+          </div>
+        </div>
       </div>
   </div>
 
@@ -93,7 +95,6 @@ id="suggestion-container" data-controller="geolocation"
           <% end %>
         <% end %>
       </div>
-
     </div>
   <% end %>
 </div>
