@@ -19,15 +19,15 @@ class PagesController < ApplicationController
     return Journey.none unless lat && lng
 
     existing = Journey.near(lat, lng)
-    return existing if existing.size >= THEMES.size
+    covered_themes = existing.map(&:theme_key).compact.uniq
+    return existing if covered_themes.size >= THEMES.size
 
-    generate_missing_themes(lat, lng, existing)
+    generate_missing_themes(lat, lng, covered_themes)
     Journey.near(lat, lng)
   end
 
-  def generate_missing_themes(lat, lng, existing)
-    covered = existing.map(&:theme_key).compact
-    missing = THEMES.keys.map(&:to_s) - covered
+  def generate_missing_themes(lat, lng, covered_themes)
+    missing = THEMES.keys.map(&:to_s) - covered_themes
 
     missing.each do |theme_key|
       RouteBuilder.new(lat: lat, lng: lng, theme_key: theme_key).call
