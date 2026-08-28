@@ -1,9 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Drives the "Change" link on the homepage: toggles a small inline search
-// field, and on submit sends the typed place name to LocationsController
-// (which geocodes it server-side) rather than trusting free-text
-// coordinates from the client.
 export default class extends Controller {
   static targets = ["form", "input"]
 
@@ -35,8 +31,6 @@ export default class extends Controller {
       return
     }
 
-    // Keep the field open so they can try a different search, rather than
-    // a disruptive alert.
     const body = await response.json().catch(() => ({}))
     this.inputTarget.setCustomValidity(body.error || "Couldn't find that place")
     this.inputTarget.reportValidity()

@@ -6,18 +6,10 @@ class JourneyGenerator
 
   Result = Struct.new(:success?, :journey, :error, keyword_init: true)
 
-  # Two ways to call this:
-  #
-  #   Synthetic loop (unchanged):
-  #     JourneyGenerator.new(lat:, lng:, target_distance_meters:).call
-  #
-  #   Real, LLM-curated POIs (new):
-  #     JourneyGenerator.new(lat:, lng:, waypoints: curation.waypoints, description: curation.description, theme_key: :nature_escape, name: "Nature Escape").call
-  #
-  #   `waypoints`, when present, wins — target_distance_meters is ignored
-  #   entirely in that path since the route length is just whatever those
-  #   real places add up to. There's no "grow/shrink the radius" retry loop
-  #   for real waypoints; we're not free to move real places around.
+  # `waypoints`, when present, wins -- target_distance_meters is ignored
+  # since the route length is just whatever those real places add up to.
+  # There's no grow/shrink retry loop for real waypoints; we're not free
+  # to move real places around.
   def initialize(lat:, lng:, target_distance_meters: nil, waypoints: nil, description: nil, theme_key: nil, name: nil)
     @lat = lat.to_f
     @lng = lng.to_f
@@ -38,9 +30,6 @@ class JourneyGenerator
 
   private
 
-  # --- Real, LLM-curated waypoints -----------------------------------
-  # Skip synthetic generation entirely: send the real coordinates
-  # straight to Directions and save whatever route comes back.
   def call_with_real_waypoints
     directions = fetch_directions(@waypoints)
     return Result.new(success?: false, error: directions[:error]) if directions[:error]
@@ -49,7 +38,6 @@ class JourneyGenerator
     Result.new(success?: true, journey: journey)
   end
 
-  # --- Synthetic circular loop (unchanged behavior) -------------------
   def call_with_synthetic_loop
     if @target_distance.blank?
       return Result.new(success?: false, error: "target_distance_meters is required when no waypoints are given")
@@ -105,9 +93,9 @@ class JourneyGenerator
     { lat: lat2 * 180 / Math::PI, lng: lng2 * 180 / Math::PI }
   end
 
-  # Accepts either synthetic { lat:, lng: } points or real POI hashes
-  # (id:, name:, category:, lat:, lng:) — only lat/lng are read here, so
-  # PoiFinder/LlmPoiCurator output can be passed straight through.
+  # Accepts either synthetic { lat:, lng: } points or real POI hashes --
+  # only lat/lng are read here, so PoiFinder/LlmPoiCurator output can be
+  # passed straight through.
   def fetch_directions(waypoints)
     coords = ([{ lat: @lat, lng: @lng }] + waypoints + [{ lat: @lat, lng: @lng }])
              .map { |p| "#{p[:lng]},#{p[:lat]}" }

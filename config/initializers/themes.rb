@@ -1,10 +1,3 @@
-# config/initializers/themes.rb
-#
-# Fixed theme categories the user taps to start a walk. No LLM call
-# happens at this stage — it's a plain lookup, used by RouteBuilder to
-# drive both PoiFinder (which Mapbox categories to search) and
-# LlmPoiCurator (what tone to write in).
-#
 # NOTE: category slugs below are drafts from Mapbox's docs, not yet
 # verified against the live endpoint. Before trusting them, check:
 #   GET https://api.mapbox.com/search/searchbox/v1/list/category
