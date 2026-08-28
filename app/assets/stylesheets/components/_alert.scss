@@ -1,7 +1,7 @@
 .alert {
   position: fixed;
   bottom: 0;
-  width: 76%;
+  width: 72%;
 
   border-radius: 24px;
   border: none;
@@ -13,8 +13,8 @@
 
   flex-shrink: 0;
 
-  margin-bottom: 42px;
+  margin-bottom: 46px;
   z-index: 9999;
 
-  animation: fadeInOut 3.5s ease-in-out forwards;
+  animation: fadeIn 1s ease-in forwards;
 }
