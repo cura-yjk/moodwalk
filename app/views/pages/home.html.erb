@@ -1,6 +1,7 @@
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
 id="suggestion-container"
 >
+
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
       <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
@@ -9,22 +10,26 @@ id="suggestion-container"
         </h2>
         <%= render "shared/mood_checkin" %>
       </div>
+
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
-        <div class="d-flex justify-content-between">
-          <div>
-            <p class="mb-4">📍 Starting from Meguro</p>
+          <div class="d-flex justify-content-between">
+            <div>
+              <p class="mb-4">📍 Starting from Meguro</p>
+            </div>
+            <div>
+              <%= link_to "Change", "#", class: "link-btn" %>
+            </div>
           </div>
-          <div>
-            <%= link_to "Change", "#", class: "link-btn" %>
-          </div>
-        </div>
       </div>
-    </div>
-    <div id="suggest-container" class="my-3">
-      <% placeholder_images = ["https://images.unsplash.com/photo-1783394422782-2e8d9c80dc5e?q=80&w=1752&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg"] %>
+  </div>
+
+    <div id="suggest-container my-3">
+
+      <% placeholder_images = ["https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+      "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+      "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
+
       <div class="journey-cards">
         <% @journeys.each_with_index do |journey, index| %>
           <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
@@ -48,6 +53,7 @@ id="suggestion-container"
           <% end %>
         <% end %>
       </div>
+
     </div>
   <% end %>
 </div>

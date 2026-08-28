@@ -14,7 +14,7 @@ test:
 production:
   primary:
     <<: *default
-    url: <%= ENV["DATABASE_URL"]&.gsub(/postgres/, 'postgis') %>
+    url: <%= ENV["DATABASE_URL"].gsub(/postgres/, 'postgis') %>
   cache:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>

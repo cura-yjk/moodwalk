@@ -7,23 +7,12 @@
   overflow: hidden;
 }
 
-// Same max-width as .map-preview (380px) so its left edge lines up with the
+// Same width as .map-preview (380px) so its left edge lines up with the
 // map's left edge instead of shrink-wrapping to its widest line and
 // centering independently under align-items-center on .preview-screen.
 .route-highlights {
-  width: 100%;
-  max-width: 380px;
+  width: 380px;
   text-align: left;
-}
-
-// Same inset as the other top-level pages (#suggestion-container,
-// #history-container, .walk-complete-page) -- previously unset, so this
-// screen's content ran flush to the screen edges on narrow phones like
-// iPhone 13, relying only on .map-preview/.route-highlights' old fixed
-// 380px width to (barely) avoid touching the edges.
-.preview-screen {
-  width: 88%;
-  margin-inline: auto;
 }
 
 // Centers the three title-card lines ("Your walk is ready", the journey
