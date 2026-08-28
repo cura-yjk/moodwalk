@@ -21,6 +21,8 @@
 #     curation.error
 #   end
 
+require "ruby_llm/schema" # gem 'ruby_llm-schema'
+
 class LlmPoiCurator
   Result = Struct.new(:success?, :waypoints, :description, :error, keyword_init: true)
 
@@ -30,7 +32,8 @@ class LlmPoiCurator
     array :selected_poi_ids, of: :string,
                              description: "2-4 ids from the provided candidate list, in walking order"
     string :description,
-           description: "1-2 sentence route description, grounded only in the selected places"
+           description: "1-2 sentence atmospheric route description, grounded only in the " \
+                        "selected places but naming none of them by name"
   end
 
   SYSTEM_PROMPT = <<~PROMPT
@@ -51,6 +54,10 @@ class LlmPoiCurator
     - Never use guilt, urgency, or scarcity language.
     - Ground every description only in the real places provided below - do
       not invent details about places that weren't given to you.
+    - Do not name specific places, streets, or venues in the description -
+      describe what's there (the water, the trees, the quiet), not what
+      it's called. Naming a place turns "just walk" into "go find this,"
+      which is one more thing to figure out.
 
     Given a theme and a list of real nearby places, select 2-4 of them that
     best fit the walk, put them in a sensible walking order, and write a

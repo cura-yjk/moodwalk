@@ -6,13 +6,55 @@ class JourneyGenerator
 
   Result = Struct.new(:success?, :journey, :error, keyword_init: true)
 
-  def initialize(lat:, lng:, target_distance_meters:)
+  # Two ways to call this:
+  #
+  #   Synthetic loop (unchanged):
+  #     JourneyGenerator.new(lat:, lng:, target_distance_meters:).call
+  #
+  #   Real, LLM-curated POIs (new):
+  #     JourneyGenerator.new(lat:, lng:, waypoints: curation.waypoints, description: curation.description, theme_key: :nature_escape, name: "Nature Escape").call
+  #
+  #   `waypoints`, when present, wins — target_distance_meters is ignored
+  #   entirely in that path since the route length is just whatever those
+  #   real places add up to. There's no "grow/shrink the radius" retry loop
+  #   for real waypoints; we're not free to move real places around.
+  def initialize(lat:, lng:, target_distance_meters: nil, waypoints: nil, description: nil, theme_key: nil, name: nil)
     @lat = lat.to_f
     @lng = lng.to_f
-    @target_distance = target_distance_meters.to_f
+    @target_distance = target_distance_meters&.to_f
+    @waypoints = waypoints
+    @description = description
+    @theme_key = theme_key
+    @name = name
   end
 
   def call
+    if @waypoints.present?
+      call_with_real_waypoints
+    else
+      call_with_synthetic_loop
+    end
+  end
+
+  private
+
+  # --- Real, LLM-curated waypoints -----------------------------------
+  # Skip synthetic generation entirely: send the real coordinates
+  # straight to Directions and save whatever route comes back.
+  def call_with_real_waypoints
+    directions = fetch_directions(@waypoints)
+    return Result.new(success?: false, error: directions[:error]) if directions[:error]
+
+    journey = save_journey(directions)
+    Result.new(success?: true, journey: journey)
+  end
+
+  # --- Synthetic circular loop (unchanged behavior) -------------------
+  def call_with_synthetic_loop
+    if @target_distance.blank?
+      return Result.new(success?: false, error: "target_distance_meters is required when no waypoints are given")
+    end
+
     radius = @target_distance / (2 * Math::PI)
 
     MAX_ATTEMPTS.times do |attempt|
@@ -33,8 +75,6 @@ class JourneyGenerator
       radius *= (1 / ratio)
     end
   end
-
-  private
 
   # Points around a rough circle at `radius` meters from origin, in bearing order,
   # so the walking directions API traces a loop rather than crisscrossing.
@@ -65,6 +105,9 @@ class JourneyGenerator
     { lat: lat2 * 180 / Math::PI, lng: lng2 * 180 / Math::PI }
   end
 
+  # Accepts either synthetic { lat:, lng: } points or real POI hashes
+  # (id:, name:, category:, lat:, lng:) — only lat/lng are read here, so
+  # PoiFinder/LlmPoiCurator output can be passed straight through.
   def fetch_directions(waypoints)
     coords = ([{ lat: @lat, lng: @lng }] + waypoints + [{ lat: @lat, lng: @lng }])
              .map { |p| "#{p[:lng]},#{p[:lat]}" }
@@ -89,6 +132,9 @@ class JourneyGenerator
       encoded_polyline: directions[:polyline],
       distance_meters: directions[:distance],
       estimated_duration_seconds: directions[:duration],
+      description: @description,
+      theme_key: @theme_key,
+      name: @name,
       start_point: RGeo::Geographic.spherical_factory(srid: 4326).point(@lng, @lat)
     )
   end

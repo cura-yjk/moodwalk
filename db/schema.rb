@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_135727) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_025146) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -52,8 +52,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_135727) do
     t.integer "estimated_steps"
     t.string "name"
     t.geography "start_point", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}, null: false
+    t.string "theme_key"
     t.datetime "updated_at", null: false
     t.index ["start_point"], name: "index_journeys_on_start_point", using: :gist
+    t.index ["theme_key"], name: "index_journeys_on_theme_key"
   end
 
   create_table "users", force: :cascade do |t|

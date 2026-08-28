@@ -9,7 +9,9 @@ Rails.application.routes.draw do
 
   get "calendar", to: "calendar#index"
 
-  resources :journeys, only: [] do
+  resource :location, only: [:update]
+
+  resources :journeys, only: [  ] do
     resources :walks, only: [ :new, :create ]
   end
 

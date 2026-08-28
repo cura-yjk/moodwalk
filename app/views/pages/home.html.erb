@@ -1,5 +1,5 @@
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
-id="suggestion-container"
+id="suggestion-container" data-controller="geolocation"
 >
 
   <div class="d-flex flex-column">
@@ -13,12 +13,18 @@ id="suggestion-container"
 
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
-          <div class="d-flex justify-content-between">
+          <div class="d-flex justify-content-between" data-controller="location-search">
             <div>
               <p class="mb-4">📍 Starting from Meguro</p>
+              <%= form_tag("#", method: :patch, class: "d-none mb-2", data: { location_search_target: "form", action: "submit->location-search#submit" }) do %>
+                <%= text_field_tag :query, nil,
+                      placeholder: "Search for a starting point",
+                      class: "form-control form-control-sm",
+                      data: { location_search_target: "input" } %>
+              <% end %>
             </div>
             <div>
-              <%= link_to "Change", "#", class: "link-btn" %>
+              <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
             </div>
           </div>
       </div>

@@ -79,4 +79,4 @@ gem 'faraday'
 gem "ruby_llm"
 gem "cloudinary"
 gem "activestorage-cloudinary-service"
-# gem "ruby_llm-schema"
+gem "ruby_llm-schema"
