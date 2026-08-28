@@ -78,12 +78,6 @@
 .walk-complete-page {
   position: relative;
   z-index: 0;
-
-  // Same inset as the other top-level pages (#suggestion-container,
-  // #history-container) -- without it (and with the p-0 that used to sit on
-  // this div in the view), content ran flush to the screen edges on narrow
-  // phones like iPhone 13.
-  width: 88%;
 }
 
 // Override the body's app-wide cream-to-green gradient with a solid cream
