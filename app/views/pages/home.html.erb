@@ -39,12 +39,12 @@ id="suggestion-container"
               <div class="card-overlay">
                 <div class="card-info">
                   <div class="card-title-row">
-                    <h4><%= journey.name %></h4>
+                    <h4 class="lh-1 mb-0"><%= journey.name %></h4>
                     <% if journey.estimated_duration_seconds.present? %>
                       <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
                     <% end %>
                   </div>
-                  <p>
+                  <p class="lh-1">
                     <%= journey.description %>
                   </p>
                 </div>
