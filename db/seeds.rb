@@ -15,7 +15,7 @@ Journey.destroy_all
 User.destroy_all
 
 puts "👤 Creating user..."
-user = User.create!(email: "admin@mail.com", name: "admin", password: "qwerty")
+user = User.create!(email: "twinky@mail.com", name: "Twinky", password: "qwerty")
 
 puts "🗺️  Generating journeys via Mapbox..."
 
