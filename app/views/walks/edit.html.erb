@@ -1,14 +1,63 @@
+<% content_for :hide_navbar, true %>
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
+  <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
+       a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
+       the top, playing once on load. Sits behind all the real content below
+       but above the body's background gradient -- see .walk-complete-page /
+       .leaf-layer stacking in walks/_edit.scss. Purely decorative: it doesn't
+       change this page's layout or content. -->
+  <div class="leaf-layer" data-controller="leaves">
+    <div class="entrance-glow"></div>
+  </div>
 
-    <% content_for :hide_navbar, true %>
-    <div class="container walk-complete-page d-flex flex-column align-items-center mt-5 p-0">
-      <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
-          a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
-          the top, playing once on load. Sits behind all the real content below
-          but above the body's background gradient -- see .walk-complete-page /
-          .leaf-layer stacking in walks/_edit.scss. Purely decorative: it doesn't
-          change this page's layout or content. -->
-      <div class="leaf-layer" data-controller="leaves">
-        <div class="entrance-glow"></div>
+  <!-- Header copy matching the "walk complete" mockup -->
+  <h1 class="mt-5 editorial-title">Walk complete! 🌿</h1>
+  <p class="mb-3 text-center">A little more of the world,<br>discovered.</p>
+  <!-- Hero image: shows the photo captured during the walk, if one exists.
+     Falls back to a generic placeholder if the user skipped the camera step. -->
+  <div class="walk-image">
+    <% if @walk.photo.attached? %>
+      <%= image_tag @walk.photo,
+        class: "walk-image"
+      %>
+    <% else %>
+      <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+        class: "walk-image"
+      %>
+    <% end %>
+  </div>
+  <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
+  <div class="stats-row my-4">
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">👣 <%= @walk.actual_steps %></span>
+      <span class="stat-label">steps</span>
+    </div>
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">⏲ <%= @walk.duration_in_minutes %> min</span>
+      <span class="stat-label">walking</span>
+    </div>
+    <div class="stats-card">
+      <span class="stat-value fw-bold fs-5">📍 <%= @walk.actual_distance %> km</span>
+      <span class="stat-label">distance</span>
+    </div>
+  </div>
+  <!-- Form for the two editable, optional fields: mood_after and reflection -->
+  <div class="emoji-form d-flex flex-column align-items-center">
+    <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
+      <h4 class="mt-3 mb-4 text-start mood-question">How do you feel now?</h4>
+      <!-- Mood options come from the shared ApplicationHelper::MOOD_ICONS
+          mapping, not stored in the DB as a table — mood_after is a plain
+          string, and this keeps the picker in sync with the icons shown
+          elsewhere (e.g. the walks index) -->
+      <div class="mood-selector d-flex justify-content-center gap-2">
+        <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
+          <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
+            <%= f.radio_button :mood_after, value,
+                  checked: (@walk.mood_after == value),
+                  class: "mood-radio-hidden" %>
+            <%= image_tag image, alt: value, class: "mood-icon" %>
+          </label>
+        <% end %>
       </div>
 
         <!-- Header copy matching the "walk complete" mockup -->

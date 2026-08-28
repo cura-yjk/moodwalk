@@ -4,7 +4,8 @@
 
 .card-image {
   height: 10em;
-  width: 24em;
+  width: 100%;
+  max-width: 24em;
 
   opacity: 0.9 !important;
 
@@ -49,7 +50,8 @@
 // hover-lift (which would otherwise hint it's tappable when it isn't).
 .walk-image {
   height: 12em;
-  width: 24em;
+  width: 100%;
+  max-width: 24em;
 
   border-radius: 24px;
   object-fit: cover;
