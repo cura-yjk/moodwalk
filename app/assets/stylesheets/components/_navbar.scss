@@ -21,13 +21,22 @@
 }
 
 .nav-icon.nav-active-highlight {
-  color: #52774c;
+  color: #4cc338;
   filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
 }
 
+.nav-icon.nav-active-highlight >  {
+  color: #4cc338;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
+}
 
 .nav-title {
   font-size: 12px;
+}
+
+.nav-title.nav-title-highlight >  {
+  color: #4cc338;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
 }
 
 .navbar-lewagon {
@@ -39,7 +48,3 @@
 .navbar-lewagon .navbar-collapse {
   flex-grow: 0;
 }
-
-// .highlight-icon {
-//   color: white;
-// }
