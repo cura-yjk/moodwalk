@@ -33,7 +33,7 @@ body {
 
   font-family: 'Quicksand', 'Arial';
 
-  background-color: #f2e6d4;
+  background-color: #f8f8f1;
   color: #727272;
 
   // background-image: linear-gradient(to bottom,
@@ -55,4 +55,11 @@ body {
   width: 100%;
   flex: 1 0 auto;
   width: 100%;
+}
+
+// Marquee headlines ("Where should we wander today?", "Your walk is ready",
+// "Walk complete!", "My Walks") -- an editorial serif, distinct from the
+// $headers-font used elsewhere in the h1/h2 hierarchy.
+.editorial-title {
+  font-family: $editorial-font;
 }

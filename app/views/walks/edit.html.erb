@@ -11,7 +11,7 @@
   </div>
 
   <!-- Header copy matching the "walk complete" mockup -->
-  <h1 class="mt-5">Walk complete! 🌿</h1>
+  <h1 class="mt-5 editorial-title">Walk complete! 🌿</h1>
   <p class="mb-3 text-center">A little more of the world,<br>discovered.</p>
   <!-- Hero image: shows the photo captured during the walk, if one exists.
      Falls back to a generic placeholder if the user skipped the camera step. -->
@@ -49,7 +49,7 @@
           mapping, not stored in the DB as a table — mood_after is a plain
           string, and this keeps the picker in sync with the icons shown
           elsewhere (e.g. the walks index) -->
-      <div class="mood-selector d-flex gap-4">
+      <div class="mood-selector d-flex justify-content-center gap-4">
         <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
           <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
             <%= f.radio_button :mood_after, value,

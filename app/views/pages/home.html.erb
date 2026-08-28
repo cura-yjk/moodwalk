@@ -4,12 +4,15 @@ id="suggestion-container"
 
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
-      <h2 class="greeting my-4">
-        <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
-      </h2>
+      <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
+        <h2 class="greeting mb-0">
+          <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
+        </h2>
+        <%= render "shared/mood_checkin" %>
+      </div>
 
       <div class="subtitle">
-        <h1 class="mb-3">Where should we wander today?</h1>
+        <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
           <div class="d-flex justify-content-between">
             <div>
               <p class="mb-4">📍 Starting from Meguro</p>
@@ -35,12 +38,14 @@ id="suggestion-container"
             animation-delay: <%= index * 0.3 %>s;">
               <div class="card-overlay">
                 <div class="card-info">
-                  <h4><%= journey.name %></h4>
+                  <div class="card-title-row">
+                    <h4><%= journey.name %></h4>
+                    <% if journey.estimated_duration_seconds.present? %>
+                      <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                    <% end %>
+                  </div>
                   <p>
                     <%= journey.description %>
-                    <!--<%# if journey.estimated_duration_seconds.present? %>
-                      · <%#= (journey.estimated_duration_seconds / 60.0).round %> min
-                    <%# end %>-->
                   </p>
                 </div>
               </div>

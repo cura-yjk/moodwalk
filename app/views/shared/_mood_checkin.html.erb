@@ -1,0 +1,41 @@
+<%# Optional, ambient mood check-in: a small avatar in the homepage header that
+    opens a bottom sheet with 5 mood options. Nothing here is required to start
+    a walk -- it's just an invitation to reflect, so it stays out of the way
+    unless tapped. Uses the same ApplicationHelper::MOOD_ICONS artwork as the
+    walk-complete mood picker (walks/edit.html.erb) so the two read as the
+    same feature. Selection is remembered client-side only (localStorage) via
+    mood_checkin_controller.js; there's no server-side model for it. %>
+<div class="mood-checkin"
+  data-controller="mood-checkin"
+  data-mood-checkin-icons-value="<%= ApplicationHelper::MOOD_ICONS.transform_values { |image| asset_path(image) }.to_json %>">
+
+  <button type="button"
+    class="mood-checkin-avatar"
+    aria-haspopup="dialog"
+    aria-label="Check in on your mood"
+    data-action="click->mood-checkin#open">
+    <%= image_tag ApplicationHelper::MOOD_ICONS["Neutral"], alt: "Mood check-in",
+          class: "mood-checkin-avatar-icon", data: { "mood-checkin-target": "avatarFace" } %>
+  </button>
+
+  <div class="mood-sheet-backdrop" data-mood-checkin-target="backdrop" data-action="click->mood-checkin#close"></div>
+
+  <div class="mood-sheet" role="dialog" aria-modal="true" aria-labelledby="mood-sheet-title" data-mood-checkin-target="sheet">
+    <div class="mood-sheet-handle"></div>
+    <p id="mood-sheet-title" class="mood-sheet-title">How are you feeling right now?</p>
+
+    <div class="mood-sheet-options">
+      <% ApplicationHelper::MOOD_ICONS.each do |mood, image| %>
+        <button type="button"
+          class="mood-sheet-option"
+          data-action="click->mood-checkin#select"
+          data-mood="<%= mood %>"
+          aria-label="<%= mood %>">
+          <%= image_tag image, alt: mood, class: "mood-sheet-option-icon" %>
+        </button>
+      <% end %>
+    </div>
+
+    <button type="button" class="mood-sheet-dismiss" data-action="click->mood-checkin#close">Not now</button>
+  </div>
+</div>

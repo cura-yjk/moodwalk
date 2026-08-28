@@ -13,7 +13,7 @@ class WalksController < ApplicationController
 
   def create
     @journey = Journey.find(params[:journey_id])
-    @walk = @journey.walks.new(user: current_user, started_at: Time.current)
+    @walk = @journey.walks.new(user: current_user, started_at: Time.current, mood_before: sanitized_mood_before)
 
     if @walk.save
       redirect_to walk_path(@walk)
@@ -69,6 +69,15 @@ class WalksController < ApplicationController
 
   def walk_params
     params.require(:walk).permit(:mood_after, :reflection, :photo)
+  end
+
+  # The "Start walking" form carries along whatever mood the user last
+  # picked in the homepage check-in (see mood_checkin_controller.js), as a
+  # plain hidden field -- not a real form the user fills in, so validate it
+  # against the known mood set rather than trusting it outright.
+  def sanitized_mood_before
+    mood = params.dig(:walk, :mood_before)
+    mood if ApplicationHelper::MOOD_ICONS.key?(mood)
   end
 
   def group_walks_by_date(walks)
