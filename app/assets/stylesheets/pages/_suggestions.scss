@@ -2,6 +2,15 @@
   width: 88%;
 }
 
+// #suggestion-container centers its children (align-items-center in the
+// view), which shrink-wraps them to their own content width. .journey-cards
+// underneath has no in-flow content of its own (each card is just a
+// background-image with absolutely-positioned text over it), so without an
+// explicit stretch here it collapses to 0 width and the cards vanish.
+#suggest-container {
+  align-self: stretch;
+}
+
 .landing-container {
   display: flex;
   flex-direction: column;
