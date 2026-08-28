@@ -1,21 +1,40 @@
+<%# Main container for the home page's journey-suggestion section. %>
+<%# Wired up to a Stimulus controller ("geolocation") that presumably requests %>
+<%# the browser's location on load and saves it via the /location route. %>
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
 id="suggestion-container" data-controller="geolocation"
 >
 
   <div class="d-flex flex-column">
+    <%# Everything below only shows for logged-in users -- signed-out visitors %>
+    <%# see an empty page (presumably a landing/marketing view lives elsewhere). %>
     <% if user_signed_in? %>
       <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
         <h2 class="greeting mb-0">
+          <%# e.g. "Good morning, Alex" -- greeting text changes based on time of day. %>
           <%= "#{time_based_greeting}, #{current_user.name.capitalize}" %>
         </h2>
+        <%# Renders a shared partial (used elsewhere too) that lets the user log %>
+        <%# how they're feeling right now. %>
         <%= render "shared/mood_checkin" %>
       </div>
 
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
+          <%# A separate Stimulus controller ("location-search") handles toggling %>
+          <%# between "just show the current location" and "let me search for one". %>
           <div class="d-flex justify-content-between" data-controller="location-search">
             <div>
-              <p class="mb-4">📍 Starting from Meguro</p>
+              <!-- Shows the place name currently on file for this user (set either by
+    automatic geolocation on page load, or by manually searching via the
+    "Change" link). Falls back to generic text if we don't have a name
+    yet -- e.g. a brand-new user who hasn't granted location access or
+    searched anything. -->
+<p class="mb-4">📍 Starting from <%= current_user.current_location_name || "your area" %></p>
+              <%# Hidden by default (d-none) -- only appears once the user clicks "Change" %>
+              <%# below. Submitting it triggers the Stimulus controller's #submit action %>
+              <%# rather than a normal page reload (note action="#" -- JS handles it, %>
+              <%# likely firing off a request to update current_location behind the scenes). %>
               <%= form_tag("#", method: :patch, class: "d-none mb-2", data: { location_search_target: "form", action: "submit->location-search#submit" }) do %>
                 <%= text_field_tag :query, nil,
                       placeholder: "Search for a starting point",
@@ -24,21 +43,34 @@ id="suggestion-container" data-controller="geolocation"
               <% end %>
             </div>
             <div>
+              <%# Clicking this reveals the search form above (toggle action, no page navigation). %>
               <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
             </div>
           </div>
       </div>
   </div>
 
-    <div id="suggest-container my-3">
+    <div id="suggest-container" class="my-3">
 
+      <%# TEMPORARY: hardcoded stock photo URLs used as card backgrounds until %>
+      <%# journeys have their own real images. First two entries are duplicates -- %>
+      <%# likely a placeholder bug rather than intentional. Cards beyond the 3rd %>
+      <%# journey will have no image (index out of bounds -> nil). %>
       <% placeholder_images = ["https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
       "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
       "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
 
+      <%# Grid/list of suggested journeys the user can pick from (set as @journeys %>
+      <%# in the controller, presumably nearby ones based on current location). %>
       <div class="journey-cards">
         <% @journeys.each_with_index do |journey, index| %>
+          <%# Clicking a card takes the user to the "start a walk" form for that %>
+          <%# specific journey (the nested new_journey_walk_path route). %>
           <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
+            <%# Background image set via a CSS custom property so it can be used %>
+            <%# in the stylesheet (e.g. background-image: var(--card-image)). %>
+            <%# Animation delay staggers each card's entrance so they don't all %>
+            <%# animate in at once. %>
             <div class="card-image"
             style="--card-image: url('<%= placeholder_images[index] %>');
             animation-delay: <%= index * 0.3 %>s;">
@@ -46,6 +78,8 @@ id="suggestion-container" data-controller="geolocation"
                 <div class="card-info">
                   <div class="card-title-row">
                     <h4><%= journey.name %></h4>
+                    <%# Only show estimated time if we actually have one; converts %>
+                    <%# seconds -> rounded minutes for display. %>
                     <% if journey.estimated_duration_seconds.present? %>
                       <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
                     <% end %>
