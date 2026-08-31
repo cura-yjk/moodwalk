@@ -28,16 +28,20 @@
     <li class="mb-1 fs-5">☀️ Mostly open streets</li>
     <li class="fs-5">🚶 Passes active areas</li>
   </ul>
-  <div class="placeholder-actions d-flex flex-column w-100 gap-3 my-2">
+
+  <div class="d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">
-      <%= link_to root_path, class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" do %>
+      <%= link_to root_path,
+      class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
         <i class="fa-solid fa-backward"></i> Back
       <% end %>
       <%= button_to save_journey_path(@journey), method: :patch,
-            class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" do %>
+        form_class: "w-50",
+        class: "choice-btn d-flex align-items-center gap-3 justify-content-center w-100" do %>
         <i class="fa-regular fa-bookmark"></i> Save
       <% end %>
     </div>
+
     <%= form_with url: journey_walks_path(@journey), scope: :walk, data: { controller: "carry-checkin-mood" } do |f| %>
       <%= f.hidden_field :mood_before, data: { "carry-checkin-mood-target": "field" } %>
       <%= f.submit "Start walking", class: "done-btn w-100" %>
