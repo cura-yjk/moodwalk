@@ -24,9 +24,25 @@ class PoiFinder
 
   private
 
+  # Rough meters-per-degree conversion, good enough at city scale --
+  # 1 degree latitude ~= 111,320m everywhere; longitude shrinks with
+  # latitude, so it's scaled by cos(lat).
+  def bbox
+    lat_delta = @radius_meters / 111_320.0
+    lng_delta = @radius_meters / (111_320.0 * Math.cos(@lat * Math::PI / 180))
+
+    [
+      @lng - lng_delta,
+      @lat - lat_delta,
+      @lng + lng_delta,
+      @lat + lat_delta
+    ].join(",")
+  end
+
   def fetch_category(category)
     response = Faraday.get("#{SEARCH_BOX_CATEGORY_URL}/#{category}") do |req|
-      req.params["proximity"] = "#{@lng},#{@lat}" # Mapbox wants "lng,lat", not "lat,lng"
+      req.params["proximity"] = "#{@lng},#{@lat}"
+      req.params["bbox"] = bbox
       req.params["limit"] = @limit_per_category
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end

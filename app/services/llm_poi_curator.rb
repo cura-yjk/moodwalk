@@ -65,7 +65,7 @@ class LlmPoiCurator
                   .with_instructions(SYSTEM_PROMPT)
                   .with_schema(SelectionSchema)
 
-    chat.ask(user_message)
+    chat.ask(user_message).content
   end
 
   def user_message
