@@ -1,6 +1,4 @@
-<div class="container d-flex flex-column justify-content-center align-items-center mt-5"
-id="suggestion-container"
->
+<div class="container d-flex flex-column justify-content-center align-items-center mt-5" id="suggestion-container" data-controller="geolocation">
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
       <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
@@ -27,13 +25,11 @@ id="suggestion-container"
             <ul class="location-suggestions list-unstyled d-none" data-location-search-target="suggestions"></ul>
           </div>
           <div>
-            <%= link_to "Change", "#", class: "link-btn" %>
+            <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
           </div>
         </div>
       </div>
-
       <%= render "theme_picker" %>
-
       <div id="suggest-container" class="my-3 journey-cards">
         <% if @journeys.present? %>
           <% @journeys.each do |journey| %>
@@ -51,10 +47,13 @@ id="suggestion-container"
                   </p>
                 </div>
               </div>
-            </div>
-          <% end %>
-        <% end %>
+            <% end %> <%# Closes link_to %>
+          <% end %> <%# Closes @journeys.each %>
+        <% end %> <%# Closes if @journeys.present? %>
       </div>
-    </div>
-  <% end %>
+ <%# Closes #suggest-container %>
+    <% end %> <%# Closes if user_signed_in? %>
+  </div>
+ <%# Closes .d-flex.flex-column %>
 </div>
+ <%# Closes #suggestion-container %>
