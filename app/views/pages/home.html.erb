@@ -1,5 +1,5 @@
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
-id="suggestion-container" data-controller="geolocation"
+id="suggestion-container"
 >
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
@@ -27,7 +27,7 @@ id="suggestion-container" data-controller="geolocation"
             <ul class="location-suggestions list-unstyled d-none" data-location-search-target="suggestions"></ul>
           </div>
           <div>
-            <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
+            <%= link_to "Change", "#", class: "link-btn" %>
           </div>
         </div>
       </div>
@@ -41,17 +41,20 @@ id="suggestion-container" data-controller="geolocation"
               <div class="card-image">
                 <div class="card-info">
                   <div class="card-title-row">
-                    <h5 class="mb-0"><%= journey.name %></h5>
-                    <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                    <h4><%= journey.name %></h4>
+                    <% if journey.estimated_duration_seconds.present? %>
+                      <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                    <% end %>
                   </div>
+                  <p>
+                    <%= journey.description %>
+                  </p>
                 </div>
               </div>
-            <% end %>
+            </div>
           <% end %>
-        <% else %>
-          <p>Couldn't find any walks nearby yet.</p>
         <% end %>
       </div>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 </div>
