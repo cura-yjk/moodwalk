@@ -8,6 +8,13 @@ class Journey < ApplicationRecord
       .order(Arel.sql("start_point <-> ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography"))
   }
 
+  # Placeholder images
+  PLACEHOLDER_IMAGES = [
+    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
+    "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="
+  ]
+
   # decodes `encoded_polyline` (Google/Mapbox encoded polyline, precision 5) into
   # [lng, lat] pairs, ready to drop into a GeoJSON LineString for Mapbox GL.
   # rubocop:disable Metrics/MethodLength

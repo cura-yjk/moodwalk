@@ -16,18 +16,11 @@
   background-position: center;
   background-repeat: no-repeat;
 
-  // color: #727272;
+  background: linear-gradient(rgba(115, 238, 220, 0.34), rgba(115, 194, 190, 0.8));
 
   // background-image:
-  // linear-gradient(to right,
-  // rgb(240, 240, 240) 46%,
-  // rgba(255, 255, 255, 0.4) 66%,
-  // rgba(255, 255, 255, 0) 100%),
+  // linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
   // var(--card-image);
-
-  background-image:
-  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
-  var(--card-image);
   color: #faf8f1;
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 

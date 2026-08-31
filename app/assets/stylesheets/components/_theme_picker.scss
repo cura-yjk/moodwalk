@@ -8,7 +8,7 @@
 
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
 
   width: 100%;
   margin-bottom: 16px;
@@ -17,15 +17,18 @@
 .theme-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+
+  margin-bottom: 12px;
 
   width: 100%;
-  padding: 20px 16px;
+  padding: 24px 16px;
 
   border: none;
   border-radius: 20px;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.1) !important;
 
-  font-size: 1rem;
+  font-size: 14px;
   font-weight: 600;
   text-align: left;
   color: #3a3a3a;
