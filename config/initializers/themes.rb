@@ -7,7 +7,6 @@
 THEMES = {
   calm: {
     label: "Calm",
-    subtitle: "Quiet your mind, one step at a time",
     icon: "fa-solid fa-cloud",
     categories: ["park", "garden", "nature_reserve"],
     tone: "quiet, unhurried, and settled — emphasize low traffic, " \
@@ -15,7 +14,6 @@ THEMES = {
   },
   refresh: {
     label: "Refresh",
-    subtitle: "Energize your body and mind",
     icon: "fa-solid fa-droplet",
     categories: ["beach", "viewpoint", "waterfront"],
     tone: "open and energizing — emphasize fresh air, a scenic outlook, " \
@@ -23,7 +21,6 @@ THEMES = {
   },
   discover: {
     label: "Discover",
-    subtitle: "Wander somewhere new",
     icon: "fa-solid fa-compass",
     categories: ["historical_landmark", "monument", "museum", "art_gallery"],
     tone: "curious and novel — emphasize unfamiliar streets, small " \
@@ -32,7 +29,6 @@ THEMES = {
   },
   cheerful: {
     label: "Cheerful",
-    subtitle: "Find a little delight nearby",
     icon: "fa-solid fa-sun",
     categories: ["market", "bakery", "playground"],
     tone: "bright and light — emphasize color, everyday liveliness, " \
@@ -40,7 +36,6 @@ THEMES = {
   },
   recharge: {
     label: "Recharge",
-    subtitle: "Slow down and restore",
     icon: "fa-solid fa-leaf",
     categories: ["nature_reserve", "hiking_trail", "campground"],
     tone: "deep and restorative — emphasize dense greenery, distance " \

@@ -1,0 +1,35 @@
+<div class="route-preview">
+  <p class="route-ready-label mb-2">Your walk is ready 🌿</p>
+  <h1 class="editorial-title mb-2"><%= pending_journey.name %></h1>
+  <p class="route-meta mb-3">
+    <%= (pending_journey.estimated_duration_seconds / 60.0).round %> min ·
+    Loop ·
+    ~<%= (pending_journey.distance_meters / 0.75).round %> steps
+  </p>
+
+  <div class="route-map mb-3">
+    <% polyline = ERB::Util.url_encode(pending_journey.encoded_polyline) %>
+    <%= image_tag(
+          "https://api.mapbox.com/styles/v1/mapbox/light-v11/static/" \
+          "path-5+2d5a3d(#{polyline})/auto/600x400@2x" \
+          "?padding=40&access_token=#{ENV.fetch('MAPBOX_ACCESS_TOKEN')}",
+          alt: "Map of #{pending_journey.name}",
+          class: "route-map-img"
+        ) %>
+  </div>
+
+  <p class="route-description mb-4"><%= pending_journey.description %></p>
+
+  <div class="route-actions d-flex gap-3">
+    <%= button_to "← Back", route_path, method: :delete,
+          class: "btn-outline-route",
+          data: { turbo_frame: "route_generation" } %>
+    <%= button_to "🔖 Save", save_route_path, method: :post,
+          class: "btn-outline-route",
+          data: { turbo_frame: "_top" } %>
+  </div>
+
+  <%= button_to "Start walking", save_route_path(start: true), method: :post,
+        class: "btn-start-walking w-100 mt-3",
+        data: { turbo_frame: "_top" } %>
+</div>

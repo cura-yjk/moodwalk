@@ -53,38 +53,18 @@ class PoiFinder
     # wrong -- catch that explicitly rather than silently returning an empty list.
     raise "Mapbox error (#{category}): #{body['message']}" if body["message"] && body["features"].nil?
 
-    (body["features"] || []).map { |feature| poi_from_feature(feature, category) }
-  end
-
-  def poi_from_feature(feature, category)
-    lat = feature.dig("geometry", "coordinates", 1) # GeoJSON order is [lng, lat]
-    lng = feature.dig("geometry", "coordinates", 0)
-
-    {
-      id: feature.dig("properties", "mapbox_id"),
-      name: feature.dig("properties", "name"),
-      category: category,
-      lat: lat,
-      lng: lng,
-      distance_meters: haversine_distance(@lat, @lng, lat, lng).round
-    }
+    (body["features"] || []).map do |feature|
+      {
+        id: feature.dig("properties", "mapbox_id"),
+        name: feature.dig("properties", "name"),
+        category: category,
+        lat: feature.dig("geometry", "coordinates", 1), # GeoJSON order is [lng, lat]
+        lng: feature.dig("geometry", "coordinates", 0)
+      }
+    end
   end
 
   def dedupe(pois)
     pois.uniq { |poi| poi[:id] }
-  end
-
-  # Straight-line distance from the search origin - lets callers (notably
-  # LlmPoiCurator) reason about how far out a candidate sits without a
-  # separate routing call.
-  def haversine_distance(lat1, lng1, lat2, lng2)
-    earth_radius = 6_378_137.0
-    d_lat = (lat2 - lat1) * Math::PI / 180
-    d_lng = (lng2 - lng1) * Math::PI / 180
-
-    a = (Math.sin(d_lat / 2)**2) +
-        (Math.cos(lat1 * Math::PI / 180) * Math.cos(lat2 * Math::PI / 180) * (Math.sin(d_lng / 2)**2))
-
-    2 * earth_radius * Math.asin(Math.sqrt(a))
   end
 end
