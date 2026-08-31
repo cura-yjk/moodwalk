@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   devise_for :users
+
   root to: "pages#home"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -9,8 +10,15 @@ Rails.application.routes.draw do
 
   get "calendar", to: "calendar#index"
 
+  resource :route, only: [:create, :destroy] do
+    post :save, on: :collection
+  end
+
+  resource :location, only: [:update]
+
   resources :journeys, only: [] do
-    resources :walks, only: [ :new, :create ]
+    resources :walks, only: [:new, :create]
+    member { patch :save }
   end
 
   resources :walks, only: [ :show, :edit, :update, :index ] do
@@ -19,6 +27,7 @@ Rails.application.routes.draw do
       patch :attach_photo
     end
   end
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker

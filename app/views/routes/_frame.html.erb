@@ -1,0 +1,7 @@
+<%= turbo_frame_tag "route_generation", data: { controller: "route-generation", route_generation_target: "frame" } do %>
+  <% if pending_journey %>
+    <%= render "routes/preview", pending_journey: pending_journey %>
+  <% else %>
+    <%= render "routes/theme_picker" %>
+  <% end %>
+<% end %>

@@ -1,0 +1,11 @@
+<div class="theme-picker">
+  <% THEMES.each do |key, theme| %>
+    <%= button_to route_path(theme_key: key),
+          method: :post,
+          class: "theme-card",
+          data: { turbo_frame: "route_generation", action: "click->route-generation#showLoading" } do %>
+      <i class="<%= theme[:icon] %>"></i>
+      <span><%= theme[:label] %></span>
+    <% end %>
+  <% end %>
+</div>
