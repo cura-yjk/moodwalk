@@ -13,10 +13,16 @@ class JourneysController < ApplicationController
     return redirect_to root_path, alert: "We need your location to find a walk nearby." unless located?
 
     result = generate_journey
-    return redirect_to root_path, alert: result.error unless result.success?
-
-    result.journey.save!
-    redirect_to new_journey_walk_path(result.journey)
+    if result.error
+      nearest = Journey.near(current_user.current_latitude,
+                             current_user.current_longitude).find_by(saved: true) || Journey.last
+      # nearest = Journey.near(current_user.current_latitude,
+      #                        current_user.current_longitude).where("duration_in_seconds <= ?", duration_minutes).find_by(saved: true, theme: theme_key) || Journey.last
+      redirect_to new_journey_walk_path(nearest)
+    else
+      result.journey.save
+      redirect_to new_journey_walk_path(result.journey)
+    end
   end
 
   def save
