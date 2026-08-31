@@ -26,39 +26,25 @@ id="suggestion-container" data-controller="geolocation"
           </div>
         </div>
       </div>
-    </div>
 
-    <div id="suggest-container" class="my-3">
-
-      <%# TEMPORARY: placeholder card images -- first two entries are duplicates, %>
-      <%# likely a bug rather than intentional; cards past the 3rd have no image. %>
-      <% placeholder_images = ["https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-      "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-      "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="] %>
-
-      <div class="journey-cards">
-        <% @journeys.each_with_index do |journey, index| %>
-          <%= link_to new_journey_walk_path(journey), class: "journey-card" do %>
-            <div class="card-image"
-            style="--card-image: url('<%= placeholder_images[index] %>');
-            animation-delay: <%= index * 0.3 %>s;">
-              <div class="card-overlay">
+      <div id="suggest-container" class="my-3 journey-cards">
+        <% if @journeys.present? %>
+          <% @journeys.each do |journey| %>
+            <%= link_to new_journey_walk_path(journey), class: "journey-card text-decoration-none" do %>
+              <div class="card-image">
                 <div class="card-info">
                   <div class="card-title-row">
-                    <h4><%= journey.name %></h4>
-                    <% if journey.estimated_duration_seconds.present? %>
-                      <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
-                    <% end %>
+                    <h5 class="mb-0"><%= journey.name %></h5>
+                    <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
                   </div>
-                  <p>
-                    <%= journey.description %>
-                  </p>
                 </div>
               </div>
-            </div>
+            <% end %>
           <% end %>
+        <% else %>
+          <p>Couldn't find any walks nearby yet.</p>
         <% end %>
       </div>
-    </div>
-  <% end %>
+    <% end %>
+  </div>
 </div>

@@ -10,10 +10,15 @@ Rails.application.routes.draw do
 
   get "calendar", to: "calendar#index"
 
+  resource :route, only: [:create, :destroy] do
+    post :save, on: :collection
+  end
+
   resource :location, only: [:update]
 
-  resources :journeys, only: [  ] do
-    resources :walks, only: [ :new, :create ]
+  resources :journeys, only: [] do
+    resources :walks, only: [:new, :create]
+    member { patch :save }
   end
 
   resources :walks, only: [ :show, :edit, :update, :index ] do
