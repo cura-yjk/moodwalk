@@ -20,7 +20,6 @@
   font-size: 24px;
 }
 
-
 .nav-icon.nav-active-highlight {
   color: #4cc338;
   filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
@@ -35,12 +34,17 @@
   filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.2));
 }
 
-.navbar-lewagon {
-  justify-content: space-between;
-  background: none;
-  margin-top: auto;
-}
+// .navbar-lewagon {
+//   justify-content: space-between;
+//   background: none;
+//   margin-top: auto;
+// }
 
-.navbar-lewagon .navbar-collapse {
-  flex-grow: 0;
+// .navbar-lewagon .navbar-collapse {
+//   flex-grow: 0;
+// }
+
+.no-navbar .content {
+  /* Adds padding to the bottom ONLY when the navbar is hidden */
+  padding-bottom: env(safe-area-inset-bottom, 20px);
 }

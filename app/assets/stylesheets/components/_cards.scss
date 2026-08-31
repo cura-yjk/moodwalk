@@ -3,7 +3,7 @@
 }
 
 .card-image {
-  height: 10em;
+  height: 12em;
   width: 100%;
   max-width: 24em;
 
@@ -26,7 +26,7 @@
   // var(--card-image);
 
   background-image:
-  linear-gradient(rgba(181, 1209, 196, 0.34), rgba(62, 68, 65, 0.8)),
+  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
   var(--card-image);
   color: #faf8f1;
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
@@ -72,6 +72,10 @@
 }
 
 .journey-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   text-decoration: none;
   color: #7A7A7A;
 
@@ -79,13 +83,16 @@
 }
 
 .card-info {
+  display: flex;
+  flex-direction: column;
+
   position: absolute;
   bottom: 0;
-  left: 16px;
+
+  margin-left: 12px;
 }
 
 .card-title-row {
-  display: flex;
   align-items: baseline;
   gap: 8px;
 }
@@ -93,6 +100,19 @@
 .card-duration {
   font-size: 1rem;
   font-weight: normal;
+}
+
+.card-button {
+  padding: 4px;
+
+  border-radius: 8px;
+  border: 1px solid #faf8f1;
+
+  opacity: 0.9 !important;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.05) !important;
+
+  background:
+  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
 }
 
 .stats-row {
