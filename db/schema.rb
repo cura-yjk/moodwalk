@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_043114) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -59,6 +59,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
     t.index ["theme_key"], name: "index_journeys_on_theme_key"
   end
 
+  create_table "pending_journeys", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.decimal "distance_meters"
+    t.text "encoded_polyline", null: false
+    t.integer "estimated_duration_seconds"
+    t.datetime "expires_at", null: false
+    t.float "lat", null: false
+    t.float "lng", null: false
+    t.string "name"
+    t.string "theme_key"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_pending_journeys_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.float "current_latitude"
@@ -93,6 +109,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "pending_journeys", "users"
   add_foreign_key "walks", "journeys"
   add_foreign_key "walks", "users"
 end

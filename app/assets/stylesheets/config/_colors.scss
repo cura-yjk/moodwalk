@@ -8,17 +8,3 @@ $orange: #E67E22;
 $green: #1EDD88;
 $gray: #0E0000;
 $light-gray: #F4F4F4;
-
-// Per-theme mood colors (pastel background + darker accent), keyed by the
-// same theme_key values THEMES uses (config/initializers/themes.rb).
-// Shared between the theme-picker cards (components/_theme_picker.scss) and
-// the duration bottom sheet they open (components/_duration_picker.scss) so
-// the sheet picks up the same color as the card that opened it.
-$mood-theme-colors: (
-  calm: (bg: #dfe9df, accent: #4a6b4a),
-  refresh: (bg: #e3e1f2, accent: #5b52a3),
-  discover: (bg: #f5ecd7, accent: #a9821f),
-  cheerful: (bg: #f3ded2, accent: #b5651d),
-  recharge: (bg: #dde6ea, accent: #3f5b66),
-  surprise_me: (bg: #ececec, accent: #555555)
-);

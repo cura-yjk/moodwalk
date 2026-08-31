@@ -16,9 +16,6 @@ class WalksController < ApplicationController
     @walk = @journey.walks.new(user: current_user, started_at: Time.current, mood_before: sanitized_mood_before)
 
     if @walk.save
-      # Actually walking a route is at least as strong a signal as bookmarking
-      # it -- promote it into the community list the same way JourneysController#save does.
-      @journey.update(saved: true)
       redirect_to walk_path(@walk)
     else
       redirect_to new_journey_walk_path(@journey), alert: "Couldn't start walk"
