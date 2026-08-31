@@ -32,13 +32,21 @@ id="suggestion-container"
             style="--card-image: url('<%= placeholder_images[index] %>');
             animation-delay: <%= index * 0.3 %>s;">
               <div class="card-overlay">
+
                 <div class="card-info">
-                  <div class="card-title-row">
+                  <div class="card-title-row d-flex">
                     <h4><%= journey.name %></h4>
-                    <% if journey.estimated_duration_seconds.present? %>
-                      <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
-                    <% end %>
+                      <div class="card-title-row">
+                        <% if journey.estimated_duration_seconds.present? %>
+                          <span class="card-duration card-button me-1"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                        <% end %>
+                      </div>
+
+                      <div class="card-title-row">
+                        <span class="card-button">Calming</span>
+                      </div>
                   </div>
+
                   <p>
                     <%= journey.description %>
                   </p>
