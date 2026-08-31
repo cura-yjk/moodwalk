@@ -1,0 +1,207 @@
+// "How long do you have?" bottom sheet, opened from a mood card in
+// .theme-picker (see pages/_theme_picker.html.erb and
+// duration_picker_controller.js). Same fixed-backdrop/slide-up-sheet
+// mechanics as components/_mood_checkin.scss's .mood-sheet, just with its
+// own class names since the content (icon + duration options + submit) is
+// shaped differently.
+
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+
+  background-color: rgba(#000, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.bottom-sheet-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  width: 100%;
+  padding: 10px 24px calc(24px + env(safe-area-inset-bottom));
+
+  background-color: #faf8f1;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 16px rgba(#000, 0.08);
+
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+.bottom-sheet.is-open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin-bottom: 20px;
+
+  border-radius: 999px;
+  background-color: #e0ddd3;
+}
+
+.duration-sheet-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+
+  border-radius: 50%;
+
+  font-size: 1.5rem;
+}
+
+.duration-sheet-title {
+  margin-bottom: 4px;
+
+  font-weight: 700;
+  color: #3a3a3a;
+}
+
+.duration-sheet-subtitle {
+  margin-bottom: 20px;
+
+  font-size: 0.95rem;
+  color: #a3a3a3;
+}
+
+.duration-sheet-question {
+  margin-bottom: 4px;
+
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3a3a3a;
+}
+
+.duration-sheet-hint {
+  margin-bottom: 20px;
+
+  font-size: 0.85rem;
+  text-align: center;
+  color: #a3a3a3;
+}
+
+.duration-sheet-form {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+}
+
+.duration-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+
+  margin-bottom: 12px;
+}
+
+.duration-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 14px 8px;
+
+  border: 1.5px solid #e6e2d6;
+  border-radius: 16px;
+  background-color: #fff;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.duration-option-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #3a3a3a;
+}
+
+.duration-option-unit {
+  font-size: 0.8rem;
+  color: #a3a3a3;
+}
+
+.no-rush-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 12px;
+  margin-bottom: 20px;
+
+  border: 1.5px solid #e6e2d6;
+  border-radius: 16px;
+  background-color: #fff;
+
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.no-rush-title {
+  font-weight: 700;
+  color: #3a3a3a;
+}
+
+.no-rush-subtitle {
+  font-size: 0.85rem;
+  color: #a3a3a3;
+}
+
+.duration-option.selected,
+.no-rush-option.selected {
+  border-color: $primary;
+  box-shadow: 0 0 0 3px rgba($primary, 0.15);
+}
+
+.find-walk-btn {
+  width: 100%;
+  padding: 14px;
+
+  border: none;
+  border-radius: 999px;
+  background-color: $primary;
+
+  font-weight: 700;
+  color: #fff;
+}
+
+// Recolors the icon circle, selected-option ring, and submit button to
+// match whichever mood card opened the sheet (data-theme is set by
+// duration_picker_controller.js#open, using the same $mood-theme-colors map as
+// the cards in components/_theme_picker.scss).
+@each $key, $colors in $mood-theme-colors {
+  .duration-sheet[data-theme="#{$key}"] {
+    .duration-sheet-icon {
+      background-color: map-get($colors, bg);
+      color: map-get($colors, accent);
+    }
+
+    .duration-option.selected,
+    .no-rush-option.selected {
+      border-color: map-get($colors, accent);
+      box-shadow: 0 0 0 3px rgba(map-get($colors, accent), 0.15);
+    }
+
+    .find-walk-btn {
+      background-color: map-get($colors, accent);
+    }
+  }
+}

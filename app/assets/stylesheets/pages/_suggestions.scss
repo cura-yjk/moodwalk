@@ -33,3 +33,34 @@
   animation-timing-function: ease-in;
   animation-fill-mode: backwards;
 }
+
+.location-suggestions {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+
+  margin: 0;
+  padding: 4px;
+
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.location-suggestion {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    background: #f0f0f0;
+    outline: none;
+  }
+}

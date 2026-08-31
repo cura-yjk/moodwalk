@@ -1,7 +1,0 @@
-<%= turbo_stream.replace "route_generation" do %>
-  <% if @pending_journey %>
-    <%= render "routes/preview", pending_journey: @pending_journey %>
-  <% else %>
-    <%= render "routes/error", error_message: @error %>
-  <% end %>
-<% end %>

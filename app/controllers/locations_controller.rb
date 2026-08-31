@@ -3,23 +3,27 @@ class LocationsController < ApplicationController
   REVERSE_GEOCODE_URL = "https://api.mapbox.com/search/geocode/v6/reverse"
 
   def update
-    if params[:query].present?
-      update_from_query(params[:query])
+    if params[:latitude].present? && params[:longitude].present?
+      update_from_coordinates(params[:latitude], params[:longitude], params[:name])
     else
-      update_from_coordinates(params[:latitude], params[:longitude])
+      update_from_query(params[:query])
     end
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  # Typeahead suggestions as the user types in the location search box.
+  def autocomplete
+    render json: { results: suggest(params[:query]) }
+  end
+
   private
 
-  def update_from_coordinates(latitude, longitude)
-    if latitude.blank? || longitude.blank?
-      return render json: { error: "Missing coordinates" }, status: :unprocessable_entity
-    end
-
-    name = reverse_geocode(latitude, longitude)
+  # `name` is already known when this comes from a picked autocomplete
+  # suggestion, so skip the extra reverse-geocode round trip -- it's only
+  # nil for the raw-coordinates path (geolocation_controller.js).
+  def update_from_coordinates(latitude, longitude, name = nil)
+    name ||= reverse_geocode(latitude, longitude)
 
     current_user.update!(
       current_latitude: latitude,
@@ -42,21 +46,33 @@ class LocationsController < ApplicationController
     render json: { latitude: result[:lat], longitude: result[:lng], name: result[:name] }, status: :ok
   end
 
-  def geocode(query)
+  def suggest(query, limit: 5)
+    return [] if query.blank?
+
     response = Faraday.get(GEOCODE_URL) do |req|
       req.params["q"] = query
-      req.params["limit"] = 1
+      req.params["autocomplete"] = true
+      req.params["limit"] = limit
       req.params["language"] = "en"
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
 
-    feature = JSON.parse(response.body)["features"]&.first
-    return nil unless feature
+    JSON.parse(response.body)["features"].to_a.map { |feature| feature_to_suggestion(feature) }
+  end
 
-    # Mapbox returns coordinates as [longitude, latitude] -- easy to mix up.
+  # Mapbox returns coordinates as [longitude, latitude] -- easy to mix up.
+  def feature_to_suggestion(feature)
     lng, lat = feature.dig("geometry", "coordinates")
-    name = feature.dig("properties", "name") || feature.dig("properties", "place_formatted")
-    { lat: lat, lng: lng, name: name }
+    {
+      name: feature.dig("properties", "name") || feature.dig("properties", "place_formatted"),
+      place_formatted: feature.dig("properties", "place_formatted"),
+      lat: lat,
+      lng: lng
+    }
+  end
+
+  def geocode(query)
+    suggest(query, limit: 1).first
   end
 
   def reverse_geocode(latitude, longitude)

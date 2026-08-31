@@ -34,15 +34,22 @@ class LlmPoiCurator
       it's called. Naming a place turns "just walk" into "go find this,"
       which is one more thing to figure out.
 
-    Given a theme and a list of real nearby places, select 2-4 of them that
-    best fit the walk, put them in a sensible walking order, and write a
-    short description of the route.
+    Given a theme, a list of real nearby places (each with its straight-line
+    distance in meters from the walk's start/end point), and sometimes a
+    target walk distance, select 2-4 places that best fit the theme, put
+    them in a sensible walking order, and write a short description of the
+    route. When a target distance is given, favor a combination whose
+    distances from the start suggest a loop close to that length over one
+    that only fits the theme - a single far-off place visited out-and-back
+    covers roughly twice its own distance; more waypoints strung together
+    cover roughly the sum of the gaps between them.
   PROMPT
 
-  def initialize(theme_key:, pois:)
+  def initialize(theme_key:, pois:, target_distance_meters: nil)
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
     @pois = Array(pois)
+    @target_distance_meters = target_distance_meters
   end
 
   def call
@@ -72,14 +79,20 @@ class LlmPoiCurator
     <<~MSG
       Theme: #{@theme[:label]}
       Tone: #{@theme[:tone]}
-
+      #{target_distance_line}
       Nearby places found:
       #{poi_list_as_json}
     MSG
   end
 
+  def target_distance_line
+    return "" if @target_distance_meters.blank?
+
+    "Target walk distance: about #{@target_distance_meters.round} meters round trip.\n"
+  end
+
   def poi_list_as_json
-    @pois.map { |poi| poi.slice(:id, :name, :category) }.to_json
+    @pois.map { |poi| poi.slice(:id, :name, :category, :distance_meters) }.to_json
   end
 
   # Silently drops any id that doesn't match a real candidate (defensive --
