@@ -1,5 +1,5 @@
 <div class="container d-flex flex-column justify-content-center align-items-center mt-5"
-id="suggestion-container" data-controller="geolocation"
+id="suggestion-container"
 >
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
@@ -11,18 +11,12 @@ id="suggestion-container" data-controller="geolocation"
       </div>
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
-        <div class="d-flex justify-content-between" data-controller="location-search">
+        <div class="d-flex justify-content-between">
           <div>
-            <p class="mb-4">📍 Starting from <%= current_user.current_location_name || "your area" %></p>
-            <%= form_tag("#", method: :patch, class: "d-none mb-2", data: { location_search_target: "form", action: "submit->location-search#submit" }) do %>
-              <%= text_field_tag :query, nil,
-                    placeholder: "Search for a starting point",
-                    class: "form-control form-control-sm",
-                    data: { location_search_target: "input" } %>
-            <% end %>
+            <p class="mb-4">📍 Starting from Meguro</p>
           </div>
           <div>
-            <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
+            <%= link_to "Change", "#", class: "link-btn" %>
           </div>
         </div>
       </div>
@@ -38,32 +32,22 @@ id="suggestion-container" data-controller="geolocation"
             style="--card-image: url('<%= placeholder_images[index] %>');
             animation-delay: <%= index * 0.3 %>s;">
               <div class="card-overlay">
-
                 <div class="card-info">
-                  <div class="card-title-row d-flex">
+                  <div class="card-title-row">
                     <h4><%= journey.name %></h4>
-                      <div class="card-title-row">
-                        <% if journey.estimated_duration_seconds.present? %>
-                          <span class="card-duration card-button me-1"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
-                        <% end %>
-                      </div>
-
-                      <div class="card-title-row">
-                        <span class="card-button">Calming</span>
-                      </div>
+                    <% if journey.estimated_duration_seconds.present? %>
+                      <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                    <% end %>
                   </div>
-
                   <p>
                     <%= journey.description %>
                   </p>
                 </div>
               </div>
-            <% end %>
+            </div>
           <% end %>
-        <% else %>
-          <p>Couldn't find any walks nearby yet.</p>
         <% end %>
       </div>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
 </div>
