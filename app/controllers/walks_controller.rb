@@ -68,6 +68,22 @@ class WalksController < ApplicationController
     redirect_to edit_walk_path(@walk)
   end
 
+  def share_quote
+    walk = Walk.find(params[:id])
+
+    result = ShareQuoteGenerator.new(
+      reflection: params[:reflection],
+      mood_before: walk.mood_before,
+      mood_after: params[:mood_after]
+    ).call
+
+    if result.success?
+      render json: { quote: result.quote }
+    else
+      render json: { error: result.error }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def walk_params

@@ -1,0 +1,30 @@
+<div class="share-card d-none" data-share-card-target="card">
+  <div class="share-card-content">
+    <p class="share-date"><%= share_card_datetime(@walk) %></p>
+    <h2 class="share-title"><%= @walk.journey.name %></h2>
+
+    <div class="share-mood-row">
+      <div class="share-mood">
+        <%= image_tag mood_icon(@walk.mood_before), class: "share-mood-icon" %>
+        <span class="share-mood-value"><%= @walk.mood_before %></span>
+        <span class="share-mood-label">Wanted to feel</span>
+      </div>
+      <span class="share-arrow">→</span>
+      <div class="share-mood">
+        <img class="share-mood-icon" data-share-card-target="afterIcon">
+        <span class="share-mood-value" data-share-card-target="afterValue"></span>
+        <span class="share-mood-label">After the walk</span>
+      </div>
+    </div>
+
+    <p class="share-quote" data-share-card-target="quote"></p>
+
+    <div class="share-stats-row">
+      <span>⏲ <%= @walk.duration_in_minutes %> min</span>
+      <span>👣 <%= @walk.actual_steps %> steps</span>
+      <span>📍 <%= @walk.actual_distance %> km</span>
+    </div>
+
+    <p class="share-watermark">MoodWalk 🌿</p>
+  </div>
+</div>

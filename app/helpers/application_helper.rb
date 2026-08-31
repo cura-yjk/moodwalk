@@ -46,4 +46,9 @@ module ApplicationHelper
   def mood_change_label(mood_after)
     MOOD_CHANGE_LABELS.fetch(mood_after, mood_after)
   end
+
+  def share_card_datetime(walk)
+    timestamp = walk.completed_at || Time.current
+    "#{timestamp.strftime('%-d %b').upcase} • #{timestamp.strftime('%-l:%M %p')}"
+  end
 end
