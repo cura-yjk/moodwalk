@@ -10,13 +10,11 @@ Rails.application.routes.draw do
 
   get "calendar", to: "calendar#index"
 
-  resource :route, only: [:create, :destroy] do
-    post :save, on: :collection
+  resource :location, only: [:update] do
+    get :autocomplete, on: :collection
   end
 
-  resource :location, only: [:update]
-
-  resources :journeys, only: [] do
+  resources :journeys, only: [:create] do
     resources :walks, only: [:new, :create]
     member { patch :save }
   end

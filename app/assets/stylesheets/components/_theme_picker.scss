@@ -1,0 +1,61 @@
+// Mood/theme picker on the homepage -- a 2-column grid of pastel cards.
+// Tapping a card doesn't submit anything itself; it opens the duration
+// bottom sheet (also rendered inside .theme-picker, see
+// pages/_theme_picker.html.erb and _duration_picker.scss) which holds the
+// one real form.
+.theme-picker {
+  position: relative;
+
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.theme-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 20px 16px;
+
+  border: none;
+  border-radius: 20px;
+
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: left;
+  color: #3a3a3a;
+
+  background: $light-gray;
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  i {
+    font-size: 1.2rem;
+    width: 1.2em;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+// One soft, distinct pastel per card, keyed by the theme_key each button
+// carries in its data-theme attribute (see $mood-theme-colors in config/_colors).
+@each $key, $colors in $mood-theme-colors {
+  .theme-card[data-theme="#{$key}"] {
+    background: map-get($colors, bg);
+
+    i {
+      color: map-get($colors, accent);
+    }
+  }
+}

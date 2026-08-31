@@ -5,7 +5,6 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable
 
   has_many :walks
-  has_many :pending_journeys, dependent: :destroy
 
   validates :name, presence: true
 end
