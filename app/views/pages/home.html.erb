@@ -12,20 +12,27 @@ id="suggestion-container" data-controller="geolocation"
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Where should we wander today?</h1>
         <div class="d-flex justify-content-between" data-controller="location-search">
-          <div>
+          <div class="position-relative">
             <p class="mb-4">📍 Starting from <%= current_user.current_location_name || "your area" %></p>
             <%= form_tag("#", method: :patch, class: "d-none mb-2", data: { location_search_target: "form", action: "submit->location-search#submit" }) do %>
               <%= text_field_tag :query, nil,
                     placeholder: "Search for a starting point",
                     class: "form-control form-control-sm",
-                    data: { location_search_target: "input" } %>
+                    autocomplete: "off",
+                    data: {
+                      location_search_target: "input",
+                      action: "input->location-search#type keydown.esc->location-search#close"
+                    } %>
             <% end %>
+            <ul class="location-suggestions list-unstyled d-none" data-location-search-target="suggestions"></ul>
           </div>
           <div>
             <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
           </div>
         </div>
       </div>
+
+      <%= render "theme_picker" %>
 
       <div id="suggest-container" class="my-3 journey-cards">
         <% if @journeys.present? %>
