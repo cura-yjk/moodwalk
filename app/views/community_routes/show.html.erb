@@ -56,6 +56,21 @@
     </div>
   </div>
 
-  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "confirm-btn w-100 mb-2" %>
-  <button class="choice-btn w-100">🔖 Save for Later</button>
+  <div class="d-flex flex-column w-100 gap-3 my-2">
+    <div class="d-flex gap-2 mb-1">
+      <%= link_to community_routes_path,
+      class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
+        <i class="fa-solid fa-backward"></i> Back
+      <% end %>
+      <%= button_to save_journey_path(@journey), method: :patch,
+        form_class: "w-50",
+        class: "choice-btn d-flex align-items-center gap-3 justify-content-center w-100" do %>
+        <i class="fa-regular fa-bookmark"></i> Save
+      <% end %>
+    </div>
+
+  </div>
+
+  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100 mb-2" %>
+
 </div>
