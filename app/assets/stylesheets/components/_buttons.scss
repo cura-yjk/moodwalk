@@ -59,3 +59,18 @@
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
 }
+
+// Understated text link below the primary CTA (e.g. "Choose alternate
+// journey" on walks#new) -- muted and unbold so it reads as a secondary
+// option, not a competing button.
+.subtle-btn {
+  color: #727272;
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.subtle-btn:hover {
+  color: #52774c;
+  text-decoration: underline;
+}

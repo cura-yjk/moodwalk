@@ -85,6 +85,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
     t.string "mood_before"
     t.text "reflection"
     t.text "share_quote"
+    t.datetime "shared_at"
     t.datetime "started_at"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

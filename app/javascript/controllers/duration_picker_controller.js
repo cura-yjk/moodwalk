@@ -20,11 +20,16 @@ export default class extends Controller {
 
     this.backdropTarget.classList.add("is-open")
     this.sheetTarget.classList.add("is-open")
+    // The sheet's submit button sits at the same fixed-bottom position as
+    // the navbar, which has a much higher z-index and would otherwise sit
+    // on top of it -- hide the navbar for the duration the sheet is open.
+    document.body.classList.add("navbar-hidden")
   }
 
   close() {
     this.backdropTarget.classList.remove("is-open")
     this.sheetTarget.classList.remove("is-open")
+    document.body.classList.remove("navbar-hidden")
   }
 
   selectDuration(event) {

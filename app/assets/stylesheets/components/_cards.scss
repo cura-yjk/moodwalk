@@ -2,7 +2,18 @@
   animation: fadeIn 1s ease-in forwards;
 }
 
+// Bootstrap's carousel keeps inactive .carousel-item slides at
+// display: none, and a display:none element's own background-image is
+// never fetched by the browser until it becomes visible -- so a
+// background-image was the wrong place to put the photo (it silently
+// never loaded for any slide but the active one). The photo lives on a
+// real <img class="card-photo"> instead, which always loads eagerly
+// regardless of visibility; the gradient tint is layered on top of it
+// via ::before so it still reads as a single tinted photo card.
 .card-image {
+  position: relative;
+  overflow: hidden;
+
   height: 24em;
   width: 100%;
   max-width: 36em;
@@ -12,15 +23,6 @@
   border-radius: 24px;
   box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.3) !important;
 
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-
-  background: linear-gradient(rgba(115, 238, 220, 0.34), rgba(115, 194, 190, 0.8));
-
-  background-image:
-  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
-  var(--card-image);
   color: #faf8f1;
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 
@@ -29,6 +31,25 @@
   animation-timing-function: ease-in;
   animation-fill-mode: backwards;
   transition: 0.7s ease;
+}
+
+.card-image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  background-image: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
+}
+
+.card-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 // The walk-complete hero photo is a plain <img>, not a background-image
@@ -81,6 +102,7 @@
 
   position: absolute;
   bottom: 0;
+  z-index: 2;
 
   margin-left: 12px;
 

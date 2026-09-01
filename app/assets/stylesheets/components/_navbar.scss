@@ -50,3 +50,10 @@
   /* Adds padding to the bottom ONLY when the navbar is hidden */
   padding-bottom: env(safe-area-inset-bottom, 20px);
 }
+
+// Hides the fixed navbar while a bottom sheet with its own fixed-bottom
+// submit button is open (see duration_picker_controller.js) -- the navbar's
+// z-index is otherwise high enough to sit on top of the sheet's button.
+.navbar-hidden .navbar {
+  display: none;
+}
