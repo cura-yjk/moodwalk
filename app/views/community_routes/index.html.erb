@@ -14,8 +14,9 @@
 
           <div class="card-body">
             <div class="route-card-meta d-flex justify-content-between mb-2">
-              <span>⏱ <%= journey.estimated_duration_seconds / 60 %> min</span>
-              <span>★★★★☆ <%= journey.placeholder_rating %></span>
+              <span><i class="fa-regular fa-clock"></i> <%= journey.estimated_duration_seconds / 60 %> min · <%= journey.length_label %></span>
+              <span><i class="fa-solid fa-person-walking"></i> <%= journey.placeholder_walker_count %></span>
+              <span><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
             </div>
             <div class="route-card-tags d-flex flex-wrap gap-1">
               <% journey.tags.each do |tag| %>

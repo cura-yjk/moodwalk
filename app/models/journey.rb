@@ -8,6 +8,18 @@ class Journey < ApplicationRecord
     limit ? scope.limit(limit) : scope
   end
 
+  def length_label
+    case distance_meters
+    when 0..1500 then "Easy"
+    when 1500..4000 then "Medium"
+    else "Hard"
+    end
+  end
+
+  def placeholder_walker_count
+    40 + (id % 120)
+  end
+
   def estimated_steps_display
     estimated_steps || "—"
   end
