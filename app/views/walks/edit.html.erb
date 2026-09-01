@@ -1,5 +1,7 @@
 <% content_for :hide_navbar, true %>
-<div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5"
+     data-controller="community-share"
+     data-community-share-share-url-value="<%= share_walk_path(@walk) %>">
   <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
@@ -65,7 +67,12 @@
           <i class="fa-regular fa-heart"></i>
           Save
         </button>
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled> <i class="fa-solid fa-arrow-up-from-bracket"></i> Share </button>
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
+          data-community-share-target="button"
+          data-action="click->community-share#share">
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+          Share
+        </button>
       </div>
       <!-- The one real action on this page: submits mood_after + reflection,
            then WalksController#update redirects to the memory-card page -->
