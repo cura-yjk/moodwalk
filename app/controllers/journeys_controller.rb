@@ -14,11 +14,7 @@ class JourneysController < ApplicationController
 
     result = generate_journey
     if result.error
-      nearest = Journey.near(current_user.current_latitude,
-                             current_user.current_longitude).find_by(saved: true) || Journey.last
-      # nearest = Journey.near(current_user.current_latitude,
-      #                        current_user.current_longitude).where("duration_in_seconds <= ?", duration_minutes).find_by(saved: true, theme: theme_key) || Journey.last
-      redirect_to new_journey_walk_path(nearest)
+      redirect_to new_journey_walk_path(fallback_journey)
     else
       result.journey.save
       redirect_to new_journey_walk_path(result.journey)
@@ -32,6 +28,33 @@ class JourneysController < ApplicationController
   end
 
   private
+
+  # When generation fails, prefer a saved journey tagged with the same theme and (if a duration
+  # was picked) within RouteBuilder's own tolerance of the target duration, falling back further
+  # to any saved journey, then any journey at all.
+  def fallback_journey
+    themed = Journey.near(current_user.current_latitude, current_user.current_longitude)
+                    .where(saved: true, theme_key: theme_key.to_s)
+
+    if duration_minutes.present?
+      themed = themed.where(estimated_duration_seconds: duration_range)
+    else
+      # "No rush" has no target duration to match - among same-location ties, prefer the
+      # longest themed option rather than whichever happens to sort first.
+      themed = themed.order(estimated_duration_seconds: :desc)
+    end
+
+    themed.first ||
+      Journey.near(current_user.current_latitude, current_user.current_longitude).find_by(saved: true) ||
+      Journey.last
+  end
+
+  def duration_range
+    target_seconds = duration_minutes * 60
+    lower = (target_seconds * (1 - RouteBuilder::TOLERANCE_RATIO)).round
+    upper = (target_seconds * (1 + RouteBuilder::TOLERANCE_RATIO)).round
+    lower..upper
+  end
 
   # Only ever comes from the homepage's duration sheet (a hidden field set
   # by JS, not free text), same pattern as WalksController's

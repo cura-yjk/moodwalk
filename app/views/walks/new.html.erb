@@ -9,7 +9,7 @@
       <% else %>
         -- min
       <% end %>
-      · Loop ·
+      · <%= @journey.loop? ? "Loop" : "One-way" %> ·
       <% if @journey.estimated_steps %>
         ~<%= @journey.estimated_steps %> steps
       <% else %>
