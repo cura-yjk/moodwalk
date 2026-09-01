@@ -1,5 +1,5 @@
 <% content_for :hide_navbar, true %>
-<div class="container walk-complete-page d-flex flex-column align-items-center mt-5" data-controller="share-card" data-share-card-quote-url-value="<%= share_quote_walk_path(@walk) %>" data-share-card-mood-icon-urls-value="<%= ApplicationHelper::MOOD_ICONS.transform_values { |path| asset_path(path) }.to_json %>" >
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5" data-controller="share-card community-share" data-share-card-share-url-value="<%= share_walk_path(@walk) %>"data-share-card-mood-icon-urls-value="<%= ApplicationHelper::MOOD_ICONS.transform_values { |path| asset_path(path) }.to_json %>" >
   <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
@@ -66,7 +66,7 @@
           <i class="fa-regular fa-heart"></i>
           Save
         </button>
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" data-action="click->share-card#share"> <i class="fa-solid fa-arrow-up-from-bracket"></i> Share </button>
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" data-action="click->community-share#share"> <i class="fa-solid fa-arrow-up-from-bracket"></i> Share </button>
       </div>
       <!-- The one real action on this page: submits mood_after + reflection,
            then WalksController#update redirects to walks#index -->

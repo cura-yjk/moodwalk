@@ -1,0 +1,19 @@
+<div class="community-routes">
+  <h1>Community Routes</h1>
+  <p class="subtitle">Walks other people have shared</p>
+
+  <div class="route-cards">
+    <% @journeys.each do |journey| %>
+      <%= link_to journey_community_route_path(journey), class: "route-card" do %>
+        <div class="route-card-photo">
+          <%= image_tag journey.community_photos(limit: 1).first&.photo || Journey::PLACEHOLDER_IMAGES.sample %>
+          <span class="route-card-title"><%= journey.name %></span>
+        </div>
+        <div class="route-card-meta">
+          <span>⏱ <%= journey.estimated_duration_seconds / 60 %> min</span>
+          <span>★★★★☆ <%= journey.placeholder_rating %></span>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

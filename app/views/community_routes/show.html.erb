@@ -1,0 +1,44 @@
+<div class="community-route-detail">
+  <div class="hero-photo">
+    <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample %>
+  </div>
+
+  <span class="label">COMMUNITY ROUTE</span>
+  <h1><%= @journey.name %></h1>
+
+  <div class="stat-cards">
+    <div class="stat-card">
+      <span class="stat-label">Duration</span>
+      <span class="stat-value"><%= @journey.estimated_duration_seconds / 60 %> min</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Steps</span>
+      <span class="stat-value"><%= @journey.estimated_steps_display %></span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Rating</span>
+      <span class="stat-value">★★★★☆ <%= @journey.placeholder_rating %></span>
+    </div>
+  </div>
+
+  <div class="photo-carousel" data-controller="carousel">
+  <h2>Moments from walkers</h2>
+
+  <div class="carousel-wrapper">
+    <button type="button" class="carousel-nav carousel-nav-prev" data-action="click->carousel#prev" aria-label="Previous photo">‹</button>
+
+    <div class="carousel-track" data-carousel-target="track">
+      <% @recent_photos.each do |walk| %>
+        <div class="carousel-item">
+          <%= image_tag walk.photo %>
+        </div>
+      <% end %>
+    </div>
+
+    <button type="button" class="carousel-nav carousel-nav-next" data-action="click->carousel#next" aria-label="Next photo">›</button>
+  </div>
+</div>
+
+  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post %>
+  <button class="save-button">🔖 Save for Later</button>
+</div>

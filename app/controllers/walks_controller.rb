@@ -16,8 +16,6 @@ class WalksController < ApplicationController
     @walk = @journey.walks.new(user: current_user, started_at: Time.current, mood_before: sanitized_mood_before)
 
     if @walk.save
-      # Actually walking a route is at least as strong a signal as bookmarking
-      # it -- promote it into the community list the same way JourneysController#save does.
       @journey.update(saved: true)
       redirect_to walk_path(@walk)
     else
@@ -66,6 +64,14 @@ class WalksController < ApplicationController
       actual_distance: 1.9
     )
     redirect_to edit_walk_path(@walk)
+  end
+
+  def share
+    @walk = current_user.walks.find(params[:id])
+    @walk.share!
+    head :ok
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def share_quote

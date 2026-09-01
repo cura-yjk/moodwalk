@@ -19,13 +19,16 @@ Rails.application.routes.draw do
     member { patch :save }
   end
 
-  resources :walks, only: [ :show, :edit, :update, :index ] do
+  resources :walks, only: [:show, :edit, :update, :index] do
     member do
       patch :complete
       patch :attach_photo
+      patch :share
       post :share_quote
     end
   end
+
+  resources :community_routes, only: [:index, :show]
 
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest

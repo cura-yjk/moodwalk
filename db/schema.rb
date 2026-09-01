@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_31_144920) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -84,10 +84,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
     t.string "mood_after"
     t.string "mood_before"
     t.text "reflection"
+    t.datetime "shared_at"
     t.datetime "started_at"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["journey_id"], name: "index_walks_on_journey_id"
+    t.index ["shared_at"], name: "index_walks_on_shared_at"
     t.index ["user_id"], name: "index_walks_on_user_id"
   end
 
