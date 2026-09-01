@@ -16,6 +16,11 @@
               <span>⏱ <%= journey.estimated_duration_seconds / 60 %> min</span>
               <span>★★★★☆ <%= journey.placeholder_rating %></span>
             </div>
+            <div class="route-card-tags d-flex flex-wrap gap-1">
+              <% journey.tags.each do |tag| %>
+                <span class="badge bg-light text-dark"><%= tag %></span>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>

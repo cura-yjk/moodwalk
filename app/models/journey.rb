@@ -90,7 +90,31 @@ class Journey < ApplicationRecord
     waypoints
   end
 
+  TEXT_TAG_KEYWORDS = {
+    "Nature" => /tree|leaf|leaves|branch|garden|grass|greenery|forest|park/i,
+    "Water" => /water|stream|river|lake|pond|shore|waterfront/i,
+    "Quiet" => /quiet|hushed|still|calm|silence/i,
+    "Historic" => /old|worn|weathered|stone|brick|landmark|monument/i,
+    "Lively" => /market|bakery|bright|color|liveliness|delight/i
+  }.freeze
+
+  def tags
+    return theme_tags if theme_key.present? && THEMES.key?(theme_key.to_sym)
+
+    text_derived_tags
+  end
+
   private
+
+  def theme_tags
+    THEMES.dig(theme_key.to_sym, :categories).to_a.map { |slug| slug.tr("_", " ").capitalize }
+  end
+
+  def text_derived_tags
+    text = "#{name} #{description}"
+    matched = TEXT_TAG_KEYWORDS.select { |_, pattern| text.match?(pattern) }.keys
+    matched.presence || ["Walk"]
+  end
 
   # decodes one zigzag-encoded varint starting at `index`, returning [value, next_index]
   # rubocop:disable Metrics/MethodLength
