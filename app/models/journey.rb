@@ -1,7 +1,7 @@
 class Journey < ApplicationRecord
   has_many :walks
 
-  scope :community, -> { joins(:walks).merge(Walk.shared).distinct }
+  scope :community, -> { where(theme_key: [nil, ""]) }
 
   def community_photos(limit: nil)
     scope = walks.recent_with_photo
