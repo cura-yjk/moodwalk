@@ -69,7 +69,7 @@ class WalksController < ApplicationController
   def share
     @walk = current_user.walks.find(params[:id])
     @walk.share!
-    head :ok
+    render json: { shared: true }
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
