@@ -3,7 +3,7 @@
 }
 
 .card-image {
-  height: 12em;
+  height: 24em;
   width: 100%;
   max-width: 24em;
 
@@ -24,7 +24,7 @@
   color: #faf8f1;
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 
-  animation-name: fadeInBelow;
+  animation-name: fadeIn;
   animation-duration: 1.5s;
   animation-timing-function: ease-in;
   animation-fill-mode: backwards;
@@ -83,6 +83,8 @@
   bottom: 0;
 
   margin-left: 12px;
+
+  padding-bottom: 20px;
 }
 
 .card-title-row {
