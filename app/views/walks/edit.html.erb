@@ -1,12 +1,11 @@
 <% content_for :hide_navbar, true %>
-<div class="container walk-complete-page d-flex flex-column align-items-center mt-5" data-controller="share-card" data-share-card-quote-url-value="<%= share_quote_walk_path(@walk) %>" data-share-card-mood-icon-urls-value="<%= ApplicationHelper::MOOD_ICONS.transform_values { |path| asset_path(path) }.to_json %>" >
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
   <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
        but above the body's background gradient -- see .walk-complete-page /
        .leaf-layer stacking in walks/_edit.scss. Purely decorative: it doesn't
        change this page's layout or content. -->
-  <%= render "share_card" %>
   <div class="leaf-layer" data-controller="leaves">
     <div class="entrance-glow"></div>
   </div>
@@ -53,23 +52,23 @@
       <div class="mood-selector d-flex justify-content-center gap-2">
         <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
           <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
-            <%= f.radio_button :mood_after, value, checked: (@walk.mood_after == value), class: "mood-radio-hidden", data: { share_card_target: "moodInput" } %>
+            <%= f.radio_button :mood_after, value, checked: (@walk.mood_after == value), class: "mood-radio-hidden" %>
             <%= image_tag image, alt: value, class: "mood-icon" %>
           </label>
         <% end %>
       </div>
       <h6 class="mt-3 text-start">Anything you want to remember?</h6>
-      <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-3", id: "journal-input", rows: 2, data: { share_card_target: "reflectionInput" } %>
+      <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-3", id: "journal-input", rows: 2 %>
       <!-- Placeholder actions — not wired up yet, per your request -->
       <div class="placeholder-actions d-flex w-100 gap-3 my-2">
         <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
           <i class="fa-regular fa-heart"></i>
           Save
         </button>
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" data-action="click->share-card#share"> <i class="fa-solid fa-arrow-up-from-bracket"></i> Share </button>
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled> <i class="fa-solid fa-arrow-up-from-bracket"></i> Share </button>
       </div>
       <!-- The one real action on this page: submits mood_after + reflection,
-           then WalksController#update redirects to walks#index -->
+           then WalksController#update redirects to the memory-card page -->
       <%= f.submit "Done", class: "done-btn mt-3 mb-5 w-100" %>
     <% end %>
   </div>

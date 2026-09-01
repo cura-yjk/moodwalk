@@ -10,6 +10,23 @@ id="history-container">
     <span class="tab">Saved</span>
   </div>
 
+  <% if @stats[:walks_count] > 0 %>
+    <div class="stats-summary d-flex justify-content-center">
+      <div class="stat">
+        <p class="stat-number mb-0"><%= @stats[:distance_km] %></p>
+        <p class="stat-caption mb-0">km walked</p>
+      </div>
+      <div class="stat">
+        <p class="stat-number mb-0"><%= @stats[:hours_outside] %></p>
+        <p class="stat-caption mb-0">hours outside</p>
+      </div>
+      <div class="stat">
+        <p class="stat-number mb-0"><%= @stats[:walks_count] %></p>
+        <p class="stat-caption mb-0">walks</p>
+      </div>
+    </div>
+  <% end %>
+
   <% if @walks.empty? %>
     <!-- Top-level empty state: this user has never completed a walk -->
     <p class="empty-state">No walks yet — head out and start your first one!</p>

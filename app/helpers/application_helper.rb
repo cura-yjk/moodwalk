@@ -51,4 +51,14 @@ module ApplicationHelper
     timestamp = walk.completed_at || Time.current
     "#{timestamp.strftime('%-d %b').upcase} • #{timestamp.strftime('%-l:%M %p')}"
   end
+
+  # walks#memory's "wanted to feel" fallback when there's no mood_before --
+  # THEMES keys are always resolved to a real theme before a Journey is
+  # saved (JourneysController#theme_key resolves "surprise_me" up front), so
+  # no "surprise_me" special-casing is needed here.
+  def theme_for(theme_key)
+    return nil if theme_key.blank?
+
+    THEMES[theme_key.to_sym]
+  end
 end

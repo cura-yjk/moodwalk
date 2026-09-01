@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -84,6 +84,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_110924) do
     t.string "mood_after"
     t.string "mood_before"
     t.text "reflection"
+    t.text "share_quote"
     t.datetime "started_at"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

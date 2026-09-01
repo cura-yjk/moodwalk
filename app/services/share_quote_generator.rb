@@ -33,7 +33,7 @@ class ShareQuoteGenerator
 
   def call
     parsed = request_llm
-    Result.new(success?: true, quote: parsed["quote"])
+    Result.new(success?: true, quote: parsed.content["quote"])
   rescue StandardError => e
     Result.new(success?: false, error: e.message)
   end

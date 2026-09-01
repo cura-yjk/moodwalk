@@ -1,4 +1,4 @@
-<div class="walk-card">
+<%= link_to memory_walk_path(walk), class: "walk-card text-decoration-none" do %>
   <% if walk.photo.attached? %>
     <div class="walk-thumbnail" style="background-image: url('<%= url_for(walk.photo) %>');">
     </div>
@@ -47,4 +47,4 @@
       </div>
     <% end %>
   </div>
-</div>
+<% end %>
