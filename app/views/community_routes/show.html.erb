@@ -1,7 +1,7 @@
-<div class="community-route-detail container mt-4">
+<div class="community-route-detail container mt-5">
   <div class="hero-photo mb-3">
     <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
-          class: "community-image" %>
+          class: "walk-image" %>
   </div>
 
   <span class="label text-muted text-uppercase small">Community Route</span>
@@ -68,7 +68,6 @@
         <i class="fa-regular fa-bookmark"></i> Save
       <% end %>
     </div>
-
   </div>
 
   <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100 mb-2" %>
