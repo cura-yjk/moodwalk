@@ -21,11 +21,15 @@ export default class extends Controller {
   open() {
     this.backdropTarget.classList.add("is-open")
     this.sheetTarget.classList.add("is-open")
+    // Matches duration_picker_controller.js -- the navbar's z-index would
+    // otherwise sit on top of this bottom sheet too.
+    document.body.classList.add("navbar-hidden")
   }
 
   close() {
     this.backdropTarget.classList.remove("is-open")
     this.sheetTarget.classList.remove("is-open")
+    document.body.classList.remove("navbar-hidden")
   }
 
   select(event) {

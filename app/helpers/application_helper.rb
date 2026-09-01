@@ -39,8 +39,7 @@ module ApplicationHelper
     "Stressed" => "More stressed",
     "Neutral" => "More neutral",
     "Calm" => "Calmer",
-    "Good" => "Better",
-    "Energised" => "More energised"
+    "Good" => "Better"
   }.freeze
 
   def mood_change_label(mood_after)
