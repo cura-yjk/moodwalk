@@ -16,6 +16,13 @@ class Journey < ApplicationRecord
     (3.8 + ((id % 5) * 0.2)).round(1)
   end
 
+  def alternate
+    others = Journey.where.not(id: id)
+    others = others.where(estimated_duration_seconds: ..estimated_duration_seconds) if estimated_duration_seconds
+
+    others.where(theme_key: theme_key).sample || others.sample
+  end
+
   # find routes within `radius_meters` of a point, closest first
   scope :near, lambda { |lat, lng, radius_meters = 3000|
     point = RGeo::Geographic.spherical_factory(srid: 4326).point(lng, lat)

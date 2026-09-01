@@ -9,6 +9,7 @@ class WalksController < ApplicationController
 
   def new
     @journey = Journey.find(params[:journey_id])
+    @alternate_journey = @journey.alternate
   end
 
   def create
