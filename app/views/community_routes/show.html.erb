@@ -10,32 +10,36 @@
   <div class="stat-cards stats-summary row row-cols-4 g-2 my-3">
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted"><i class="fa-solid fa-route"></i> Distance</span>
+        <i class="fa-solid fa-route text-muted"></i>
+        <span class="stat-label small text-muted">Distance</span>
         <span class="stat-value fw-bold"><%= (@journey.distance_meters / 1000.0).round(1) %> km</span>
       </div>
     </div>
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted"><i class="fa-regular fa-clock"></i> Duration</span>
+        <i class="fa-regular fa-clock text-muted"></i>
+        <span class="stat-label small text-muted">Duration</span>
         <span class="stat-value fw-bold"><%= @journey.estimated_duration_seconds / 60 %> min</span>
       </div>
     </div>
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted"><i class="fa-solid fa-shoe-prints"></i> Steps</span>
+        <i class="fa-solid fa-shoe-prints text-muted"></i>
+        <span class="stat-label small text-muted"> Steps</span>
         <span class="stat-value fw-bold"><%= @journey.estimated_steps_display %></span>
       </div>
     </div>
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted"><i class="fa-solid fa-star"></i> Rating</span>
+        <i class="fa-solid fa-star text-muted"></i>
+        <span class="stat-label small text-muted"> Rating</span>
         <span class="stat-value fw-bold"><%= @journey.placeholder_rating %></span>
       </div>
     </div>
   </div>
 
   <div class="photo-carousel my-4" data-controller="carousel">
-    <h2>Moments from walkers</h2>
+    <h2>Other moments from walkers</h2>
 
     <div class="carousel-wrapper d-flex align-items-center">
       <button type="button" class="carousel-nav carousel-nav-prev btn btn-link" data-action="click->carousel#prev" aria-label="Previous photo">‹</button>
@@ -52,6 +56,6 @@
     </div>
   </div>
 
-  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "btn btn-primary w-100 mb-2" %>
-  <button class="save-button btn btn-outline-secondary w-100">🔖 Save for Later</button>
+  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "confirm-btn w-100 mb-2" %>
+  <button class="choice-btn w-100">🔖 Save for Later</button>
 </div>
