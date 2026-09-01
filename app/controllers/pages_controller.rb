@@ -18,6 +18,6 @@ class PagesController < ApplicationController
     lng = current_user.current_longitude
     return Journey.none unless lat && lng
 
-    Journey.near(lat, lng).where(saved: true).limit(SUGGESTION_COUNT)
+    Journey.near(lat, lng).where(saved: true, theme_key: nil).limit(SUGGESTION_COUNT)
   end
 end

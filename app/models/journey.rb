@@ -41,6 +41,16 @@ class Journey < ApplicationRecord
     [start_point.x, start_point.y]
   end
 
+  # Whether the route returns to (roughly) where it started, vs. ending somewhere else
+  # (one-way). Compares the decoded route's first/last points rather than any stored flag,
+  # since round_trip isn't persisted -- a small tolerance absorbs Mapbox's start/end snapping
+  # to the nearest walkable path (a few meters), well under the length of any real one-way leg.
+  def loop?
+    start_lng, start_lat = route_coordinates.first
+    end_lng, end_lat = route_coordinates.last
+    (start_lng - end_lng).abs < 0.0005 && (start_lat - end_lat).abs < 0.0005
+  end
+
   def turn_waypoints(angle_threshold: 30)
     coords = route_coordinates # each pair is [lng, lat]
     return [] if coords.size < 3

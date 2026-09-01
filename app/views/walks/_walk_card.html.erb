@@ -41,9 +41,10 @@
       · <%= walk.duration_in_minutes %> min
     </p>
 
-    <div class="journal-text">
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Perspiciatis debitis eius facere officia exercitationem saepe distinctio ut error nam tempora.
-      Lorem ipsum dolor sit amet consectetur adipisicing elit. Perspiciatis debitis eius facere officia exercitationem saepe distinctio ut error nam tempora.
-    </div>
+    <% if walk.reflection.present? %>
+      <div class="journal-text">
+        <%= walk.reflection %>
+      </div>
+    <% end %>
   </div>
 </div>

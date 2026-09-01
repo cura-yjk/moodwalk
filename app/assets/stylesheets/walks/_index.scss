@@ -91,7 +91,6 @@
   flex-direction: column;
 
   height: auto;
-  min-height: 18em;
   box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.05) !important;
 
   transition: 0.3s ease;
@@ -133,7 +132,8 @@
 .walk-details {
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  justify-content: flex-start;
+  gap: 8px;
 
   padding: 0px 16px 12px 16px;
 

@@ -7,7 +7,7 @@ class JourneyGenerator
   Result = Struct.new(:success?, :journey, :error, keyword_init: true)
 
   def initialize(lat:, lng:, target_distance_meters: nil, waypoints: nil, description: nil,
-                 theme_key: nil, name: nil, round_trip: nil)
+                 theme_key: nil, name: nil, round_trip: nil, base_bearing: nil)
     @lat = lat.to_f
     @lng = lng.to_f
     @target_distance = target_distance_meters&.to_f
@@ -16,6 +16,7 @@ class JourneyGenerator
     @theme_key = theme_key
     @name = name
     @round_trip = round_trip.nil? ? [true, false].sample : round_trip
+    @base_bearing = base_bearing
   end
 
   def call
@@ -60,11 +61,13 @@ class JourneyGenerator
   end
 
   def build_oneway_waypoints(distance)
-    [destination_point(@lat, @lng, distance, rand(0..359))]
+    bearing = @base_bearing ? @base_bearing + rand(-20..20) : rand(0..359)
+    [destination_point(@lat, @lng, distance, bearing)]
   end
 
+  # Same evenly-spaced square as the unbiased case, just rotated toward base_bearing when given.
   def build_loop_waypoints(radius)
-    bearings = [0, 90, 180, 270].map { |b| b + rand(-20..20) }
+    bearings = [0, 90, 180, 270].map { |b| b + (@base_bearing || 0) + rand(-20..20) }
     bearings.map { |bearing| destination_point(@lat, @lng, radius, bearing) }
   end
 
@@ -95,14 +98,22 @@ class JourneyGenerator
     response = Faraday.get("#{MAPBOX_DIRECTIONS_URL}/#{coords}") do |req|
       req.params["geometries"] = "polyline"
       req.params["overview"] = "full"
+      req.params["steps"] = "true" if @theme_key # only themed routes get the dead-end check below
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
 
     body = JSON.parse(response.body)
     return { error: body["message"] || "No route found" } if body["code"] != "Ok" || body["routes"].blank?
 
-    leg = body["routes"].first
-    { distance: leg["distance"], duration: leg["duration"], polyline: leg["geometry"] }
+    route = body["routes"].first
+    return { error: "route backtracks on itself (dead end / u-turn)" } if themed_dead_end?(route)
+
+    { distance: route["distance"], duration: route["duration"], polyline: route["geometry"] }
+  end
+
+  # A u-turn means retracing the same path (dead end). Only checked for themed routes.
+  def themed_dead_end?(route)
+    @theme_key && route["legs"].flat_map { |l| l["steps"] }.any? { |s| s.dig("maneuver", "modifier") == "uturn" }
   end
 
   def build_journey(directions)

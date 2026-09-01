@@ -14,8 +14,18 @@ Walk.destroy_all
 Journey.destroy_all
 User.destroy_all
 
+LE_WAGON_MEGURO_LAT = 35.63401173196464
+LE_WAGON_MEGURO_LNG = 139.70812599610076
+
 puts "👤 Creating user..."
-user = User.create!(email: "twinky@mail.com", name: "Twinky", password: "qwerty")
+user = User.create!(
+  email: "twinky@mail.com",
+  name: "Twinky",
+  password: "qwerty",
+  current_latitude: LE_WAGON_MEGURO_LAT,
+  current_longitude: LE_WAGON_MEGURO_LNG,
+  current_location_name: "Le Wagon Tokyo, Meguro"
+)
 
 puts "🗺️  Generating journeys via Mapbox..."
 
@@ -90,5 +100,86 @@ meguro_journey_specs = [
 ]
 
 generate_journeys(lat: 35.6414, lng: 139.6982, specs: meguro_journey_specs) # Meguro-ku, Tokyo
+
+puts "🎨 Generating themed journeys for the mood picker at Le Wagon Meguro..."
+
+# theme_key -> rough compass bearing (degrees, 0 = north) toward a real feature in that
+# direction from Le Wagon Meguro, so each theme's synthetic route leans somewhere plausible
+# instead of a bearing chosen uniformly at random. Best-effort, not exact POI targeting --
+# the real POI-based curation (RouteBuilder/PoiFinder/LlmPoiCurator) is still in development.
+THEME_BEARINGS = {
+  calm: 315,     # NW, away from the main road into quieter residential blocks
+  refresh: 200,  # S/SSW, toward the Meguro River green corridor
+  discover: 225, # SW, toward Nakameguro's backstreets/shops
+  cheerful: 90,  # E, toward the Meguro-dori shopping stretch
+  recharge: 135  # SE, toward the larger green space in that direction
+}.freeze
+
+THEME_JOURNEY_COPY = {
+  calm: { name: "Calm Backstreets",
+          description: "Quiet residential lanes away from traffic, at an unhurried pace." },
+  refresh: { name: "Riverside Refresh",
+             description: "Open air alongside the river, a scenic outlook and a brisker pace." },
+  discover: { name: "Nakameguro Wander",
+              description: "Unfamiliar backstreets with small details worth noticing along the way." },
+  cheerful: { name: "Meguro-dori Stroll",
+              description: "Everyday street life and small, colorful moments along a busier stretch." },
+  recharge: { name: "Green Recharge",
+              description: "Dense greenery and distance from noise, with room to slow down." }
+}.freeze
+
+# minutes: nil means "No rush" (the duration sheet's blank option) -- there's no fixed target
+# in the live pipeline for that case either, so it's just seeded with a longer distance.
+DURATION_BUCKETS = [10, 20, 30, nil].freeze
+
+# JourneyGenerator fails outright (no internal retry) if a single synthetic waypoint can't be
+# routed to, and even on success its own internal rescale-and-retry gives up after 3 tries and
+# returns whatever it has -- at small radii (short durations, e.g. 10 min loops in this dense
+# street grid) actual distance vs. target is noisy even across fresh attempts (observed ratios
+# from 0.3x to 1.8x of target in back-to-back calls). So: keep retrying with brand new (freshly
+# jittered) calls and track whichever attempt lands closest to the target distance, not just the
+# first one that didn't error. This is a one-time offline seed run, so spending extra Mapbox
+# calls here to reliably land a good pick is cheap.
+def generate_themed_journey(theme_key:, minutes:, max_attempts: 12)
+  copy = THEME_JOURNEY_COPY.fetch(theme_key)
+  target_minutes = minutes || 45
+  target_distance = target_minutes * RouteBuilder::WALKING_METERS_PER_MINUTE
+  label = minutes ? "#{minutes} min" : "No rush"
+
+  best_result = nil
+  best_off_by = nil
+  max_attempts.times do
+    result = JourneyGenerator.new(
+      lat: LE_WAGON_MEGURO_LAT,
+      lng: LE_WAGON_MEGURO_LNG,
+      target_distance_meters: target_distance,
+      theme_key: theme_key.to_s,
+      name: "#{copy[:name]} · #{label}",
+      description: copy[:description],
+      base_bearing: THEME_BEARINGS.fetch(theme_key)
+    ).call
+    next unless result.success?
+
+    off_by = ((result.journey.distance_meters / target_distance) - 1).abs
+    best_result, best_off_by = result, off_by if best_off_by.nil? || off_by < best_off_by
+    break if off_by <= JourneyGenerator::TOLERANCE_RATIO
+  end
+  result = best_result || JourneyGenerator::Result.new(success?: false, error: "no successful attempt")
+
+  if result.success?
+    journey = result.journey
+    journey.update!(estimated_steps: (journey.distance_meters / 0.75).round, saved: true)
+    puts "  ✅ #{journey.name} (#{journey.distance_meters.round}m, " \
+         "#{(journey.estimated_duration_seconds / 60.0).round} min)"
+  else
+    puts "  ❌ #{copy[:name]} · #{label} failed after #{max_attempts} attempts: #{result&.error}"
+  end
+
+  result
+end
+
+THEME_BEARINGS.each_key do |theme_key|
+  DURATION_BUCKETS.each { |minutes| generate_themed_journey(theme_key: theme_key, minutes: minutes) }
+end
 
 puts "🌱 Done seeding!"
