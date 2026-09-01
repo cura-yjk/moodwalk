@@ -58,8 +58,9 @@
   <%# Added buttons here but cant figure out %>
   <%# how to get them to work with the code above %>
 
-  <div class="w-100 d-flex flex-column">
-    <button type="button" class="theme-card" data-theme="surprise_me"
+<div class="theme-picker w-100 d-flex flex-column">
+  <div data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
+    <button type="button" class="theme-card col-6" data-theme="surprise_me"
       data-action="duration-picker#open"
       data-duration-picker-theme-key-param="surprise_me"
       data-duration-picker-theme-label-param="Surprise me"
@@ -68,9 +69,10 @@
       <i class="fa-solid fa-shuffle"></i>
       <span>Surprise me</span>
     </button>
+  </div>
 
-
-    <button type="button" class="theme-card" data-theme="surprise_me"
+  <div data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
+    <button type="button" class="theme-card col-6" data-theme="surprise_me"
       data-action="duration-picker#open"
       data-duration-picker-theme-key-param="surprise_me"
       data-duration-picker-theme-label-param="Surprise me"
@@ -80,3 +82,4 @@
       <span>Create</span>
     </button>
   </div>
+</div>
