@@ -7,28 +7,29 @@
   <span class="label text-muted text-uppercase small">Community Route</span>
   <h1><%= @journey.name %></h1>
 
-  <div class="stat-cards row row-cols-3 g-2 my-3">
+  <div class="stat-cards row row-cols-4 g-2 my-3">
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted">Duration</span>
+        <span class="stat-label small text-muted"><i class="fa-solid fa-route"></i> Distance</span>
+        <span class="stat-value fw-bold"><%= (@journey.distance_meters / 1000.0).round(1) %> km</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card card text-center p-2">
+        <span class="stat-label small text-muted"><i class="fa-regular fa-clock"></i> Duration</span>
         <span class="stat-value fw-bold"><%= @journey.estimated_duration_seconds / 60 %> min</span>
       </div>
     </div>
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted">Steps</span>
+        <span class="stat-label small text-muted"><i class="fa-solid fa-shoe-prints"></i> Steps</span>
         <span class="stat-value fw-bold"><%= @journey.estimated_steps_display %></span>
       </div>
     </div>
     <div class="col">
       <div class="stat-card card text-center p-2">
-        <span class="stat-label small text-muted">Rating</span>
-        <span class="stat-value fw-bold">★★★★☆ <%= @journey.placeholder_rating %></span>
-      </div>
-      <div class="route-tags d-flex flex-wrap gap-2 my-3">
-        <% @journey.tags.each do |tag| %>
-          <span class="badge bg-light text-dark"><%= tag %></span>
-        <% end %>
+        <span class="stat-label small text-muted"><i class="fa-solid fa-star"></i> Rating</span>
+        <span class="stat-value fw-bold"><%= @journey.placeholder_rating %></span>
       </div>
     </div>
   </div>
