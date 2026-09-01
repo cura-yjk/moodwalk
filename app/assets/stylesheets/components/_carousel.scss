@@ -1,6 +1,6 @@
 $carousel-control-color:             $white;
 $carousel-control-width:             15%;
-$carousel-control-opacity:           .5;
+$carousel-control-opacity:           .7;
 $carousel-control-hover-opacity:     .9;
 $carousel-control-transition:        opacity .15s ease;
 $carousel-control-icon-filter:       null;
@@ -29,7 +29,7 @@ $carousel-transition:                transform $carousel-transition-duration eas
 
 .carousel-control-next,
 .carousel-control-prev {
-  background-color: #52774c;
+  background-color: #7A7A7A;
 
   border-radius: 50%;
 
@@ -37,6 +37,8 @@ $carousel-transition:                transform $carousel-transition-duration eas
 
   height: 32px;
   width: 32px;
+
+  opacity: 0.7 !important;
 }
 
 .carousel-control-next {
