@@ -5,7 +5,7 @@
 .card-image {
   height: 24em;
   width: 100%;
-  max-width: 24em;
+  max-width: 36em;
 
   opacity: 0.9 !important;
 
@@ -18,9 +18,9 @@
 
   background: linear-gradient(rgba(115, 238, 220, 0.34), rgba(115, 194, 190, 0.8));
 
-  // background-image:
-  // linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
-  // var(--card-image);
+  background-image:
+  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
+  var(--card-image);
   color: #faf8f1;
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
 
@@ -31,26 +31,26 @@
   transition: 0.7s ease;
 }
 
-.card-image:hover {
-  transform: translateY(-4px);
-
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.22) !important;
-}
-
 // The walk-complete hero photo is a plain <img>, not a background-image
 // card div, and it isn't a clickable card on this page -- so it gets its
 // own rule rather than sharing .card-image's background-image trick and
 // hover-lift (which would otherwise hint it's tappable when it isn't).
 .walk-image {
-  height: 12em;
+  height: 24em;
   width: 100%;
-  max-width: 24em;
+  max-width: 36em;
 
   border-radius: 24px;
   object-fit: cover;
 
-  animation-name: fadeInBelow;
-  animation-duration: 2s;
+  background-image:
+  linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8)),
+  var(--card-image);
+  color: #faf8f1;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
+
+  animation-name: fadeIn;
+  animation-duration: 1s;
   animation-timing-function: ease-in;
   animation-fill-mode: backwards;
 }
@@ -126,4 +126,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.community-card {
+  border-radius: 24px;
+}
+
+.community-image {
+  height: 100%;
+  width: 100%;
+  max-width: 36em;
+
+  border-radius: 24px 24px 0 0 ;
+  object-fit: cover;
+
+    background: linear-gradient(rgba(115, 238, 220, 0.34), rgba(115, 194, 190, 0.8));
 }

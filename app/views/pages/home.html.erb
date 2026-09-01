@@ -48,6 +48,9 @@
                     <div class="carousel-item <%= "active" if index == 0 %> ">
                     <%= link_to new_journey_walk_path(journey), class: "journey-card text-decoration-none" do %>
                           <div class="card-image">
+                            <%= image_tag Journey::PLACEHOLDER_IMAGES.sample, alt: "text", class: "walk-image",
+                            style: "--card-image: url('#{asset_path(Journey::PLACEHOLDER_IMAGES.sample)}');"
+                            %>
                             <div class="card-info">
                               <div class="card-title-row">
                                 <h4><%= journey.name %></h4>
