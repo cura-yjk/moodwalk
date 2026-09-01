@@ -1,0 +1,51 @@
+<div class="community-route-detail container mt-4">
+  <div class="hero-photo mb-3">
+    <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
+          class: "img-fluid rounded w-100" %>
+  </div>
+
+  <span class="label text-muted text-uppercase small">Community Route</span>
+  <h1><%= @journey.name %></h1>
+
+  <div class="stat-cards row row-cols-3 g-2 my-3">
+    <div class="col">
+      <div class="stat-card card text-center p-2">
+        <span class="stat-label small text-muted">Duration</span>
+        <span class="stat-value fw-bold"><%= @journey.estimated_duration_seconds / 60 %> min</span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card card text-center p-2">
+        <span class="stat-label small text-muted">Steps</span>
+        <span class="stat-value fw-bold"><%= @journey.estimated_steps_display %></span>
+      </div>
+    </div>
+    <div class="col">
+      <div class="stat-card card text-center p-2">
+        <span class="stat-label small text-muted">Rating</span>
+        <span class="stat-value fw-bold">★★★★☆ <%= @journey.placeholder_rating %></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="photo-carousel my-4" data-controller="carousel">
+    <h2>Moments from walkers</h2>
+
+    <div class="carousel-wrapper d-flex align-items-center">
+      <button type="button" class="carousel-nav carousel-nav-prev btn btn-link" data-action="click->carousel#prev" aria-label="Previous photo">‹</button>
+
+      <div class="carousel-track d-flex gap-2 overflow-auto" data-carousel-target="track">
+        <% @recent_photos.each do |walk| %>
+          <div class="carousel-item flex-shrink-0">
+            <%= image_tag walk.photo, class: "rounded", style: "height: 200px;" %>
+          </div>
+        <% end %>
+      </div>
+
+      <button type="button" class="carousel-nav carousel-nav-next btn btn-link" data-action="click->carousel#next" aria-label="Next photo">›</button>
+    </div>
+  </div>
+
+  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "btn btn-primary w-100 mb-2" %>
+  <button class="save-button btn btn-outline-secondary w-100">🔖 Save for Later</button>
+</div>

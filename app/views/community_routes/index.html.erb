@@ -1,0 +1,24 @@
+<div class="container community-routes mt-4">
+  <h1>Community Routes</h1>
+  <p class="subtitle text-muted mb-4">Walks other people have shared</p>
+
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+    <% @journeys.each do |journey| %>
+      <div class="col">
+        <%= link_to community_route_path(journey), class: "route-card card h-100 text-decoration-none text-reset" do %>
+          <div class="route-card-photo position-relative">
+            <%= image_tag journey.community_photos(limit: 1).first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
+                  class: "card-img-top" %>
+            <span class="route-card-title position-absolute bottom-0 start-0 p-2 text-white"><%= journey.name %></span>
+          </div>
+          <div class="card-body">
+            <div class="route-card-meta d-flex justify-content-between mb-2">
+              <span>⏱ <%= journey.estimated_duration_seconds / 60 %> min</span>
+              <span>★★★★☆ <%= journey.placeholder_rating %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
