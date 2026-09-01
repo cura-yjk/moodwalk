@@ -25,6 +25,11 @@
         <span class="stat-label small text-muted">Rating</span>
         <span class="stat-value fw-bold">★★★★☆ <%= @journey.placeholder_rating %></span>
       </div>
+      <div class="route-tags d-flex flex-wrap gap-2 my-3">
+        <% @journey.tags.each do |tag| %>
+          <span class="badge bg-light text-dark"><%= tag %></span>
+        <% end %>
+      </div>
     </div>
   </div>
 
