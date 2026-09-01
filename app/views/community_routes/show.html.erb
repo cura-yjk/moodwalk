@@ -1,13 +1,13 @@
 <div class="community-route-detail container mt-4">
   <div class="hero-photo mb-3">
     <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
-          class: "img-fluid rounded w-100" %>
+          class: "community-image" %>
   </div>
 
   <span class="label text-muted text-uppercase small">Community Route</span>
   <h1><%= @journey.name %></h1>
 
-  <div class="stat-cards row row-cols-4 g-2 my-3">
+  <div class="stat-cards stats-summary row row-cols-4 g-2 my-3">
     <div class="col">
       <div class="stat-card card text-center p-2">
         <span class="stat-label small text-muted"><i class="fa-solid fa-route"></i> Distance</span>
