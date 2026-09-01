@@ -4,7 +4,7 @@
         <div class="d-flex flex-column align-items-center">
           <div>
             <%= link_to walks_path, class: "nav-link" do %>
-              <i class="fa-solid fa-map-location-dot nav-icon
+              <i class="fa-solid fa-book-open-reader nav-icon
               <%= active_icon_class(walks_path) %>
               <%= 'nav-active-highlight' if current_page?(walks_path) %>"
               ></i>
@@ -33,15 +33,15 @@
 
         <div class="d-flex flex-column align-items-center">
           <div>
-            <%= link_to new_user_session_path, class: "nav-link" do %>
+            <%= link_to community_routes_path, class: "nav-link" do %>
               <i class="fa-solid fa-users nav-icon
-              <%= active_icon_class(new_user_session_path) %>
-              <%= 'nav-active-highlight' if current_page?(new_user_session_path) %>"
+              <%= active_icon_class(community_routes_path) %>
+              <%= 'nav-active-highlight' if current_page?(community_routes_path) %>"
               ></i>
             <% end %>
           </div>
 
-          <div class="nav-title  <%= active_icon_class(new_user_session_path) %> <%= 'nav-active-highlight' if current_page?(new_user_session_path) %>">
+          <div class="nav-title  <%= active_icon_class(community_routes_path) %> <%= 'nav-active-highlight' if current_page?(community_routes_path) %>">
             Paths
           </div>
         </div>

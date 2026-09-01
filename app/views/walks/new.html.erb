@@ -17,7 +17,7 @@
       <% end %>
     </p>
   </div>
-  <div class="map-preview" class="route-map"
+  <div class="map-preview route-map"
        data-controller="map"
        data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
@@ -46,5 +46,10 @@
       <%= f.hidden_field :mood_before, data: { "carry-checkin-mood-target": "field" } %>
       <%= f.submit "Start walking", class: "done-btn w-100" %>
     <% end %>
+    <% if @alternate_journey %>
+    <%= link_to "Choose alternate journey",
+          new_journey_walk_path(@alternate_journey),
+          class: "subtle-btn align-self-center" %>
+  <% end %>
   </div>
 </div>

@@ -89,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["journey_id"], name: "index_walks_on_journey_id"
+    t.index ["shared_at"], name: "index_walks_on_shared_at"
     t.index ["user_id"], name: "index_walks_on_user_id"
   end
 

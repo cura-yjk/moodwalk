@@ -1,3 +1,38 @@
+.carousel-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  .carousel-item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+
+    img {
+      display: block;
+      border-radius: 12px;
+      height: 200px;
+      width: auto;
+    }
+  }
+}
+
+.carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.carousel-nav {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0 8px;
+  flex: 0 0 auto;
+}
+
 /* Hide the actual radio input visually, but keep it functional */
 .mood-radio-hidden {
   position: absolute;

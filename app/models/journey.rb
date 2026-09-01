@@ -1,6 +1,28 @@
 class Journey < ApplicationRecord
   has_many :walks
 
+  scope :community, -> { joins(:walks).merge(Walk.shared).distinct }
+
+  def community_photos(limit: nil)
+    scope = walks.recent_with_photo
+    limit ? scope.limit(limit) : scope
+  end
+
+  def estimated_steps_display
+    estimated_steps || "—"
+  end
+
+  def placeholder_rating
+    (3.8 + ((id % 5) * 0.2)).round(1)
+  end
+
+  def alternate
+    others = Journey.where.not(id: id)
+    others = others.where(estimated_duration_seconds: ..estimated_duration_seconds) if estimated_duration_seconds
+
+    others.where(theme_key: theme_key).sample || others.sample
+  end
+
   # find routes within `radius_meters` of a point, closest first
   scope :near, lambda { |lat, lng, radius_meters = 3000|
     point = RGeo::Geographic.spherical_factory(srid: 4326).point(lng, lat)
@@ -10,9 +32,9 @@ class Journey < ApplicationRecord
 
   # Placeholder images
   PLACEHOLDER_IMAGES = [
-    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-    "https://media.istockphoto.com/id/1628010210/photo/empty-streets-and-sidewalks-of-soho-are-eerily-quiet-during-the-2020-coronavirus-pandemic.jpg?s=612x612&w=0&k=20&c=U-ErR7AfusWWLr-BZOxZlGWaeki4Bx3jNNc2EN2xSz8="
+    "https://images.unsplash.com/photo-1783394422782-2e8d9c80dc5e?q=80&w=1752&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg"
   ]
 
   # decodes `encoded_polyline` (Google/Mapbox encoded polyline, precision 5) into
@@ -68,7 +90,31 @@ class Journey < ApplicationRecord
     waypoints
   end
 
+  TEXT_TAG_KEYWORDS = {
+    "Nature" => /tree|leaf|leaves|branch|garden|grass|greenery|forest|park/i,
+    "Water" => /water|stream|river|lake|pond|shore|waterfront/i,
+    "Quiet" => /quiet|hushed|still|calm|silence/i,
+    "Historic" => /old|worn|weathered|stone|brick|landmark|monument/i,
+    "Lively" => /market|bakery|bright|color|liveliness|delight/i
+  }.freeze
+
+  def tags
+    return theme_tags if theme_key.present? && THEMES.key?(theme_key.to_sym)
+
+    text_derived_tags
+  end
+
   private
+
+  def theme_tags
+    THEMES.dig(theme_key.to_sym, :categories).to_a.map { |slug| slug.tr("_", " ").capitalize }
+  end
+
+  def text_derived_tags
+    text = "#{name} #{description}"
+    matched = TEXT_TAG_KEYWORDS.select { |_, pattern| text.match?(pattern) }.keys
+    matched.presence || ["Walk"]
+  end
 
   # decodes one zigzag-encoded varint starting at `index`, returning [value, next_index]
   # rubocop:disable Metrics/MethodLength
