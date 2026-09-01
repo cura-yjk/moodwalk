@@ -25,6 +25,7 @@ Rails.application.routes.draw do
       patch :attach_photo
       patch :share
       post :share_quote
+      get :memory
     end
   end
 

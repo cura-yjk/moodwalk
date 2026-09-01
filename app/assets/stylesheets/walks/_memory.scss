@@ -1,0 +1,266 @@
+// walks#memory -- styled to match the "walking memory card" mockup.
+.memory-card-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  overflow: hidden;
+}
+
+// A background-image div, not an <img> with object-fit -- html2canvas (used
+// by the download button) doesn't support object-fit and would stretch the
+// photo to the element box instead of cropping it, which is what caused the
+// downloaded image to look squeezed/repositioned versus what's on screen.
+// background-size: cover is a plain, well-supported CSS property, so both
+// the live page and the html2canvas capture render it identically.
+.memory-card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
+}
+
+// Photo alone can't guarantee contrast against the white text/icons on top
+// of it, so a scrim sits between them regardless of image content -- darkest
+// at the top/bottom where icons, stats, and the watermark need to read, and
+// still dark enough through the middle for the title/mood/quote text.
+//
+// z-index -1 here vs -2 on .memory-card-bg (not just "more negative" on both)
+// -- both are negative-z-index siblings of the same stacking context, and
+// .memory-card-bg comes later in the box tree (::before is always generated
+// as the first child), so at equal z-index tree order would paint the opaque
+// photo on top of this and hide it completely. The less-negative value wins
+// paint order regardless of tree order, so this reliably stays above the photo.
+.memory-card-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 30%,
+    rgba(0, 0, 0, 0.4) 62%,
+    rgba(0, 0, 0, 0.75) 100%
+  );
+  z-index: -1;
+}
+
+.memory-card-topbar {
+  flex: 0 0 auto;
+  padding: 1.5rem 1.25rem;
+}
+
+// Plain icons on the photo (no button chip), matching the mockup -- a drop
+// shadow keeps them legible over both light and dark parts of the photo.
+.memory-icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  padding: 0.25rem;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+// Stretches to fill whatever height is left below the topbar, so its three
+// children (top / quote-center / bottom) can be positioned against the full
+// page height rather than however tall their own content happens to be.
+.memory-card-content {
+  flex: 1 1 auto;
+  padding: 0.5rem 1.5rem 2.5rem;
+}
+
+.memory-card-top {
+  flex: 0 0 auto;
+}
+
+.memory-card-bottom {
+  flex: 0 0 auto;
+}
+
+.memory-date {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.memory-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+// Thin rule flanking a small centered ornament -- the "-- <> --" flourish
+// under the title and again below the quote.
+.memory-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 16em;
+  margin: 1rem auto;
+  opacity: 0.85;
+  font-size: 0.7rem;
+
+  span {
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.memory-divider-leaf {
+  font-size: 1rem;
+}
+
+.memory-mood-row {
+  gap: 2.5rem;
+  margin: 1.75rem 0;
+}
+
+.memory-mood-icon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+// Theme fallback for "wanted to feel" when there's no mood_before -- same
+// size as .memory-mood-icon so the two are interchangeable in the row, with
+// per-theme pastel bg / accent icon color reusing $mood-theme-colors (the
+// same map .theme-card and the duration sheet already key off of).
+.memory-theme-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+@each $key, $colors in $mood-theme-colors {
+  .memory-theme-icon[data-theme="#{$key}"] {
+    background: map-get($colors, bg);
+
+    i {
+      color: map-get($colors, accent);
+    }
+  }
+}
+
+.memory-mood-value {
+  font-weight: 700;
+  margin-top: 0.5rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.memory-mood-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-bottom: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.memory-mood-arrow {
+  opacity: 0.85;
+}
+
+// Fills the space between the header block and the footer block, so the
+// quote always sits in the vertical middle of the page instead of trailing
+// directly under the mood row.
+.memory-quote-center {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+// A soft dark halo behind the quote, independent of the page-wide scrim --
+// gives the quote its own pocket of contrast so it reads as the focal point
+// of the card regardless of how bright the photo is right behind it.
+.memory-quote-center::before {
+  content: "";
+  position: absolute;
+  inset: -1rem -1.25rem;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 72%);
+  z-index: 0;
+}
+
+.memory-quote-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 24em;
+}
+
+.memory-quote {
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.55;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+// Large, warm-toned quotation marks (echoing the mockup's flourish) sitting
+// just behind the text -- the accent color and glow are what make the quote
+// read as the card's focal point rather than a plain caption.
+//
+// Gated on the quote paragraph actually having text -- it starts empty while
+// the AI quote is still being fetched (see memory_card_controller.js), and
+// :has() re-evaluates live as soon as that fetch fills it in, so the marks
+// don't show up framing empty space during the loading window.
+.memory-quote-wrap:has(.memory-quote:not(:empty))::before,
+.memory-quote-wrap:has(.memory-quote:not(:empty))::after {
+  font-family: $editorial-font;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: $yellow;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
+  position: absolute;
+  z-index: 0;
+}
+
+.memory-quote-wrap:has(.memory-quote:not(:empty))::before {
+  content: "\201C";
+  top: -1.75rem;
+  left: -0.75rem;
+}
+
+.memory-quote-wrap:has(.memory-quote:not(:empty))::after {
+  content: "\201D";
+  bottom: -3rem;
+  right: -0.75rem;
+}
+
+.memory-stats-row {
+  gap: 1.5rem;
+  margin: 1.5rem 0 1rem;
+  font-size: 0.95rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+
+  // Each "icon value unit" group is one flex item with no explicit width,
+  // so flex-shrink was letting its text wrap onto a second line whenever
+  // the row got a little tight -- most visibly in the html-to-image export,
+  // where the Google Fonts embed fails (cross-origin, see
+  // memory_card_controller.js) and the fallback font's wider glyphs no
+  // longer fit the space the real font did on screen.
+  span {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+.memory-watermark {
+  opacity: 0.85;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}

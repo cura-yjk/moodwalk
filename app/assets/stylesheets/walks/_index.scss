@@ -30,6 +30,38 @@
   box-shadow: 0 10px 15px -5px rgba(0, 0, 0, 0.15);
 }
 
+// Lifetime totals row atop walks#index (km walked / hours outside / walks).
+.stats-summary {
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+
+  border-top: 1px solid rgba(14, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(14, 0, 0, 0.1);
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+
+  padding: 0 0.5rem;
+}
+
+.stat + .stat {
+  border-left: 1px solid rgba(14, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: $gray;
+}
+
+.stat-caption {
+  font-size: 0.8rem;
+  color: $gray;
+  opacity: 0.6;
+}
+
 .tabs {
   display: flex;
   gap: 4px;

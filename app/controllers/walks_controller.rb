@@ -38,6 +38,7 @@ class WalksController < ApplicationController
     # This happens in Ruby (not a second DB query) since @walks is small
     # and already fully loaded — no need to hit the database again.
     @grouped_walks = group_walks_by_date(@walks)
+    @stats = Walk.lifetime_stats(@walks)
   end
 
   def edit
@@ -49,12 +50,16 @@ class WalksController < ApplicationController
     # mood_after and reflection are both optional, so update succeeds
     # even if the user submits the form with either field left blank.
     if @walk.update(walk_params)
-      redirect_to walks_path, notice: "Walk saved!"
+      redirect_to memory_walk_path(@walk)
     else
       # Only realistically fails here if something unexpected happens
       # (e.g. a DB-level constraint), since neither field is required.
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def memory
+    @walk = current_user.walks.find(params[:id])
   end
 
   def complete
@@ -78,6 +83,17 @@ class WalksController < ApplicationController
   def share_quote
     walk = Walk.find(params[:id])
 
+    # Generated once per walk and persisted -- the LLM isn't deterministic,
+    # so without this, revisiting the memory page would show a different
+    # quote each time instead of the one first generated for this walk.
+    return render json: { quote: walk.share_quote } if walk.share_quote.present?
+
+    generate_and_render_quote(walk)
+  end
+
+  private
+
+  def generate_and_render_quote(walk)
     result = ShareQuoteGenerator.new(
       reflection: params[:reflection],
       mood_before: walk.mood_before,
@@ -85,13 +101,12 @@ class WalksController < ApplicationController
     ).call
 
     if result.success?
+      walk.update(share_quote: result.quote)
       render json: { quote: result.quote }
     else
       render json: { error: result.error }, status: :unprocessable_entity
     end
   end
-
-  private
 
   def walk_params
     params.require(:walk).permit(:mood_after, :reflection, :photo)

@@ -1,0 +1,81 @@
+<% content_for :hide_navbar, true %>
+<div class="memory-card-page" data-controller="memory-card" data-memory-card-quote-url-value="<%= share_quote_walk_path(@walk) %>" data-memory-card-mood-after-value="<%= @walk.mood_after %>" data-memory-card-reflection-value="<%= @walk.reflection %>">
+  <% if @walk.photo.attached? %>
+    <div class="memory-card-bg" style="background-image: url('<%= url_for(@walk.photo) %>');"></div>
+  <% else %>
+    <div class="memory-card-bg" style="background-image: url('https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg');"></div>
+  <% end %>
+
+  <div class="memory-card-topbar d-flex justify-content-between" data-memory-card-target="topbar">
+    <%= link_to walks_path, class: "memory-icon-btn" do %>
+      <i class="fa-solid fa-xmark"></i>
+    <% end %>
+    <button type="button" class="memory-icon-btn" data-action="click->memory-card#download">
+      <i class="fa-solid fa-download"></i>
+    </button>
+  </div>
+
+  <div class="memory-card-content d-flex flex-column text-center">
+    <div class="memory-card-top">
+      <p class="memory-date"><%= share_card_datetime(@walk) %></p>
+      <h1 class="memory-title editorial-title"><%= @walk.journey.name %></h1>
+      <div class="memory-divider"><span></span><i class="fa-solid fa-diamond"></i><span></span></div>
+
+      <%
+        # "Wanted to feel" prefers the explicit before-mood; when the user
+        # skipped that check-in, it falls back to the journey's theme (e.g.
+        # "Refresh") so there's still something to pair the after-mood with.
+        theme = theme_for(@walk.journey.theme_key)
+        show_left = @walk.mood_before.present? || theme.present?
+        show_right = @walk.mood_after.present?
+      %>
+      <% if show_left %>
+        <div class="memory-mood-row d-flex justify-content-center align-items-center">
+          <div class="memory-mood text-center">
+            <% if @walk.mood_before.present? %>
+              <%= image_tag mood_icon(@walk.mood_before), alt: @walk.mood_before, class: "memory-mood-icon" %>
+              <p class="memory-mood-value mb-0"><%= @walk.mood_before %></p>
+              <p class="memory-mood-label">Before the walk</p>
+            <% else %>
+              <span class="memory-theme-icon" data-theme="<%= @walk.journey.theme_key %>">
+                <i class="<%= theme[:icon] %>"></i>
+              </span>
+              <p class="memory-mood-value mb-0"><%= theme[:label] %></p>
+              <p class="memory-mood-label">Wanted to feel</p>
+            <% end %>
+          </div>
+
+          <% if show_right %>
+            <i class="fa-solid fa-arrow-right memory-mood-arrow"></i>
+            <div class="memory-mood text-center">
+              <%= image_tag mood_icon(@walk.mood_after), alt: @walk.mood_after, class: "memory-mood-icon" %>
+              <p class="memory-mood-value mb-0"><%= @walk.mood_after %></p>
+              <p class="memory-mood-label">After the walk</p>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Fills whatever vertical space is left between the header block above
+         and the footer block below, so the quote always lands in the middle
+         of the page rather than immediately trailing the mood row. -->
+    <div class="memory-quote-center">
+      <div class="memory-quote-wrap">
+        <p class="memory-quote fst-italic editorial-title" data-memory-card-target="quote"></p>
+      </div>
+    </div>
+
+    <div class="memory-card-bottom">
+      <div class="memory-divider memory-divider-leaf"><span></span>🌿<span></span></div>
+
+      <div class="memory-stats-row d-flex justify-content-center">
+        <span>⏲ <%= @walk.duration_in_minutes %> min</span>
+        <span>👣 <%= @walk.actual_steps %> steps</span>
+        <span>📍 <%= @walk.actual_distance %> km</span>
+      </div>
+
+      <p class="memory-watermark">MoodWalk 🌿</p>
+    </div>
+  </div>
+</div>
