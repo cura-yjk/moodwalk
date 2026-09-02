@@ -41,7 +41,7 @@ def generate_journeys(lat:, lng:, specs:)
       journey = result.journey
       # ~0.75m average stride length
       estimated_steps = (journey.distance_meters / 0.75).round
-      journey.update!(name: spec[:name], description: spec[:description], estimated_steps: estimated_steps, saved: true)
+      journey.update!(name: spec[:name], description: spec[:description], estimated_steps: estimated_steps, recommendable: true)
       puts "  ✅ #{spec[:name]} (#{journey.distance_meters.round}m, ~#{estimated_steps} steps, " \
            "#{(journey.estimated_duration_seconds / 60.0).round} min)"
       journey
@@ -168,7 +168,7 @@ def generate_themed_journey(theme_key:, minutes:, max_attempts: 12)
 
   if result.success?
     journey = result.journey
-    journey.update!(estimated_steps: (journey.distance_meters / 0.75).round, saved: true)
+    journey.update!(estimated_steps: (journey.distance_meters / 0.75).round, recommendable: true)
     puts "  ✅ #{journey.name} (#{journey.distance_meters.round}m, " \
          "#{(journey.estimated_duration_seconds / 60.0).round} min)"
   else
