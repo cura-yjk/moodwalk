@@ -15,6 +15,16 @@
     </button>
   <% end %>
 
+    <button type="button" class="theme-card col-6" data-theme="surprise_me"
+      data-action="duration-picker#open"
+      data-duration-picker-theme-key-param="surprise_me"
+      data-duration-picker-theme-label-param="Surprise me"
+      data-duration-picker-theme-subtitle-param="We'll pick the mood for you"
+      data-duration-picker-theme-icon-param="fa-solid fa-shuffle">
+      <i class="fa-solid fa-shuffle"></i>
+      <span>Surprise me</span>
+    </button>
+
   <div class="bottom-sheet-backdrop" data-duration-picker-target="backdrop" data-action="click->duration-picker#close"></div>
 
 
@@ -51,35 +61,5 @@
 
       <%= f.submit "Find me a walk", class: "find-walk-btn" %>
     <% end %>
-  </div>
-</div>
-
-
-  <%# Added buttons here but cant figure out %>
-  <%# how to get them to work with the code above %>
-
-<div class="theme-picker w-100 d-flex flex-column">
-  <div data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
-    <button type="button" class="theme-card col-6" data-theme="surprise_me"
-      data-action="duration-picker#open"
-      data-duration-picker-theme-key-param="surprise_me"
-      data-duration-picker-theme-label-param="Surprise me"
-      data-duration-picker-theme-subtitle-param="We'll pick the mood for you"
-      data-duration-picker-theme-icon-param="fa-solid fa-shuffle">
-      <i class="fa-solid fa-shuffle"></i>
-      <span>Surprise me</span>
-    </button>
-  </div>
-
-  <div data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
-    <button type="button" class="theme-card col-6" data-theme="surprise_me"
-      data-action="duration-picker#open"
-      data-duration-picker-theme-key-param="surprise_me"
-      data-duration-picker-theme-label-param="Surprise me"
-      data-duration-picker-theme-subtitle-param="We'll pick the mood for you"
-      data-duration-picker-theme-icon-param="fa-solid fa-shuffle">
-      <i class="fa-solid fa-route"></i>
-      <span>Create</span>
-    </button>
   </div>
 </div>
