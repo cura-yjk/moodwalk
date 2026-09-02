@@ -1,62 +1,81 @@
-<div class="community-route-detail container mt-4">
-  <div class="hero-photo mb-3">
-    <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
-          class: "community-image" %>
-  </div>
+<div class="route-hero">
+  <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
+        class: "route-hero-image" %>
+</div>
 
-  <span class="label text-muted text-uppercase small">Community Route</span>
-  <h1><%= @journey.name %></h1>
+<div class="community-route-detail container">
+  <div class="route-detail-body">
+    <span class="label text-muted text-uppercase small">Community Route</span>
+    <h1 class="route-detail-title editorial-title"><%= @journey.name %></h1>
+    <% if @journey.description.present? %>
+      <p class="route-detail-description"><%= @journey.description %></p>
+    <% end %>
 
-  <div class="stat-cards stats-summary row row-cols-4 g-2 my-3">
-    <div class="col">
-      <div class="stat-card card text-center p-2">
-        <i class="fa-solid fa-route text-muted"></i>
-        <span class="stat-label small text-muted">Distance</span>
-        <span class="stat-value fw-bold"><%= (@journey.distance_meters / 1000.0).round(1) %> km</span>
+    <div class="route-detail-stats">
+      <div class="route-detail-stat">
+        <i class="fa-regular fa-clock"></i>
+        <span class="route-detail-stat-value"><%= @journey.estimated_duration_seconds / 60 %> min</span>
+        <span class="route-detail-stat-label">Duration</span>
+      </div>
+      <div class="route-detail-stat">
+        <i class="fa-solid fa-route"></i>
+        <span class="route-detail-stat-value"><%= (@journey.distance_meters / 1000.0).round(1) %> km</span>
+        <span class="route-detail-stat-label">Distance</span>
+      </div>
+      <div class="route-detail-stat">
+        <i class="fa-solid fa-shoe-prints"></i>
+        <span class="route-detail-stat-value"><%= @journey.estimated_steps_display %></span>
+        <span class="route-detail-stat-label">Steps</span>
+      </div>
+      <div class="route-detail-stat">
+        <i class="fa-solid fa-star"></i>
+        <span class="route-detail-stat-value"><%= @journey.placeholder_rating %></span>
+        <span class="route-detail-stat-label">Rating</span>
       </div>
     </div>
-    <div class="col">
-      <div class="stat-card card text-center p-2">
-        <i class="fa-regular fa-clock text-muted"></i>
-        <span class="stat-label small text-muted">Duration</span>
-        <span class="stat-value fw-bold"><%= @journey.estimated_duration_seconds / 60 %> min</span>
-      </div>
-    </div>
-    <div class="col">
-      <div class="stat-card card text-center p-2">
-        <i class="fa-solid fa-shoe-prints text-muted"></i>
-        <span class="stat-label small text-muted"> Steps</span>
-        <span class="stat-value fw-bold"><%= @journey.estimated_steps_display %></span>
-      </div>
-    </div>
-    <div class="col">
-      <div class="stat-card card text-center p-2">
-        <i class="fa-solid fa-star text-muted"></i>
-        <span class="stat-label small text-muted"> Rating</span>
-        <span class="stat-value fw-bold"><%= @journey.placeholder_rating %></span>
-      </div>
-    </div>
-  </div>
 
-  <div class="photo-carousel my-4" data-controller="carousel">
-    <h2>Other moments from walkers</h2>
-
-    <div class="carousel-wrapper d-flex align-items-center">
-      <button type="button" class="carousel-nav carousel-nav-prev btn btn-link" data-action="click->carousel#prev" aria-label="Previous photo">‹</button>
-
-      <div class="carousel-track d-flex gap-2 overflow-auto" data-carousel-target="track">
-        <% @recent_photos.each do |walk| %>
-          <div class="carousel-item flex-shrink-0">
-            <%= image_tag walk.photo, class: "rounded", style: "height: 200px;" %>
-          </div>
+    <% if @journey.tags.any? %>
+      <h2 class="route-detail-heading">What this walk feels like</h2>
+      <div class="route-detail-tags">
+        <% @journey.tags.each do |tag| %>
+          <span class="route-tag"><%= tag %></span>
         <% end %>
       </div>
+    <% end %>
 
-      <button type="button" class="carousel-nav carousel-nav-next btn btn-link" data-action="click->carousel#next" aria-label="Next photo">›</button>
+    <div class="map-preview route-map mx-auto mt-4"
+         data-controller="map"
+         data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+         data-map-center-value="<%= @journey.start_coordinates.to_json %>"
+         data-map-route-value="<%= @journey.route_coordinates.to_json %>">
+    </div>
+
+    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : Array.new(4) { Journey::PLACEHOLDER_IMAGES.sample } %>
+    <div class="photo-carousel my-4">
+      <h2 class="route-detail-heading">Other moments from walkers</h2>
+
+      <div id="momentsCarousel" class="carousel slide route-moments-carousel">
+        <div class="carousel-inner">
+          <% moment_photos.each_with_index do |photo, index| %>
+            <div class="carousel-item <%= "active" if index.zero? %>">
+              <%= image_tag photo, class: "d-block w-100 route-moments-photo" %>
+            </div>
+          <% end %>
+        </div>
+
+        <button class="carousel-control-prev" type="button" data-bs-target="#momentsCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#momentsCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="d-flex flex-column w-100 gap-3 my-2">
+  <div class="d-flex flex-column w-100 gap-3 route-detail-actions">
     <div class="d-flex gap-2 mb-1">
       <%= link_to community_routes_path,
       class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
@@ -69,8 +88,6 @@
       <% end %>
     </div>
 
+    <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
   </div>
-
-  <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100 mb-2" %>
-
 </div>

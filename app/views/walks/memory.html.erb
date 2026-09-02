@@ -22,17 +22,25 @@
       <div class="memory-divider"><span></span><i class="fa-solid fa-diamond"></i><span></span></div>
 
       <%
-        # "Wanted to feel" prefers the explicit before-mood; when the user
-        # skipped that check-in, it falls back to the journey's theme (e.g.
-        # "Refresh") so there's still something to pair the after-mood with.
+        # A lone before-mood (no after) shows nothing -- there's nothing to
+        # compare it to. A lone after-mood shows itself alone, unless the
+        # journey's theme can stand in for "wanted to feel", in which case
+        # theme+after pair up instead. A lone theme (no moods at all) shows
+        # by itself.
         theme = theme_for(@walk.journey.theme_key)
-        show_left = @walk.mood_before.present? || theme.present?
-        show_right = @walk.mood_after.present?
+        before_present = @walk.mood_before.present?
+        after_present = @walk.mood_after.present?
+        theme_present = theme.present?
+
+        show_before_after = before_present && after_present
+        show_theme_after = !before_present && after_present && theme_present
+        show_after_alone = !before_present && after_present && !theme_present
+        show_theme_alone = !before_present && !after_present && theme_present
       %>
-      <% if show_left %>
+      <% if show_before_after || show_theme_after %>
         <div class="memory-mood-row d-flex justify-content-center align-items-center">
           <div class="memory-mood text-center">
-            <% if @walk.mood_before.present? %>
+            <% if show_before_after %>
               <%= image_tag mood_icon(@walk.mood_before), alt: @walk.mood_before, class: "memory-mood-icon" %>
               <p class="memory-mood-value mb-0"><%= @walk.mood_before %></p>
               <p class="memory-mood-label">Before the walk</p>
@@ -45,14 +53,31 @@
             <% end %>
           </div>
 
-          <% if show_right %>
-            <i class="fa-solid fa-arrow-right memory-mood-arrow"></i>
-            <div class="memory-mood text-center">
-              <%= image_tag mood_icon(@walk.mood_after), alt: @walk.mood_after, class: "memory-mood-icon" %>
-              <p class="memory-mood-value mb-0"><%= @walk.mood_after %></p>
-              <p class="memory-mood-label">After the walk</p>
-            </div>
-          <% end %>
+          <i class="fa-solid fa-arrow-right memory-mood-arrow"></i>
+
+          <div class="memory-mood text-center">
+            <%= image_tag mood_icon(@walk.mood_after), alt: @walk.mood_after, class: "memory-mood-icon" %>
+            <p class="memory-mood-value mb-0"><%= @walk.mood_after %></p>
+            <p class="memory-mood-label">After the walk</p>
+          </div>
+        </div>
+      <% elsif show_after_alone %>
+        <div class="memory-mood-row d-flex justify-content-center align-items-center">
+          <div class="memory-mood text-center">
+            <%= image_tag mood_icon(@walk.mood_after), alt: @walk.mood_after, class: "memory-mood-icon" %>
+            <p class="memory-mood-value mb-0"><%= @walk.mood_after %></p>
+            <p class="memory-mood-label">After the walk</p>
+          </div>
+        </div>
+      <% elsif show_theme_alone %>
+        <div class="memory-mood-row d-flex justify-content-center align-items-center">
+          <div class="memory-mood text-center">
+            <span class="memory-theme-icon" data-theme="<%= @walk.journey.theme_key %>">
+              <i class="<%= theme[:icon] %>"></i>
+            </span>
+            <p class="memory-mood-value mb-0"><%= theme[:label] %></p>
+            <p class="memory-mood-label">Wanted to feel</p>
+          </div>
         </div>
       <% end %>
     </div>
