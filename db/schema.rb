@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_000343) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -51,12 +51,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
     t.integer "estimated_duration_seconds"
     t.integer "estimated_steps"
     t.string "name"
-    t.boolean "saved", default: false, null: false
+    t.boolean "recommendable", default: false, null: false
     t.geography "start_point", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}, null: false
     t.string "theme_key"
     t.datetime "updated_at", null: false
     t.index ["start_point"], name: "index_journeys_on_start_point", using: :gist
     t.index ["theme_key"], name: "index_journeys_on_theme_key"
+  end
+
+  create_table "saved_journeys", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "journey_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["journey_id"], name: "index_saved_journeys_on_journey_id"
+    t.index ["user_id", "journey_id"], name: "index_saved_journeys_on_user_id_and_journey_id", unique: true
+    t.index ["user_id"], name: "index_saved_journeys_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -96,6 +106,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_01_023949) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "saved_journeys", "journeys"
+  add_foreign_key "saved_journeys", "users"
   add_foreign_key "walks", "journeys"
   add_foreign_key "walks", "users"
 end

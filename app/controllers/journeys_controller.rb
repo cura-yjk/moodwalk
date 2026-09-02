@@ -23,8 +23,10 @@ class JourneysController < ApplicationController
 
   def save
     @journey = Journey.find(params[:id])
-    @journey.update(saved: true)
-    redirect_to walks_path, notice: "Route saved"
+    current_user.saved_journeys.find_or_create_by(journey: @journey)
+    render json: { saved: true }
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   private
@@ -34,18 +36,16 @@ class JourneysController < ApplicationController
   # to any saved journey, then any journey at all.
   def fallback_journey
     themed = Journey.near(current_user.current_latitude, current_user.current_longitude)
-                    .where(saved: true, theme_key: theme_key.to_s)
+                    .where(recommendable: true, theme_key: theme_key.to_s)
 
     if duration_minutes.present?
       themed = themed.where(estimated_duration_seconds: duration_range)
     else
-      # "No rush" has no target duration to match - among same-location ties, prefer the
-      # longest themed option rather than whichever happens to sort first.
       themed = themed.order(estimated_duration_seconds: :desc)
     end
 
     themed.first ||
-      Journey.near(current_user.current_latitude, current_user.current_longitude).find_by(saved: true) ||
+      Journey.near(current_user.current_latitude, current_user.current_longitude).find_by(recommendable: true) ||
       Journey.last
   end
 

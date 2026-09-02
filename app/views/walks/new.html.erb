@@ -35,11 +35,14 @@
       class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
         <i class="fa-solid fa-backward"></i> Back
       <% end %>
-      <%= button_to save_journey_path(@journey), method: :patch,
-        form_class: "w-50",
-        class: "choice-btn d-flex align-items-center gap-3 justify-content-center w-100" do %>
-        <i class="fa-regular fa-bookmark"></i> Save
-      <% end %>
+      <button type="button" class="choice-btn d-flex align-items-center gap-3 justify-content-center w-50"
+        data-controller="journey-save"
+        data-journey-save-save-url-value="<%= save_journey_path(@journey) %>"
+        data-journey-save-target="button"
+        data-action="click->journey-save#save">
+        <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>
+        <span data-journey-save-target="label">Save</span>
+      </button>
     </div>
 
     <%= form_with url: journey_walks_path(@journey), scope: :walk, data: { controller: "carry-checkin-mood" } do |f| %>

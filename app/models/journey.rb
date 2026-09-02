@@ -1,5 +1,7 @@
 class Journey < ApplicationRecord
   has_many :walks
+  has_many :saved_journeys, dependent: :destroy
+  has_many :saving_users, through: :saved_journeys, source: :user
 
   scope :community, -> { where(theme_key: [nil, ""]) }
 
@@ -33,6 +35,10 @@ class Journey < ApplicationRecord
     others = others.where(estimated_duration_seconds: ..estimated_duration_seconds) if estimated_duration_seconds
 
     others.where(theme_key: theme_key).sample || others.sample
+  end
+
+  def saved_by?(user)
+    saved_journeys.exists?(user_id: user.id)
   end
 
   # find routes within `radius_meters` of a point, closest first
