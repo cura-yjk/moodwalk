@@ -16,7 +16,10 @@ Rails.application.routes.draw do
 
   resources :journeys, only: [:create] do
     resources :walks, only: [:new, :create]
-    member { patch :save }
+    member do
+      patch :save
+      get :highlights
+    end
   end
 
   resources :walks, only: [:show, :edit, :update, :index] do

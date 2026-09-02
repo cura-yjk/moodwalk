@@ -1,4 +1,17 @@
 class WalksController < ApplicationController
+  def highlights
+    journey = Journey.find(params[:id])
+    return render json: { highlights: journey.highlights_text } if journey.highlights_text.present?
+
+    result = JourneyHighlightsGenerator.new(journey: journey).call
+    if result.success?
+      journey.update(highlights_text: result.highlights)
+      render json: { highlights: result.highlights }
+    else
+      render json: { highlights: journey.highlights } # fall back to the static lookup table
+    end
+  end
+
   def attach_photo
     @walk = current_user.walks.find(params[:id])
     @walk.update(walk_params)
