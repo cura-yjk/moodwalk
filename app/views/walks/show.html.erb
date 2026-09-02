@@ -36,6 +36,9 @@
         </label>
 
     </div>
-      <%= button_to "End Walk", complete_walk_path(@walk), method: :patch, class: "end-walk-btn mb-3" %>
+      <%= button_to "End Walk", complete_walk_path(@walk), method: :patch,
+      class: "end-walk-btn mb-3",
+      form: { data: { walking_target: "endWalkForm" } },
+      data: { action: "click->walking#endWalk" } %>
   </div>
 </div>
