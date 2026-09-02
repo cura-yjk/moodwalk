@@ -1,10 +1,15 @@
 <div class="walk-card-flip"
      data-controller="walk-card"
-     data-action="click->walk-card#flip"
+     data-action="click->walk-card#open"
      data-walk-card-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
-     data-walk-card-route-value="<%= walk.journey.route_coordinates.to_json %>">
+     data-walk-card-route-value="<%= walk.journey.route_coordinates.to_json %>"
+     data-walk-card-memory-url-value="<%= memory_walk_path(walk) %>">
   <div class="walk-card-inner" data-walk-card-target="inner">
     <div class="walk-card-front walk-card">
+      <button type="button" class="walk-card-map-toggle" data-action="click->walk-card#flip:stop" aria-label="Show route map">
+        <i class="fa-solid fa-map"></i>
+      </button>
+
       <% if walk.photo.attached? %>
         <div class="walk-thumbnail" style="background-image: url('<%= url_for(walk.photo) %>');">
         </div>
@@ -55,7 +60,14 @@
       </div>
     </div>
 
-    <div class="walk-card-back walk-card">
+    <!-- The whole back (map included) flips back to the front on tap, not
+         just the close icon -- while the back is showing, a tap should never
+         fall through to the outer #open action and navigate away. -->
+    <div class="walk-card-back walk-card" data-action="click->walk-card#flip:stop">
+      <button type="button" class="walk-card-close" aria-label="Close route map">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
       <div class="walk-card-map" data-walk-card-target="map"></div>
     </div>
   </div>

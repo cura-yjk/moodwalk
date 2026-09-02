@@ -37,6 +37,8 @@ class WalksController < ApplicationController
       @walks = current_user.walks.includes(:journey, photo_attachment: :blob).order(started_at: :desc)
       @grouped_walks = group_walks_by_date(@walks)
       @stats = Walk.lifetime_stats(@walks)
+      @map_center = exploration_map_center(@walks)
+      @map_routes = @walks.map { |walk| walk.journey.route_coordinates }.uniq
     end
   end
 
@@ -124,13 +126,6 @@ class WalksController < ApplicationController
       [current_user.current_longitude, current_user.current_latitude]
     else
       walks.first&.journey&.start_coordinates
-    end
-  end
-
-  def exploration_photo_points(walks)
-    walks.select { |walk| walk.photo.attached? }.map do |walk|
-      lng, lat = walk.photo_coordinates
-      { lng: lng, lat: lat, photo_url: url_for(walk.photo) }
     end
   end
 

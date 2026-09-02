@@ -1,16 +1,23 @@
 import { Controller } from "@hotwired/stimulus"
+import { Turbo } from "@hotwired/turbo-rails"
 import mapboxgl from "mapbox-gl"
 
 // Connects to data-controller="walk-card"
 //
-// Flips a walks#index history card in place to reveal a small, non-interactive
-// map of that walk's route on the back, instead of navigating to the memory
-// card page.
+// Tapping a walks#index history card opens the memory card page, same as
+// before. The map-toggle icon flips the card in place to preview the
+// route on the back instead -- its action carries a Stimulus ":stop"
+// modifier so that tap never bubbles up into the card's own open action.
 export default class extends Controller {
   static targets = ["inner", "map"]
   static values = {
     accessToken: String,
-    route: Array
+    route: Array,
+    memoryUrl: String
+  }
+
+  open() {
+    Turbo.visit(this.memoryUrlValue)
   }
 
   flip() {

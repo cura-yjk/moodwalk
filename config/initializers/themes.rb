@@ -21,15 +21,6 @@ THEMES = {
     tone: "open and energizing — emphasize fresh air, a scenic outlook, " \
           "and a slightly brisker, more awake pace"
   },
-  discover: {
-    label: "Discover",
-    subtitle: "Wander somewhere new",
-    icon: "fa-solid fa-compass",
-    categories: ["historical_landmark", "monument", "museum", "art_gallery"],
-    tone: "curious and novel — emphasize unfamiliar streets, small " \
-          "details worth noticing, and a sense of stumbling onto " \
-          "something new"
-  },
   cheerful: {
     label: "Cheerful",
     subtitle: "Find a little delight nearby",

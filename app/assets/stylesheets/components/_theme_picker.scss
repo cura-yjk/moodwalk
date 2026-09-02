@@ -52,6 +52,12 @@
   }
 }
 
+// Surprise me has no pastel of its own and always sits alone in the last
+// row, so it stretches across both grid columns instead of leaving a gap.
+.theme-card[data-theme="surprise_me"] {
+  grid-column: 1 / -1;
+}
+
 // One soft, distinct pastel per card, keyed by the theme_key each button
 // carries in its data-theme attribute (see $mood-theme-colors in config/_colors).
 @each $key, $colors in $mood-theme-colors {

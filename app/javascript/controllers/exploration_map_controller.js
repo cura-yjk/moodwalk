@@ -6,8 +6,7 @@ export default class extends Controller {
   static values = {
     accessToken: String,
     center: Array,
-    routes: Array,
-    photos: Array
+    routes: Array
   }
 
   connect() {
@@ -30,7 +29,6 @@ export default class extends Controller {
   #draw() {
     this.#drawRoutes()
     this.#drawCurrentLocationMarker()
-    this.#drawPhotoMarkers()
     this.#fitBounds()
   }
 
@@ -64,20 +62,8 @@ export default class extends Controller {
     new mapboxgl.Marker({ color: "#4a7c59" }).setLngLat(this.centerValue).addTo(this.map)
   }
 
-  // One marker per walk that has a photo attached, placed at the photo's
-  // journey start point (see WalksController#exploration_photo_points).
-  #drawPhotoMarkers() {
-    this.photosValue.forEach(({ lng, lat, photo_url: photoUrl }) => {
-      const el = document.createElement("div")
-      el.className = "exploration-photo-pin"
-      el.style.backgroundImage = `url('${photoUrl}')`
-
-      new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(this.map)
-    })
-  }
-
   #fitBounds() {
-    const points = [this.centerValue, ...this.photosValue.map((photo) => [photo.lng, photo.lat])]
+    const points = [this.centerValue, ...this.routesValue.flat()]
     if (points.length < 2) return
 
     const bounds = points.reduce(
