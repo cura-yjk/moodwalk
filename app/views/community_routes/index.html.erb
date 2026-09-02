@@ -17,10 +17,13 @@
         </div>
 
         <div class="route-card-body">
+          <div class="mb-1 d-flex align-items-center mb-2">
+            <i class="fa-solid fa-location-dot me-1"></i><span>Location name</span>
+            <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
+          </div>
           <div class="route-card-meta">
             <span><i class="fa-solid fa-person-hiking"></i> <%= journey.length_label %></span>
             <span><i class="fa-solid fa-users"></i> <%= journey.placeholder_walker_count %></span>
-            <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
           </div>
           <div class="route-card-tags">
             <% journey.tags.each do |tag| %>

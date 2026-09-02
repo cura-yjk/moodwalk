@@ -4,8 +4,8 @@
   </div>
 
   <div class="tabs">
-    <%= link_to "All", walks_path, class: "tab #{'active' unless params[:filter] == 'saved'}" %>
-    <%= link_to "Saved", walks_path(filter: "saved"), class: "tab #{'active' if params[:filter] == 'saved'}" %>
+    <%= link_to "All", walks_path, class: "tab #{'active' unless params[:filter] == 'saved'} text-decoration-none" %>
+    <%= link_to "Saved", walks_path(filter: "saved"), class: "tab #{'active' if params[:filter] == 'saved'} text-decoration-none" %>
   </div>
 
   <% if params[:filter] == "saved" %>
