@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     member do
       patch :complete
       patch :attach_photo
+      post :track
       patch :share
       post :share_quote
       get :memory

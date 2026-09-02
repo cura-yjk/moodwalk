@@ -37,6 +37,50 @@
   flex: 0 0 auto;
 }
 
+// walks#edit -- suggested route vs. actually-walked route
+// (app/javascript/controllers/route_comparison_map_controller.js)
+.route-compare {
+  width: 100%;
+  max-width: 24em; // lines up with the hero image / reflection textarea
+  margin-bottom: 1.5rem;
+}
+
+.route-compare-map {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 20px -8px rgba(10, 10, 10, 0.2);
+}
+
+.route-compare-legend {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.route-compare-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.route-compare-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.route-compare-swatch--suggested {
+  background-color: #4a7c59;
+}
+
+.route-compare-swatch--actual {
+  background-image: linear-gradient(to right, #d9762b 0 60%, transparent 60% 100%);
+  background-size: 6px 3px;
+  background-color: transparent;
+}
+
 /* Hide the actual radio input visually, but keep it functional */
 .mood-radio-hidden {
   position: absolute;
