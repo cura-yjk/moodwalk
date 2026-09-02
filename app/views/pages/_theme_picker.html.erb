@@ -2,7 +2,7 @@
     sheet (duration_picker_controller.js, same pattern as shared/_mood_checkin)
     asking how long the user has, then submits the one shared form below with
     both the chosen theme and duration. %>
-<div class="theme-picker" data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
+<div class="theme-picker w-100" data-controller="duration-picker" data-action="keydown.esc@window->duration-picker#close">
   <% THEMES.each do |key, theme| %>
     <button type="button" class="theme-card" data-theme="<%= key %>"
       data-action="duration-picker#open"
@@ -14,20 +14,23 @@
       <span><%= theme[:label] %></span>
     </button>
   <% end %>
-  <button type="button" class="theme-card" data-theme="surprise_me"
-    data-action="duration-picker#open"
-    data-duration-picker-theme-key-param="surprise_me"
-    data-duration-picker-theme-label-param="Surprise me"
-    data-duration-picker-theme-subtitle-param="We'll pick the mood for you"
-    data-duration-picker-theme-icon-param="fa-solid fa-shuffle">
-    <i class="fa-solid fa-shuffle"></i>
-    <span>Surprise me</span>
-  </button>
+
+    <button type="button" class="theme-card col-6" data-theme="surprise_me"
+      data-action="duration-picker#open"
+      data-duration-picker-theme-key-param="surprise_me"
+      data-duration-picker-theme-label-param="Surprise me"
+      data-duration-picker-theme-subtitle-param="We'll pick the mood for you"
+      data-duration-picker-theme-icon-param="fa-solid fa-shuffle">
+      <i class="fa-solid fa-shuffle"></i>
+      <span>Surprise me</span>
+    </button>
 
   <div class="bottom-sheet-backdrop" data-duration-picker-target="backdrop" data-action="click->duration-picker#close"></div>
 
+
   <div class="bottom-sheet duration-sheet" role="dialog" aria-modal="true" aria-labelledby="duration-sheet-title" data-duration-picker-target="sheet">
     <div class="bottom-sheet-handle"></div>
+
 
     <div class="duration-sheet-icon" data-duration-picker-target="icon"></div>
     <h3 id="duration-sheet-title" class="duration-sheet-title" data-duration-picker-target="title"></h3>

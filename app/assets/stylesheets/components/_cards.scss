@@ -14,6 +14,7 @@
   position: relative;
   overflow: hidden;
 
+  min-height: 20em;
   height: 24em;
   width: 100%;
   max-width: 36em;
@@ -57,7 +58,8 @@
 // own rule rather than sharing .card-image's background-image trick and
 // hover-lift (which would otherwise hint it's tappable when it isn't).
 .walk-image {
-  height: 24em;
+  min-height: 16em;
+  height: 100%;
   width: 100%;
   max-width: 36em;
 
