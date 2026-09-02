@@ -1,33 +1,34 @@
-<div class="container community-routes mt-4 mb-5">
-  <h1>Community Routes</h1>
-  <p class="subtitle text-muted mb-4">Explore routes from the community</p>
-
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-    <% @journeys.each do |journey| %>
-      <div class="col">
-        <%= link_to community_route_path(journey), class: "walk-card card h-100 w-100 text-decoration-none text-reset" do %>
-          <div class="route-card-photo position-relative">
-            <%= image_tag journey.community_photos(limit: 1).first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
-                  class: "community-image" %>
-                  <span class="route-card-title position-absolute bottom-0 start-0 p-2 text-white"><%= journey.name %></span>
-                  <span class="walk-float"><i class="fa-regular fa-clock"></i> <%= journey.estimated_duration_seconds / 60 %> min</span>
-          </div>
-
-          <div class="community-card d-flex flex-column align-items-start w-100">
-            <div class="route-card-meta d-flex justify-content-evenly gap-3 mb-2">
-              <span> <%= journey.length_label %></span>
-              <span><i class="fa-solid fa-person-walking"></i> <%= journey.placeholder_walker_count %></span>
-              <span><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
-            </div>
-            <div class="route-card-tags d-flex flex-wrap gap-1">
-              <% journey.tags.each do |tag| %>
-                <span class="badge mood-tag"><%= tag %></span>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
+<div class="community-routes-page container">
+  <div class="community-routes-header">
+    <div>
+      <h1 class="editorial-title community-routes-title mb-0">Community Routes</h1>
+      <p class="community-routes-subtitle mb-0">Walks loved by your neighbours</p>
+    </div>
   </div>
 
+  <div class="route-card-list">
+    <% @journeys.each do |journey| %>
+      <%= link_to community_route_path(journey), class: "route-card text-decoration-none text-reset" do %>
+        <div class="route-card-photo">
+          <%= image_tag journey.community_photos(limit: 1).first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
+                class: "route-card-image" %>
+          <span class="route-card-duration"><i class="fa-regular fa-clock"></i> <%= journey.estimated_duration_seconds / 60 %> min</span>
+          <span class="route-card-title"><%= journey.name %></span>
+        </div>
+
+        <div class="route-card-body">
+          <div class="route-card-meta">
+            <span><i class="fa-solid fa-person-hiking"></i> <%= journey.length_label %></span>
+            <span><i class="fa-solid fa-users"></i> <%= journey.placeholder_walker_count %></span>
+            <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
+          </div>
+          <div class="route-card-tags">
+            <% journey.tags.each do |tag| %>
+              <span class="route-tag"><%= tag %></span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
 </div>

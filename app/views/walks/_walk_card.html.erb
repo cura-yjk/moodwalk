@@ -1,50 +1,62 @@
-<%= link_to memory_walk_path(walk), class: "walk-card text-decoration-none" do %>
-  <% if walk.photo.attached? %>
-    <div class="walk-thumbnail" style="background-image: url('<%= url_for(walk.photo) %>');">
-    </div>
-  <% else %>
-    <div class="walk-thumbnail">
-      <div class="walk-float">
-        <span class="walk-time">
-          <!-- Today shows a clock time ("6:30 PM"); other sections show a
-              day abbreviation ("Tue") instead — matches the mockup exactly -->
-          <% if section == "Today" %>
-            <%= walk.started_at.strftime("%-l:%M %p") %>
-          <% else %>
-            <%= walk.started_at.strftime("%a") %>
-          <% end %>
-        </span>
-      </div>
-    </div>
-  <% end %>
-
-  <div class="walk-details">
-    <h4><%= walk.journey.name %></h4>
-
-    <p class="walk-mood">
-      <% if walk.mood_before.present? && walk.mood_after.present? %>
-        <!-- Only shown when the user actually checked in before this walk
-             (see mood_before/sanitized_mood_before in WalksController) —
-             otherwise there's nothing meaningful to compare mood_after to. -->
-        <span class="mood-transition">
-          <span class="mood-badge"><%= image_tag mood_icon(walk.mood_before), alt: walk.mood_before, class: "mood-badge-icon" %></span>
-          <i class="fa-solid fa-arrow-right mood-transition-arrow"></i>
-          <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span>
-        </span>
-        <%= mood_change_label(walk.mood_after) %>
-        ·
-      <% elsif walk.mood_after.present? %>
-        <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span> <%= walk.mood_after %>
-        ·
+<div class="walk-card-flip"
+     data-controller="walk-card"
+     data-action="click->walk-card#flip"
+     data-walk-card-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+     data-walk-card-route-value="<%= walk.journey.route_coordinates.to_json %>">
+  <div class="walk-card-inner" data-walk-card-target="inner">
+    <div class="walk-card-front walk-card">
+      <% if walk.photo.attached? %>
+        <div class="walk-thumbnail" style="background-image: url('<%= url_for(walk.photo) %>');">
+        </div>
+      <% else %>
+        <div class="walk-thumbnail">
+          <div class="walk-float">
+            <span class="walk-time">
+              <!-- Today shows a clock time ("6:30 PM"); other sections show a
+                  day abbreviation ("Tue") instead — matches the mockup exactly -->
+              <% if section == "Today" %>
+                <%= walk.started_at.strftime("%-l:%M %p") %>
+              <% else %>
+                <%= walk.started_at.strftime("%a") %>
+              <% end %>
+            </span>
+          </div>
+        </div>
       <% end %>
-      <i class="fa-solid fa-person-walking"></i> <%= walk.actual_distance %> km
-      · <%= walk.duration_in_minutes %> min
-    </p>
 
-    <% if walk.reflection.present? %>
-      <div class="journal-text">
-        <%= walk.reflection %>
+      <div class="walk-details">
+        <h4><%= walk.journey.name %></h4>
+
+        <p class="walk-mood">
+          <% if walk.mood_before.present? && walk.mood_after.present? %>
+            <!-- Only shown when the user actually checked in before this walk
+                 (see mood_before/sanitized_mood_before in WalksController) —
+                 otherwise there's nothing meaningful to compare mood_after to. -->
+            <span class="mood-transition">
+              <span class="mood-badge"><%= image_tag mood_icon(walk.mood_before), alt: walk.mood_before, class: "mood-badge-icon" %></span>
+              <i class="fa-solid fa-arrow-right mood-transition-arrow"></i>
+              <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span>
+            </span>
+            <%= mood_change_label(walk.mood_after) %>
+            ·
+          <% elsif walk.mood_after.present? %>
+            <span class="mood-badge"><%= image_tag mood_icon(walk.mood_after), alt: walk.mood_after, class: "mood-badge-icon" %></span> <%= walk.mood_after %>
+            ·
+          <% end %>
+          <i class="fa-solid fa-person-walking"></i> <%= walk.actual_distance %> km
+          · <%= walk.duration_in_minutes %> min
+        </p>
+
+        <% if walk.reflection.present? %>
+          <div class="journal-text">
+            <%= walk.reflection %>
+          </div>
+        <% end %>
       </div>
-    <% end %>
+    </div>
+
+    <div class="walk-card-back walk-card">
+      <div class="walk-card-map" data-walk-card-target="map"></div>
+    </div>
   </div>
-<% end %>
+</div>

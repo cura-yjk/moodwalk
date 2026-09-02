@@ -155,6 +155,10 @@ export default class extends Controller {
     if (this.arrived || this.transitioning) return
 
     const current = { lat: position.coords.latitude, lng: position.coords.longitude }
+    // Remembered so photoTaken can tag a photo with where the walker
+    // actually was when they took it, not just the route's start point.
+    this.lastPosition = current
+
     const target = this.waypointsValue[this.currentIndexValue]
     if (!target) return
 
@@ -231,6 +235,10 @@ export default class extends Controller {
 
     const formData = new FormData()
     formData.append("walk[photo]", file)
+    if (this.lastPosition) {
+      formData.append("walk[photo_latitude]", this.lastPosition.lat)
+      formData.append("walk[photo_longitude]", this.lastPosition.lng)
+    }
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content
 

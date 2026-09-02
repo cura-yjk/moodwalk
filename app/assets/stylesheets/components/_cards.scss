@@ -183,20 +183,3 @@
   opacity: 0.57;
   box-shadow: 0 8px 14px -5px rgba(0, 0, 0, 0.5) !important;
 }
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-
-  background: #4cc338;
-  color: #faf8f1;
-
-  opacity: 0.7;
-
-  border-radius: 24px;
-  border: none;
-  box-shadow: 0 8px 14px -5px rgba(0, 0, 0, 0.5) !important;
-
-  height: 100%;
-  max-height: 80px;
-}
