@@ -1,16 +1,22 @@
-<div class="container my-5"
-id="history-container">
+<div class="container my-5" id="history-container">
   <div class="page-header mt-5">
     <h1 class="mt-5 editorial-title">My Walks</h1>
   </div>
 
-  <!-- Visual-only tabs — no filtering logic, "All" is just hardcoded active -->
   <div class="tabs">
-    <span class="tab active">All</span>
-    <span class="tab">Saved</span>
+    <%= link_to "All", walks_path, class: "tab #{'active' unless params[:filter] == 'saved'}" %>
+    <%= link_to "Saved", walks_path(filter: "saved"), class: "tab #{'active' if params[:filter] == 'saved'}" %>
   </div>
 
-  <% if @walks.any? %>
+  <% if params[:filter] == "saved" %>
+    <% if @saved_journeys.empty? %>
+      <p class="empty-state">Nothing saved yet — save a route to find it here.</p>
+    <% else %>
+      <% @saved_journeys.each do |journey| %>
+        <%= render "saved_journey_card", journey: journey %>
+      <% end %>
+    <% end %>
+  <% else %>
     <div class="exploration-map-wrapper">
       <h2 class="editorial-title exploration-title">Your Exploration</h2>
       <div class="exploration-map"
@@ -21,36 +27,31 @@ id="history-container">
            data-exploration-map-photos-value="<%= @map_photo_points.to_json %>">
       </div>
     </div>
-  <% end %>
-
-  <% if @stats[:walks_count] > 0 %>
-    <div class="stats-summary d-flex justify-content-center">
-      <div class="stat">
-        <p class="stat-number mb-0"><%= @stats[:distance_km] %></p>
-        <p class="stat-caption mb-0">km walked</p>
+    <% if @stats[:walks_count] > 0 %>
+      <div class="stats-summary d-flex justify-content-center">
+        <div class="stat">
+          <p class="stat-number mb-0"><%= @stats[:distance_km] %></p>
+          <p class="stat-caption mb-0">km walked</p>
+        </div>
+        <div class="stat">
+          <p class="stat-number mb-0"><%= @stats[:hours_outside] %></p>
+          <p class="stat-caption mb-0">hours outside</p>
+        </div>
+        <div class="stat">
+          <p class="stat-number mb-0"><%= @stats[:walks_count] %></p>
+          <p class="stat-caption mb-0">walks</p>
+        </div>
       </div>
-      <div class="stat">
-        <p class="stat-number mb-0"><%= @stats[:hours_outside] %></p>
-        <p class="stat-caption mb-0">hours outside</p>
-      </div>
-      <div class="stat">
-        <p class="stat-number mb-0"><%= @stats[:walks_count] %></p>
-        <p class="stat-caption mb-0">walks</p>
-      </div>
-    </div>
-  <% end %>
+    <% end %>
 
-  <% if @walks.empty? %>
-    <!-- Top-level empty state: this user has never completed a walk -->
-    <p class="empty-state">No walks yet — head out and start your first one!</p>
-  <% else %>
-    <!-- @grouped_walks only contains keys for buckets that actually have
-         walks in them, so an empty "Today" section simply won't appear -->
-    <% @grouped_walks.each do |section, walks_in_section| %>
-      <h3 class="section-header"><%= section %></h3>
-
-      <% walks_in_section.each do |walk| %>
-        <%= render "walk_card", walk: walk, section: section %>
+    <% if @walks.empty? %>
+      <p class="empty-state">No walks yet — head out and start your first one!</p>
+    <% else %>
+      <% @grouped_walks.each do |section, walks_in_section| %>
+        <h3 class="section-header"><%= section %></h3>
+        <% walks_in_section.each do |walk| %>
+          <%= render "walk_card", walk: walk, section: section %>
+        <% end %>
       <% end %>
     <% end %>
   <% end %>

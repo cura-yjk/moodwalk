@@ -9,7 +9,7 @@ class PagesController < ApplicationController
 
   private
 
-  # The nearest *saved* community routes near the user -- a Journey only
+  # The nearest *recommendable* community routes near the user -- a Journey only
   # counts as "community" once someone has bookmarked it or walked it
   # (see JourneysController#save and WalksController#create). Freshly
   # generated-but-untouched journeys stay out of this list.
@@ -18,6 +18,6 @@ class PagesController < ApplicationController
     lng = current_user.current_longitude
     return Journey.none unless lat && lng
 
-    Journey.near(lat, lng).where(saved: true, theme_key: nil).limit(SUGGESTION_COUNT)
+    Journey.near(lat, lng).where(recommendable: true, theme_key: nil).limit(SUGGESTION_COUNT)
   end
 end

@@ -1,7 +1,8 @@
 <% content_for :hide_navbar, true %>
 <div class="container walk-complete-page d-flex flex-column align-items-center mt-5"
-     data-controller="community-share"
-     data-community-share-share-url-value="<%= share_walk_path(@walk) %>">
+     data-controller="community-share journey-save"
+     data-community-share-share-url-value="<%= share_walk_path(@walk) %>"
+     data-journey-save-save-url-value="<%= save_journey_path(@walk.journey) %>">
   <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
@@ -63,9 +64,11 @@
       <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-3", id: "journal-input", rows: 2 %>
       <!-- Placeholder actions — not wired up yet, per your request -->
       <div class="placeholder-actions d-flex w-100 gap-3 my-2">
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center" disabled>
-          <i class="fa-regular fa-heart"></i>
-          Save
+        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
+          data-journey-save-target="button"
+          data-action="click->journey-save#save">
+          <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>
+          <span data-journey-save-target="label">Save</span>
         </button>
         <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
           data-community-share-target="button"

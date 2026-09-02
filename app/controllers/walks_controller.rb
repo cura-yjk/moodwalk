@@ -17,7 +17,7 @@ class WalksController < ApplicationController
     @walk = @journey.walks.new(user: current_user, started_at: Time.current, mood_before: sanitized_mood_before)
 
     if @walk.save
-      @journey.update(saved: true)
+      @journey.update(recommendable: true)
       redirect_to walk_path(@walk)
     else
       redirect_to new_journey_walk_path(@journey), alert: "Couldn't start walk"
@@ -31,17 +31,13 @@ class WalksController < ApplicationController
 
   # placeholder index edit update complete tbc
   def index
-    # includes(:journey) avoids an N+1 query — without it, Rails would
-    # hit the DB separately for each walk's journey.name in the view
-    @walks = current_user.walks.includes(:journey, photo_attachment: :blob).order(started_at: :desc)
-    # Group the already-loaded walks into buckets by date.
-    # This happens in Ruby (not a second DB query) since @walks is small
-    # and already fully loaded — no need to hit the database again.
-    @grouped_walks = group_walks_by_date(@walks)
-    @stats = Walk.lifetime_stats(@walks)
-    @map_center = exploration_map_center(@walks)
-    @map_routes = @walks.map { |walk| walk.journey.route_coordinates }.uniq
-    @map_photo_points = exploration_photo_points(@walks)
+    if params[:filter] == "saved"
+      @saved_journeys = current_user.saved_routes
+    else
+      @walks = current_user.walks.includes(:journey, photo_attachment: :blob).order(started_at: :desc)
+      @grouped_walks = group_walks_by_date(@walks)
+      @stats = Walk.lifetime_stats(@walks)
+    end
   end
 
   def edit
@@ -49,14 +45,10 @@ class WalksController < ApplicationController
   end
 
   def update
-    @walk = Walk.find(params[:id])
-    # mood_after and reflection are both optional, so update succeeds
-    # even if the user submits the form with either field left blank.
+    @walk = current_user.walks.find(params[:id])
     if @walk.update(walk_params)
       redirect_to memory_walk_path(@walk)
     else
-      # Only realistically fails here if something unexpected happens
-      # (e.g. a DB-level constraint), since neither field is required.
       render :edit, status: :unprocessable_entity
     end
   end
