@@ -24,10 +24,10 @@
        data-map-route-value="<%= @journey.route_coordinates.to_json %>">
   </div>
   <ul class="route-highlights list-unstyled">
-    <li class="mb-1 fs-5">🌿 Greenery along the way</li>
-    <li class="mb-1 fs-5">☀️ Mostly open streets</li>
-    <li class="fs-5">🚶 Passes active areas</li>
-  </ul>
+    <% @journey.highlights.each do |highlight| %>
+      <li class="mb-1 fs-5"><%= highlight[:icon] %> <%= highlight[:text] %></li>
+    <% end %>
+</ul>
 
   <div class="d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">

@@ -108,6 +108,19 @@ class Journey < ApplicationRecord
     waypoints
   end
 
+  HIGHLIGHT_PHRASES = {
+    "Nature" => { icon: "🌿", text: "Greenery along the way" },
+    "Water" => { icon: "💧", text: "Passes near water" },
+    "Quiet" => { icon: "🤫", text: "Calm, quiet stretches" },
+    "Historic" => { icon: "🏛️", text: "Old streets and landmarks" },
+    "Lively" => { icon: "🚶", text: "Passes active areas" },
+    "Walk" => { icon: "☀️", text: "Mostly open streets" }
+  }.freeze
+
+  def highlights
+    tags.filter_map { |tag| HIGHLIGHT_PHRASES[tag] }.first(3)
+  end
+
   TEXT_TAG_KEYWORDS = {
     "Nature" => /tree|leaf|leaves|branch|garden|grass|greenery|forest|park/i,
     "Water" => /water|stream|river|lake|pond|shore|waterfront/i,
