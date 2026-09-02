@@ -62,6 +62,6 @@ class JourneyHighlightsGenerator
   end
 
   def normalize(highlights)
-    Array(highlights).first(3).map { |h| { icon: h["icon"], text: h["text"] } }
+    Array(highlights).first(3).map { |h| { icon: h["icon"], text: h["text"].to_s.capitalize } }
   end
 end

@@ -33,7 +33,7 @@ const TURN_ANGLES = {
 }
 
 export default class extends Controller {
-  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton"]
+  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm"]
   static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean, attachPhotoUrl: String }
 
   connect() {
@@ -226,35 +226,49 @@ export default class extends Controller {
     this.nextRowTarget.classList.add("next-instruction-hidden")
   }
 
-  // Now actually uploads the captured photo to Cloudinary via Active Storage,
-  // instead of just hiding the button and discarding the file.
   photoTaken(event) {
-    const file = event.target.files[0]
-    console.log("hi", file)
-    if (!file) return
+  const file = event.target.files[0]
+  if (!file) return
 
-    const formData = new FormData()
-    formData.append("walk[photo]", file)
-    if (this.lastPosition) {
-      formData.append("walk[photo_latitude]", this.lastPosition.lat)
-      formData.append("walk[photo_longitude]", this.lastPosition.lng)
-    }
+  const formData = new FormData()
+  formData.append("walk[photo]", file)
+  if (this.lastPosition) {
+    formData.append("walk[photo_latitude]", this.lastPosition.lat)
+    formData.append("walk[photo_longitude]", this.lastPosition.lng)
+  }
 
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').content
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').content
 
-    fetch(this.attachPhotoUrlValue, {
-      method: "PATCH",
-      headers: { "X-CSRF-Token": csrfToken },
-      body: formData
+  // Tracked so endWalk can wait for this to finish before submitting --
+  // otherwise a tap right after snapping a photo can complete the walk
+  // before the upload has actually landed.
+  this.photoUploadPromise = fetch(this.attachPhotoUrlValue, {
+    method: "PATCH",
+    headers: { "X-CSRF-Token": csrfToken },
+    body: formData
+  })
+    .then((response) => {
+      if (response.ok) {
+        this.cameraButtonTarget.classList.add("d-none")
+      } else {
+        alert("Photo upload failed — try again.")
+      }
     })
-      .then((response) => {
-        if (response.ok) {
-          this.cameraButtonTarget.classList.add("d-none")
-        } else {
-          alert("Photo upload failed — try again.")
-        }
-      })
-      .catch(() => alert("Photo upload failed — check your connection."))
+    .catch(() => alert("Photo upload failed — check your connection."))
+    .finally(() => { this.photoUploadPromise = null })
+  }
+
+  // Intercepts the End Walk button's submit -- if a photo upload is still in
+  // flight, waits for it to settle first so the edit page doesn't render
+  // before the attachment has actually landed (see attach_photo race).
+  endWalk(event) {
+    if (!this.photoUploadPromise) return // nothing pending, let the form submit normally
+
+    event.preventDefault()
+
+    this.photoUploadPromise.finally(() => {
+      this.endWalkFormTarget.requestSubmit()
+    })
   }
 
   // Geolocation failure handler -- distinguishes "user said no" (permission
