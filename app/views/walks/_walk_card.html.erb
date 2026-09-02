@@ -7,7 +7,7 @@
   <div class="walk-card-inner" data-walk-card-target="inner">
     <div class="walk-card-front walk-card">
       <button type="button" class="walk-card-map-toggle" data-action="click->walk-card#flip:stop" aria-label="Show route map">
-        <i class="fa-solid fa-map"></i>
+        <i class="fa-solid fa-map text-secondary"></i>
       </button>
 
       <% if walk.photo.attached? %>
@@ -26,11 +26,14 @@
               <% end %>
             </span>
           </div>
+            <h4 class="route-card-title"><%= walk.journey.name %></h4>
         </div>
       <% end %>
 
       <div class="walk-details">
-        <h4><%= walk.journey.name %></h4>
+          <div class="d-flex align-items-center">
+            <i class="fa-solid fa-location-dot me-1"></i><span>Location name</span>
+          </div>
 
         <p class="walk-mood">
           <% if walk.mood_before.present? && walk.mood_after.present? %>
