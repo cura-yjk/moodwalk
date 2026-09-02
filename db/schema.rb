@@ -93,6 +93,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_000343) do
     t.bigint "journey_id", null: false
     t.string "mood_after"
     t.string "mood_before"
+    t.float "photo_latitude"
+    t.float "photo_longitude"
     t.text "reflection"
     t.text "share_quote"
     t.datetime "shared_at"

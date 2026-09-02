@@ -104,7 +104,7 @@ class WalksController < ApplicationController
   end
 
   def walk_params
-    params.require(:walk).permit(:mood_after, :reflection, :photo)
+    params.require(:walk).permit(:mood_after, :reflection, :photo, :photo_latitude, :photo_longitude)
   end
 
   # The "Start walking" form carries along whatever mood the user last
@@ -114,6 +114,24 @@ class WalksController < ApplicationController
   def sanitized_mood_before
     mood = params.dig(:walk, :mood_before)
     mood if ApplicationHelper::MOOD_ICONS.key?(mood)
+  end
+
+  # Centers the walks#index exploration map on the user's current location
+  # when we have one, falling back to the most recent walk's journey so the
+  # map still lands somewhere sensible for users without a stored location.
+  def exploration_map_center(walks)
+    if current_user.current_longitude && current_user.current_latitude
+      [current_user.current_longitude, current_user.current_latitude]
+    else
+      walks.first&.journey&.start_coordinates
+    end
+  end
+
+  def exploration_photo_points(walks)
+    walks.select { |walk| walk.photo.attached? }.map do |walk|
+      lng, lat = walk.photo_coordinates
+      { lng: lng, lat: lat, photo_url: url_for(walk.photo) }
+    end
   end
 
   def group_walks_by_date(walks)

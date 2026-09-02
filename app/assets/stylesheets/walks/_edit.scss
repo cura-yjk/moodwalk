@@ -8,7 +8,11 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 
+  // Overrides Bootstrap's own .carousel-item (display: none by default --
+  // only its .active slide shows) which this class name otherwise collides
+  // with, since this is a plain scrollable strip, not a Bootstrap carousel.
   .carousel-item {
+    display: block;
     flex: 0 0 auto;
     scroll-snap-align: start;
 

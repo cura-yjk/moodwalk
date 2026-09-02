@@ -15,6 +15,16 @@ class Walk < ApplicationRecord
     shared_at.present?
   end
 
+  # GPS fix captured client-side at the moment the photo was taken (see
+  # walking_controller.js#photoTaken). Falls back to the journey's start
+  # point for walks/photos predating that capture, or if the browser
+  # couldn't get a location fix in time.
+  def photo_coordinates
+    return [photo_longitude, photo_latitude] if photo_longitude && photo_latitude
+
+    journey.start_coordinates
+  end
+
   # Duration isn't stored directly in the DB — we derive it from the
   # timestamps we already have. Returns nil if the walk hasn't been
   # started/completed yet, so the view can handle that gracefully.
