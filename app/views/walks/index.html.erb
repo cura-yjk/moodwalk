@@ -17,16 +17,18 @@
       <% end %>
     <% end %>
   <% else %>
-    <div class="exploration-map-wrapper">
-      <h2 class="editorial-title exploration-title">Your Exploration</h2>
-      <div class="exploration-map"
-           data-controller="exploration-map"
-           data-exploration-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
-           data-exploration-map-center-value="<%= @map_center.to_json %>"
-           data-exploration-map-routes-value="<%= @map_routes.to_json %>"
-           data-exploration-map-photos-value="<%= @map_photo_points.to_json %>">
+    <% if @walks.any? %>
+      <div class="exploration-map-wrapper">
+        <h2 class="editorial-title exploration-title">Your Exploration</h2>
+        <div class="exploration-map"
+             data-controller="exploration-map"
+             data-exploration-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+             data-exploration-map-center-value="<%= @map_center.to_json %>"
+             data-exploration-map-routes-value="<%= @map_routes.to_json %>">
+        </div>
       </div>
-    </div>
+    <% end %>
+
     <% if @stats[:walks_count] > 0 %>
       <div class="stats-summary d-flex justify-content-center">
         <div class="stat">

@@ -110,7 +110,6 @@ puts "🎨 Generating themed journeys for the mood picker at Le Wagon Meguro..."
 THEME_BEARINGS = {
   calm: 315,     # NW, away from the main road into quieter residential blocks
   refresh: 200,  # S/SSW, toward the Meguro River green corridor
-  discover: 225, # SW, toward Nakameguro's backstreets/shops
   cheerful: 90,  # E, toward the Meguro-dori shopping stretch
   recharge: 135  # SE, toward the larger green space in that direction
 }.freeze
@@ -120,8 +119,6 @@ THEME_JOURNEY_COPY = {
           description: "Quiet residential lanes away from traffic, at an unhurried pace." },
   refresh: { name: "Riverside Refresh",
              description: "Open air alongside the river, a scenic outlook and a brisker pace." },
-  discover: { name: "Nakameguro Wander",
-              description: "Unfamiliar backstreets with small details worth noticing along the way." },
   cheerful: { name: "Meguro-dori Stroll",
               description: "Everyday street life and small, colorful moments along a busier stretch." },
   recharge: { name: "Green Recharge",

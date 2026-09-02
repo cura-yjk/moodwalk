@@ -21,21 +21,6 @@
   box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.08);
 }
 
-// Photo markers on the exploration map, one per walk with a photo attached.
-.exploration-photo-pin {
-  width: 56px;
-  height: 56px;
-
-  border-radius: 12px;
-  border: 3px solid white;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
-
-  background-size: cover;
-  background-position: center;
-
-  cursor: pointer;
-}
-
 .page-header {
   display: flex;
   align-items: center;
@@ -164,9 +149,9 @@
   transition: 0.3s ease;
 }
 
-// Flip-card wrapper for each walks#index history entry -- clicking it
-// rotates .walk-card-inner in place to reveal a small route map on the
-// back, rather than navigating to the memory card page.
+// Flip-card wrapper for each walks#index history entry -- tapping the card
+// itself opens the memory card page (see walk-card#open); the map-toggle
+// icon instead rotates .walk-card-inner in place to preview the route.
 .walk-card-flip {
   perspective: 1200px;
 
@@ -191,6 +176,8 @@
 
 .walk-card-front.walk-card,
 .walk-card-back.walk-card {
+  position: relative;
+
   backface-visibility: hidden;
 
   margin-bottom: 0;
@@ -212,6 +199,47 @@
 .walk-card-map {
   width: 100%;
   height: 100%;
+}
+
+// Floating circular icon buttons that open/close the route map on the back
+// of a walk card -- the only clickable parts of the card that don't open
+// the memory page (see walk-card#flip / #open).
+.walk-card-map-toggle,
+.walk-card-close {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  border-radius: 50%;
+  border: none;
+
+  color: $gray;
+  background-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 12px -2px rgba(10, 10, 10, 0.2);
+
+  font-size: 0.85rem;
+
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.walk-card-map-toggle:hover,
+.walk-card-close:hover {
+  transform: scale(1.05);
+}
+
+.walk-card-close {
+  color: white;
+  background-color: rgba(14, 0, 0, 0.4);
 }
 
 .walk-thumbnail {
