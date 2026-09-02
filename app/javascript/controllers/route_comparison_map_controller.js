@@ -32,18 +32,19 @@ export default class extends Controller {
   }
 
   #draw() {
-    // Suggested route: same solid green line used everywhere else in the app.
-    this.#addLine("suggested-route", this.suggestedValue, "#4a7c59", 4)
+    // Suggested route: the app green, but kept faint so it reads as a
+    // reference underlay rather than competing with the actual route.
+    this.#addLine("suggested-route", this.suggestedValue, "#4a7c59", 3, { opacity: 0.25 })
     // Actual route: dashed terracotta so the two read as distinct even where
     // they overlap.
-    this.#addLine("actual-route", this.actualValue, "#d9762b", 4, [1.5, 1.2])
+    this.#addLine("actual-route", this.actualValue, "#d9762b", 4, { dashArray: [1.5, 1.2] })
 
     new mapboxgl.Marker({ color: "#4a7c59" }).setLngLat(this.centerValue).addTo(this.map)
 
     this.#fitBounds([...this.suggestedValue, ...this.actualValue])
   }
 
-  #addLine(id, coordinates, color, width, dashArray = null) {
+  #addLine(id, coordinates, color, width, { dashArray = null, opacity = 1 } = {}) {
     if (!coordinates || coordinates.length < 2) return
 
     this.map.addSource(id, {
@@ -51,7 +52,7 @@ export default class extends Controller {
       data: { type: "Feature", geometry: { type: "LineString", coordinates } }
     })
 
-    const paint = { "line-color": color, "line-width": width }
+    const paint = { "line-color": color, "line-width": width, "line-opacity": opacity }
     if (dashArray) paint["line-dasharray"] = dashArray
 
     this.map.addLayer({

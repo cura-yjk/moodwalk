@@ -73,6 +73,7 @@
 
 .route-compare-swatch--suggested {
   background-color: #4a7c59;
+  opacity: 0.25; // matches the faint suggested line on the map
 }
 
 .route-compare-swatch--actual {
