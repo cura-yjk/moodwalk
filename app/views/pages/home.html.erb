@@ -30,7 +30,7 @@
                 <div class="carousel-item <%= "active" if index == 0 %> ">
                   <%= link_to community_route_path(journey), class: "journey-card text-decoration-none" do %>
                     <div class="card-image">
-                      <%= image_tag Journey::PLACEHOLDER_IMAGES.sample, alt: journey.name, class: "card-photo" %>
+                      <%= image_tag journey.placeholder_image, alt: journey.name, class: "card-photo" %>
                       <div class="card-info">
                         <div class="card-title-row">
                           <h4><%= journey.name %></h4>
