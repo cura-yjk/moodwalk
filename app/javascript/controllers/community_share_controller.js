@@ -90,7 +90,7 @@ export default class extends Controller {
 
     this.buttonIconTarget.classList.toggle("fa-arrow-up-from-bracket", !this.sharedValue)
     this.buttonIconTarget.classList.toggle("fa-check", this.sharedValue)
-    this.buttonLabelTarget.textContent = this.sharedValue ? "Shared" : "Share"
+    this.buttonLabelTarget.textContent = this.sharedValue ? "Posted" : "Post"
   }
 
   hideModal() {
