@@ -27,22 +27,18 @@
   <h1 class="mt-5 editorial-title">Walk complete! 🌿</h1>
   <p class="mb-3 text-center">A little more of the world,<br>discovered.</p>
   <!-- Hero image: shows the photo captured during the walk, if one exists.
-     Falls back to a generic placeholder if the user skipped the camera step. -->
-  <div class="walk-image">
-    <% if @walk.photo.attached? %>
+     No photo means the walker skipped the camera step, so nothing renders here. -->
+  <% if @walk.photo.attached? %>
+    <div class="walk-image">
       <%= image_tag @walk.photo,
         class: "walk-image"
       %>
-    <% else %>
-      <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg",
-        class: "walk-image"
-      %>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
   <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
   <div class="stats-row my-4">
     <div class="stats-card">
-      <span class="stat-value fw-bold fs-5">👣 <%= @walk.actual_steps %></span>
+      <span class="stat-value fw-bold fs-5">👣 <%= number_with_delimiter(@walk.actual_steps) %></span>
       <span class="stat-label">steps</span>
     </div>
     <div class="stats-card">
@@ -123,13 +119,11 @@
         </div>
         <div class="modal-body">
           <div class="share-preview-card">
-            <div class="share-preview-photo">
-              <% if @walk.photo.attached? %>
+            <% if @walk.photo.attached? %>
+              <div class="share-preview-photo">
                 <%= image_tag @walk.photo, class: "share-preview-image" %>
-              <% else %>
-                <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg", class: "share-preview-image" %>
-              <% end %>
-            </div>
+              </div>
+            <% end %>
             <div class="share-preview-body">
               <div class="d-flex align-items-start gap-2">
                 <span class="share-preview-icon"><i class="fa-solid fa-location-dot"></i></span>
@@ -143,7 +137,7 @@
               <div class="share-preview-stats d-flex">
                 <div class="share-preview-stat text-center">
                   <div class="share-preview-stat-icon">👣</div>
-                  <div class="share-preview-stat-value fw-bold"><%= @walk.actual_steps %></div>
+                  <div class="share-preview-stat-value fw-bold"><%= number_with_delimiter(@walk.actual_steps) %></div>
                   <div class="share-preview-stat-label text-muted">steps</div>
                 </div>
                 <div class="share-preview-stat text-center">

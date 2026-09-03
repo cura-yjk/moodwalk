@@ -66,8 +66,8 @@ class WalksController < ApplicationController
     @walk = current_user.walks.find(params[:id])
     @walk.update(
       completed_at: Time.current,
-      actual_steps: 2840,
-      actual_distance: 1.9
+      actual_steps: complete_params[:actual_steps].presence || @walk.journey.estimated_steps,
+      actual_distance: complete_params[:actual_distance].presence || journey_distance_km(@walk.journey)
     )
     redirect_to edit_walk_path(@walk)
   end
@@ -110,6 +110,20 @@ class WalksController < ApplicationController
 
   def walk_params
     params.require(:walk).permit(:mood_after, :reflection, :photo, :photo_latitude, :photo_longitude)
+  end
+
+  # Real distance/steps tracked client-side over the course of the walk (see
+  # walking_controller.js#updateTraveledFields). Blank when GPS tracking never
+  # ran (e.g. geolocation unsupported, or the dev-only ?arrived= shortcut) --
+  # #complete falls back to the journey's planned distance/steps in that case.
+  def complete_params
+    params.require(:walk).permit(:actual_distance, :actual_steps)
+  end
+
+  def journey_distance_km(journey)
+    return nil unless journey.distance_meters
+
+    (journey.distance_meters / 1000.0).round(2)
   end
 
   def share_params

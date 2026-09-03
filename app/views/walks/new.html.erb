@@ -11,7 +11,7 @@
       <% end %>
       · <%= @journey.loop? ? "Loop" : "One-way" %> ·
       <% if @journey.estimated_steps %>
-        ~<%= @journey.estimated_steps %> steps
+        ~<%= number_with_delimiter(@journey.estimated_steps) %> steps
       <% else %>
         -- steps
       <% end %>
