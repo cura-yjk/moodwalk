@@ -32,9 +32,9 @@ export default class extends Controller {
   }
 
   #draw() {
-    // Suggested route: the app green, but kept faint so it reads as a
-    // reference underlay rather than competing with the actual route.
-    this.#addLine("suggested-route", this.suggestedValue, "#4a7c59", 3, { opacity: 0.25 })
+    // Suggested route: the same app green/width used by the other route maps
+    // (map_controller.js, exploration_map_controller.js).
+    this.#addLine("suggested-route", this.suggestedValue, "#4a7c59", 4)
     // Actual route: dashed terracotta so the two read as distinct even where
     // they overlap.
     this.#addLine("actual-route", this.actualValue, "#d9762b", 4, { dashArray: [1.5, 1.2] })
