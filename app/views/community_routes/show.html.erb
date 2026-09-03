@@ -50,7 +50,7 @@
          data-map-route-value="<%= @journey.route_coordinates.to_json %>">
     </div>
 
-    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : Array.new(4) { Journey::PLACEHOLDER_IMAGES.sample } %>
+    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : @journey.carousel_images %>
     <div class="photo-carousel my-4">
       <h2 class="route-detail-heading">Other moments from walkers</h2>
 
