@@ -24,7 +24,7 @@
       </div>
       <div class="route-detail-stat">
         <i class="fa-solid fa-shoe-prints"></i>
-        <span class="route-detail-stat-value"><%= @journey.estimated_steps_display %></span>
+        <span class="route-detail-stat-value"><%= number_with_delimiter(@journey.estimated_steps_display) %></span>
         <span class="route-detail-stat-label">Steps</span>
       </div>
       <div class="route-detail-stat">

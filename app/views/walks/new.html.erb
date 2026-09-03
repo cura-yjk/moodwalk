@@ -11,7 +11,7 @@
       <% end %>
       · <%= @journey.loop? ? "Loop" : "One-way" %> ·
       <% if @journey.estimated_steps %>
-        ~<%= @journey.estimated_steps %> steps
+        ~<%= number_with_delimiter(@journey.estimated_steps) %> steps
       <% else %>
         -- steps
       <% end %>
@@ -32,6 +32,12 @@
   </ul>
 
   <div class="d-flex flex-column w-100 gap-3 my-2">
+
+    <%= form_with url: journey_walks_path(@journey), scope: :walk, data: { controller: "carry-checkin-mood" } do |f| %>
+      <%= f.hidden_field :mood_before, data: { "carry-checkin-mood-target": "field" } %>
+      <%= f.submit "Start walking", class: "done-btn w-100" %>
+    <% end %>
+
     <div class="d-flex gap-2 mb-1">
       <%= link_to root_path,
       class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none",
@@ -49,10 +55,6 @@
       </button>
     </div>
 
-    <%= form_with url: journey_walks_path(@journey), scope: :walk, data: { controller: "carry-checkin-mood" } do |f| %>
-      <%= f.hidden_field :mood_before, data: { "carry-checkin-mood-target": "field" } %>
-      <%= f.submit "Start walking", class: "done-btn w-100" %>
-    <% end %>
     <% if @alternate_journey %>
     <%= link_to "Choose alternate journey",
           new_journey_walk_path(@alternate_journey),

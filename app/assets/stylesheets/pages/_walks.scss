@@ -70,6 +70,34 @@
   background: image-url("walking_background.png") center / cover no-repeat;
 }
 
+// Placeholder map icon, top-right of the walking screen -- same glassy
+// circular look as .camera-btn below, but not wired to anything yet.
+.walking-map-toggle {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 1;
+
+  width: 44px;
+  height: 44px;
+  padding: 0;
+
+  border-radius: 50%;
+  border: none;
+
+  background: rgba(143, 188, 143, 0.3);
+  color: #fff;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.1rem;
+
+  cursor: pointer;
+}
+
 // Fills all the space between the top of the screen and the End Walk button,
 // centering the live direction guidance within it.
 .walking-guidance {
@@ -216,6 +244,14 @@
     width: 28px;
     height: 28px;
   }
+}
+
+// Confirmation state once a photo has been taken -- swapped in alongside the
+// checkmark icon (see walking_controller#showPhotoCaptured) instead of
+// hiding the button entirely.
+.camera-btn-captured {
+  background: rgba(78, 158, 78, 0.75);
+  cursor: default;
 }
 
 .end-walk-btn {

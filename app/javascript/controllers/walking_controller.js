@@ -41,18 +41,17 @@ const TURN_ANGLES = {
 }
 
 export default class extends Controller {
-  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm"]
-  static values = {
-    waypoints: Array,
-    currentIndex: { type: Number, default: 0 },
-    devMode: Boolean,
-    attachPhotoUrl: String,
-    trackUrl: String
-  }
+
+  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm", "distanceField", "stepsField"]
+  static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean, attachPhotoUrl: String, trackUrl: String }
 
   connect() {
     this.arrived = false
     this.transitioning = false
+    // Cumulative great-circle distance actually covered so far, built up from
+    // consecutive position fixes -- this is what gets submitted as the walk's
+    // real actual_distance/actual_steps, rather than the route's planned distance.
+    this.traveledMeters = 0
 
     // Where the user has actually walked, streamed to the server in batches.
     // trackBuffer holds points not yet POSTed; lastRecordedPoint survives each
@@ -238,6 +237,14 @@ export default class extends Controller {
     if (this.arrived || this.transitioning) return
 
     const current = { lat: position.coords.latitude, lng: position.coords.longitude }
+
+    // Add this leg's distance to the running total before overwriting
+    // lastPosition -- there's nothing to measure from on the very first fix.
+    if (this.lastPosition) {
+      this.traveledMeters += this.haversineMeters(this.lastPosition, current)
+      this.updateTraveledFields()
+    }
+
     // Remembered so photoTaken can tag a photo with where the walker
     // actually was when they took it, not just the route's start point.
     this.lastPosition = current
@@ -257,7 +264,7 @@ export default class extends Controller {
     // Still en route: reset the arrow to neutral, update the live step
     // count based on remaining distance, and show the generic instruction.
     this.arrowTarget.style.transform = "rotate(0deg)"
-    this.stepsCountTarget.textContent = Math.round(distance / STEP_LENGTH_METERS)
+    this.stepsCountTarget.textContent = Math.round(distance / STEP_LENGTH_METERS).toLocaleString()
     this.instructionTextTarget.textContent = "Keep going straight"
 
     this.renderNextTurn(target)
@@ -332,13 +339,25 @@ export default class extends Controller {
   })
     .then((response) => {
       if (response.ok) {
-        this.cameraButtonTarget.classList.add("d-none")
+        this.showPhotoCaptured()
       } else {
         alert("Photo upload failed — try again.")
       }
     })
     .catch(() => alert("Photo upload failed — check your connection."))
     .finally(() => { this.photoUploadPromise = null })
+  }
+
+  // Swaps the camera icon for a checkmark once a photo has successfully
+  // uploaded, rather than hiding the button -- keeps a persistent on-screen
+  // confirmation instead of the control just vanishing. The input is disabled
+  // so tapping the button again doesn't reopen the camera for a walk that
+  // already has a photo attached (only one photo per walk is supported).
+  showPhotoCaptured() {
+    this.cameraButtonTarget.classList.add("camera-btn-captured")
+    this.cameraButtonTarget.querySelector("input").disabled = true
+    this.cameraButtonTarget.querySelector("svg").outerHTML =
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
   }
 
   // Intercepts the End Walk button's submit -- if a photo upload is still in
@@ -361,6 +380,14 @@ export default class extends Controller {
     this.instructionTextTarget.textContent = error.code === error.PERMISSION_DENIED
       ? "Enable location access to continue"
       : "Waiting for a location signal…"
+  }
+
+  // Mirrors the running distance total into the hidden form fields so
+  // whatever gets submitted with "End Walk" reflects the ground actually
+  // covered, not the route's planned distance.
+  updateTraveledFields() {
+    if (this.hasDistanceFieldTarget) this.distanceFieldTarget.value = (this.traveledMeters / 1000).toFixed(2)
+    if (this.hasStepsFieldTarget) this.stepsFieldTarget.value = Math.round(this.traveledMeters / STEP_LENGTH_METERS)
   }
 
   // Standard haversine formula: great-circle distance in meters between two

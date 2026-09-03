@@ -8,6 +8,10 @@
      data-walking-track-url-value="<%= track_walk_path(@walk) %>">
   <div class="walking-background"><!-- placeholder for atmospheric bg --></div>
 
+  <button type="button" class="walking-map-toggle" aria-label="Show route map">
+    <i class="fa-solid fa-map"></i>
+  </button>
+
   <div class="walking-guidance">
     <div class="direction-arrow-wrap">
       <div class="direction-arrow" data-walking-target="arrow">
@@ -37,9 +41,11 @@
         </label>
 
     </div>
-      <%= button_to "End Walk", complete_walk_path(@walk), method: :patch,
-      class: "end-walk-btn mb-3",
-      form: { data: { walking_target: "endWalkForm" } },
-      data: { action: "click->walking#endWalk" } %>
+      <%= form_with model: @walk, url: complete_walk_path(@walk), method: :patch,
+      html: { data: { walking_target: "endWalkForm" } } do |f| %>
+        <%= f.hidden_field :actual_distance, data: { walking_target: "distanceField" } %>
+        <%= f.hidden_field :actual_steps, data: { walking_target: "stepsField" } %>
+        <%= f.submit "End Walk", class: "end-walk-btn mb-3", data: { action: "click->walking#endWalk" } %>
+      <% end %>
   </div>
 </div>
