@@ -50,8 +50,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_153535) do
     t.text "encoded_polyline", null: false
     t.integer "estimated_duration_seconds"
     t.integer "estimated_steps"
-    t.string "location_name"
     t.jsonb "highlights_text"
+    t.string "location_name"
     t.string "name"
     t.boolean "recommendable", default: false, null: false
     t.geography "start_point", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}, null: false
