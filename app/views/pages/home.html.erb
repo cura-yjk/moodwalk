@@ -2,16 +2,16 @@
  id="suggestion-container" data-controller="geolocation">
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
-      <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
-        <h5 class="greeting mb-0">
-          <%= "How's today, #{current_user.name.capitalize}?" %>
-        </h5>
-        <%= render "shared/mood_checkin" %>
-      </div>
       <div class="subtitle">
-        <h1 class="mb-3 editorial-title">Pick a feeling. MoodWalk will do the rest.</h1>
-        <h6 class="mb-4">We map the route. You walk and journal.</h6>
+        <h1 class="greeting mb-0">
+          <%= "How's today, #{current_user.name.capitalize}?" %>
+        </h1>
+          <div class="home-header d-flex justify-content-between align-items-center gap-3 mt-2 mb-3">
+            <%= render "shared/mood_checkin" %>
+          </div>
       </div>
+        <h3>What kind of walk do you want?</h3>
+        <h6>We'll map the route. You walk and journal.</h6>
       <%= render "theme_picker" %>
       <div class="d-flex justify-content-between align-items-center mt-2">        <h5 class="mb-0">Ideas for you, right here</h5>
         <%= link_to "See all >", community_routes_path, class: "link-btn" %>
