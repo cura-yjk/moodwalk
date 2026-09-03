@@ -69,8 +69,8 @@ else
     { journey: journeys[0], started_at: Time.zone.now - 1.hour, duration: 24.minutes, mood: "Calm", steps: 2400, distance: 1.9, reflection: "Nice breeze by the river, felt great." },
     { journey: journeys[1], started_at: 2.days.ago,              duration: 20.minutes, mood: "Neutral",   steps: 2100, distance: 1.6, reflection: "Quick stroll after lunch." },
     { journey: journeys[2], started_at: 4.days.ago,              duration: 18.minutes, mood: "Calm", steps: 1700, distance: 1.3, reflection: "Needed to clear my head before a meeting." },
-    { journey: journeys.sample, started_at: 6.days.ago,              duration: 22.minutes, mood: "Good",   steps: 2300, distance: 1.7, reflection: "Morning walk before work, good start." },
-    { journey: journeys.sample, started_at: 8.days.ago,          duration: 25.minutes, mood: "Energised",   steps: 2600, distance: 2.0, reflection: "A bit tired, but glad I went." }
+    { journey: journeys[0], started_at: 6.days.ago,              duration: 22.minutes, mood: "Good",   steps: 2300, distance: 1.7, reflection: "Morning walk before work, good start." },
+    { journey: journeys[1], started_at: 8.days.ago,          duration: 25.minutes, mood: "Energised",   steps: 2600, distance: 2.0, reflection: "A bit tired, but glad I went." }
   ]
 
   walk_specs.each do |w|
