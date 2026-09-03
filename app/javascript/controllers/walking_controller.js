@@ -42,7 +42,7 @@ const TURN_ANGLES = {
 
 export default class extends Controller {
 
-  static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm", "distanceField", "stepsField"]
+  static targets = ["arrow", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm", "distanceField", "stepsField"]
   static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean, attachPhotoUrl: String, trackUrl: String }
 
   connect() {
@@ -261,10 +261,8 @@ export default class extends Controller {
       return
     }
 
-    // Still en route: reset the arrow to neutral, update the live step
-    // count based on remaining distance, and show the generic instruction.
+    // Still en route: reset the arrow to neutral and show the generic instruction.
     this.arrowTarget.style.transform = "rotate(0deg)"
-    this.stepsCountTarget.textContent = Math.round(distance / STEP_LENGTH_METERS).toLocaleString()
     this.instructionTextTarget.textContent = "Keep going straight"
 
     this.renderNextTurn(target)
@@ -285,7 +283,6 @@ export default class extends Controller {
     // "keep going straight" guidance via the next handlePosition call.
     this.transitioning = true
     this.arrowTarget.style.transform = `rotate(${TURN_ANGLES[target.instruction] ?? 0}deg)`
-    this.stepsCountTarget.textContent = "0"
     this.instructionTextTarget.textContent = INSTRUCTION_LABELS[target.instruction] || "Turn"
     this.nextRowTarget.classList.add("next-instruction-hidden")
 
@@ -303,15 +300,14 @@ export default class extends Controller {
   }
 
   // Final state once the last waypoint is reached: swaps the arrow icon for
-  // a checkmark, zeroes out the step count, and stops all tracking/timers
-  // since there's nothing left to navigate toward.
+  // a checkmark and stops all tracking/timers since there's nothing left to
+  // navigate toward.
   renderArrived() {
     this.arrived = true
     this.stopTracking()
 
     this.arrowTarget.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
     this.arrowTarget.style.transform = "rotate(0deg)"
-    this.stepsCountTarget.textContent = "0"
     this.instructionTextTarget.textContent = "You've arrived!"
     this.nextRowTarget.classList.add("next-instruction-hidden")
   }

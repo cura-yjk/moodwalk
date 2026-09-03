@@ -151,18 +151,11 @@
   animation: bounce 3s ease-in-out infinite;
 }
 
-.steps-remaining {
-  font-size: 3rem;
-  font-weight: 700;
-  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
-
-  margin-bottom: 0;
-}
-
 .instruction-text {
   color: rgba(255, 255, 255, 1);
   text-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
-  font-size: 1.4rem;
+  font-size: 3rem;
+  font-weight: 700;
 
   margin-bottom: 0;
 }
