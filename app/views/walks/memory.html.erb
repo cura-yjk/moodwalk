@@ -96,7 +96,7 @@
 
       <div class="memory-stats-row d-flex justify-content-center">
         <span>⏲ <%= @walk.duration_in_minutes %> min</span>
-        <span>👣 <%= @walk.actual_steps %> steps</span>
+        <span>👣 <%= number_with_delimiter(@walk.actual_steps) %> steps</span>
         <span>📍 <%= @walk.actual_distance %> km</span>
       </div>
 
