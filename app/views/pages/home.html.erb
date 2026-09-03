@@ -2,16 +2,16 @@
  id="suggestion-container" data-controller="geolocation">
   <div class="d-flex flex-column">
     <% if user_signed_in? %>
-      <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
-        <h5 class="greeting mb-0">
-          <%= "How's today, #{current_user.name.capitalize}?" %>
-        </h5>
-        <%= render "shared/mood_checkin" %>
-      </div>
-      <div class="subtitle">
-        <h1 class="mb-3 editorial-title">How would you like to feel after your walk?</h1>
-        <h6 class="mb-4">Choose a feeling. MoodWalk will do the rest.</h6>
-      </div>
+          <div class="home-header d-flex justify-content-between align-items-center gap-3 my-4">
+            <h5 class="greeting mb-0">
+              <%= "How's today, #{current_user.name.capitalize}?" %>
+            </h5>
+            <%= render "shared/mood_checkin" %>
+          </div>
+          <div class="subtitle">
+            <h1 class="mb-3 editorial-title">How would you like to feel after your walk?</h1>
+            <h6 class="mb-4">Choose a feeling. MoodWalk will do the rest.</h6>
+          </div>
       <%= render "theme_picker" %>
       <div class="d-flex justify-content-between align-items-center mt-2">
         <h5 class="mb-0">Ideas for you, right here</h5>
@@ -31,7 +31,7 @@
                 <div class="carousel-item <%= "active" if index == 0 %> ">
                   <%= link_to community_route_path(journey), class: "journey-card text-decoration-none" do %>
                     <div class="card-image">
-                      <%= image_tag Journey::PLACEHOLDER_IMAGES.sample, alt: journey.name, class: "card-photo" %>
+                      <%= image_tag journey.placeholder_image, alt: journey.name, class: "card-photo" %>
                       <div class="card-info">
                         <div class="card-title-row">
                           <h4><%= journey.name %></h4>
@@ -46,6 +46,7 @@
                     </div>
                   </div>
                 <% end %> <%# Closes link_to %>
+               </div>
               <% end %> <%# Closes @journeys.each %>
             <% end %>
           </div>

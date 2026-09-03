@@ -50,7 +50,7 @@
          data-map-route-value="<%= @journey.route_coordinates.to_json %>">
     </div>
 
-    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : Array.new(4) { Journey::PLACEHOLDER_IMAGES.sample } %>
+    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : @journey.carousel_images %>
     <div class="photo-carousel my-4">
       <h2 class="route-detail-heading">Other moments from walkers</h2>
 
@@ -76,6 +76,7 @@
   </div>
 
   <div class="d-flex flex-column w-100 gap-3 route-detail-actions">
+    <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
     <div class="d-flex gap-2 mb-1">
       <%= link_to community_routes_path,
       class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
@@ -91,7 +92,5 @@
         <span data-journey-save-target="label">Save</span>
       </button>
     </div>
-
-    <%= button_to "Start Walking", journey_walks_path(@journey), method: :post, class: "done-btn w-100" %>
   </div>
 </div>
