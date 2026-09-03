@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_02_153535) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_063233) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -87,8 +87,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_153535) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "walk_track_points", force: :cascade do |t|
+    t.decimal "accuracy_meters"
+    t.datetime "created_at", null: false
+    t.decimal "latitude", precision: 10, scale: 6, null: false
+    t.decimal "longitude", precision: 10, scale: 6, null: false
+    t.datetime "recorded_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "walk_id", null: false
+    t.index ["walk_id", "recorded_at"], name: "index_walk_track_points_on_walk_id_and_recorded_at"
+    t.index ["walk_id"], name: "index_walk_track_points_on_walk_id"
+  end
+
   create_table "walks", force: :cascade do |t|
     t.decimal "actual_distance"
+    t.geography "actual_path", limit: {:srid=>4326, :type=>"line_string", :geographic=>true}
     t.integer "actual_steps"
     t.datetime "completed_at"
     t.datetime "created_at", null: false
@@ -114,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_153535) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "saved_journeys", "journeys"
   add_foreign_key "saved_journeys", "users"
+  add_foreign_key "walk_track_points", "walks"
   add_foreign_key "walks", "journeys"
   add_foreign_key "walks", "users"
 end

@@ -4,7 +4,8 @@
      data-controller="walking"
      data-walking-waypoints-value="<%= @journey.turn_waypoints.to_json %>"
      data-walking-dev-mode-value="<%= Rails.env.development? %>"
-     data-walking-attach-photo-url-value="<%= attach_photo_walk_path(@walk) %>">
+     data-walking-attach-photo-url-value="<%= attach_photo_walk_path(@walk) %>"
+     data-walking-track-url-value="<%= track_walk_path(@walk) %>">
   <div class="walking-background"><!-- placeholder for atmospheric bg --></div>
 
   <button type="button" class="walking-map-toggle" aria-label="Show route map">

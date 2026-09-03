@@ -7,6 +7,18 @@ class WalksController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  # Receives a batch of GPS breadcrumbs from walking_controller.js while a walk
+  # is in progress. Fire-and-forget from the client's side, so it just needs to
+  # persist quickly and return -- the points are stitched into a route later, in
+  # Walk#finalize_actual_path! when the walk completes.
+  def track
+    walk = current_user.walks.find(params[:id])
+    rows = breadcrumb_rows(walk)
+
+    WalkTrackPoint.insert_all(rows) if rows.any?
+    head :no_content
+  end
+
   def new
     @journey = Journey.find(params[:journey_id])
     @alternate_journey = @journey.alternate
@@ -64,6 +76,7 @@ class WalksController < ApplicationController
 
   def complete
     @walk = current_user.walks.find(params[:id])
+    @walk.finalize_actual_path!
     @walk.update(
       completed_at: Time.current,
       actual_steps: complete_params[:actual_steps].presence || @walk.journey.estimated_steps,
@@ -112,6 +125,32 @@ class WalksController < ApplicationController
     params.require(:walk).permit(:mood_after, :reflection, :photo, :photo_latitude, :photo_longitude)
   end
 
+  # Breadcrumb batch posted by walking_controller.js#flushBreadcrumbs. `points`
+  # is a plain JSON array; each entry carries what the browser's Geolocation API
+  # gave us for one fix. insert_all needs uniform keys and won't set timestamps,
+  # so every row is normalized in breadcrumb_row.
+  def breadcrumb_rows(walk)
+    now = Time.current
+    permitted = params.permit(points: %i[latitude longitude accuracy_meters recorded_at])
+
+    Array(permitted[:points]).filter_map do |point|
+      next if point[:latitude].blank? || point[:longitude].blank?
+
+      breadcrumb_row(point, walk, now)
+    end
+  end
+
+  def breadcrumb_row(point, walk, now)
+    {
+      walk_id: walk.id,
+      latitude: point[:latitude],
+      longitude: point[:longitude],
+      accuracy_meters: point[:accuracy_meters].presence,
+      recorded_at: point[:recorded_at].presence || now,
+      created_at: now,
+      updated_at: now
+    }
+  end
   # Real distance/steps tracked client-side over the course of the walk (see
   # walking_controller.js#updateTraveledFields). Blank when GPS tracking never
   # ran (e.g. geolocation unsupported, or the dev-only ?arrived= shortcut) --
