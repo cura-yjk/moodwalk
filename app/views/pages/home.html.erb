@@ -48,7 +48,7 @@
             <% if @journeys.present? %>
               <% @journeys.each_with_index do |journey, index| %>
                 <div class="carousel-item <%= "active" if index == 0 %> ">
-                  <%= link_to new_journey_walk_path(journey), class: "journey-card text-decoration-none" do %>
+                  <%= link_to community_route_path(journey), class: "journey-card text-decoration-none" do %>
                     <div class="card-image">
                       <%= image_tag Journey::PLACEHOLDER_IMAGES.sample, alt: journey.name, class: "card-photo" %>
                       <div class="card-info">

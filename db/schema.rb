@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_02_000343) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_153535) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "postgis"
@@ -50,6 +50,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_000343) do
     t.text "encoded_polyline", null: false
     t.integer "estimated_duration_seconds"
     t.integer "estimated_steps"
+    t.string "location_name"
     t.string "name"
     t.boolean "recommendable", default: false, null: false
     t.geography "start_point", limit: {:srid=>4326, :type=>"st_point", :geographic=>true}, null: false
@@ -95,7 +96,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_02_000343) do
     t.string "mood_before"
     t.float "photo_latitude"
     t.float "photo_longitude"
+    t.integer "rating"
     t.text "reflection"
+    t.text "review"
     t.text "share_quote"
     t.datetime "shared_at"
     t.datetime "started_at"

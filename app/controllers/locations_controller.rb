@@ -1,6 +1,5 @@
 class LocationsController < ApplicationController
   GEOCODE_URL = "https://api.mapbox.com/search/geocode/v6/forward"
-  REVERSE_GEOCODE_URL = "https://api.mapbox.com/search/geocode/v6/reverse"
 
   def update
     if params[:latitude].present? && params[:longitude].present?
@@ -23,7 +22,7 @@ class LocationsController < ApplicationController
   # suggestion, so skip the extra reverse-geocode round trip -- it's only
   # nil for the raw-coordinates path (geolocation_controller.js).
   def update_from_coordinates(latitude, longitude, name = nil)
-    name ||= reverse_geocode(latitude, longitude)
+    name ||= MapboxGeocoder.reverse(latitude, longitude)
 
     current_user.update!(
       current_latitude: latitude,
@@ -73,20 +72,5 @@ class LocationsController < ApplicationController
 
   def geocode(query)
     suggest(query, limit: 1).first
-  end
-
-  def reverse_geocode(latitude, longitude)
-    response = Faraday.get(REVERSE_GEOCODE_URL) do |req|
-      req.params["longitude"] = longitude
-      req.params["latitude"] = latitude
-      req.params["language"] = "en"
-      req.params["types"] = "neighborhood,locality,place"
-      req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
-    end
-
-    feature = JSON.parse(response.body)["features"]&.first
-    feature&.dig("properties", "name") || feature&.dig("properties", "place_formatted")
-  rescue StandardError
-    nil
   end
 end

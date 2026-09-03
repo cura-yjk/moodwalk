@@ -3,7 +3,22 @@ class Journey < ApplicationRecord
   has_many :saved_journeys, dependent: :destroy
   has_many :saving_users, through: :saved_journeys, source: :user
 
-  scope :community, -> { where(theme_key: [nil, ""]) }
+  # A journey is a "community route" if it has no theme (unthemed journeys are
+  # community by default), or if a themed journey has had at least one walk
+  # shared to the community (via Walk#share!).
+  scope :community, -> { where(theme_key: [nil, ""]).or(where(id: Walk.shared.select(:journey_id))) }
+
+  # Most recently shared-to-community walk first; journeys with no shared
+  # walk yet (unthemed journeys can permanently lack one) fall back to
+  # their own created_at so they don't sort arbitrarily.
+  scope :newest_first, lambda {
+    order(Arel.sql(<<~SQL.squish))
+      COALESCE(
+        (SELECT MAX(walks.shared_at) FROM walks WHERE walks.journey_id = journeys.id),
+        journeys.created_at
+      ) DESC
+    SQL
+  }
 
   def community_photos(limit: nil)
     scope = walks.recent_with_photo
@@ -39,6 +54,17 @@ class Journey < ApplicationRecord
 
   def saved_by?(user)
     saved_journeys.exists?(user_id: user.id)
+  end
+
+  # Neighborhood/district label for the card UI (e.g. "Meguro"). Set at
+  # creation time by JourneyGenerator for new journeys; backfilled lazily
+  # and cached here for journeys created before that column existed.
+  def location_name
+    super || begin
+      name = MapboxGeocoder.reverse(start_point.y, start_point.x)
+      update_column(:location_name, name) if name
+      name
+    end
   end
 
   # find routes within `radius_meters` of a point, closest first

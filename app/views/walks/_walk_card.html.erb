@@ -31,8 +31,17 @@
       <% end %>
 
       <div class="walk-details">
-          <div class="d-flex align-items-center">
-            <i class="fa-solid fa-location-dot me-1"></i><span>Location name</span>
+          <div class="walk-location-row d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+              <i class="fa-solid fa-location-dot me-1"></i><span><%= walk.journey.location_name || "Nearby" %></span>
+            </div>
+
+            <%= link_to new_journey_walk_path(walk.journey),
+                  class: "walk-start-btn",
+                  data: { action: "click->walk-card#stopPropagation:stop" },
+                  aria: { label: "Start this walk again" } do %>
+              <i class="fa-solid fa-play"></i><span class="walk-start-label">Start</span>
+            <% end %>
           </div>
 
         <p class="walk-mood">

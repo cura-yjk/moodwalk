@@ -1,8 +1,18 @@
 <% content_for :hide_navbar, true %>
-<div class="container walk-complete-page d-flex flex-column align-items-center mt-5"
-     data-controller="community-share journey-save"
+<!-- Outer wrapper carries the Stimulus controllers so the share modal below
+     (a sibling of .walk-complete-page, not a descendant) stays in scope for
+     Stimulus targets. It deliberately has no position/z-index of its own --
+     .walk-complete-page opens its own stacking context (for .leaf-layer, see
+     below), and nesting the modal inside that context used to trap it under
+     Bootstrap's backdrop (which attaches to <body>, outside that context),
+     making the modal render but be unclickable/greyed-out. -->
+<div data-controller="community-share journey-save"
      data-community-share-share-url-value="<%= share_walk_path(@walk) %>"
-     data-journey-save-save-url-value="<%= save_journey_path(@walk.journey) %>">
+     data-community-share-shared-value="<%= @walk.shared? %>"
+     data-community-share-rating-value="<%= @walk.rating %>"
+     data-journey-save-save-url-value="<%= save_journey_path(@walk.journey) %>"
+     data-journey-save-saved-value="<%= @journey_saved %>">
+<div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
   <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
@@ -44,6 +54,15 @@
       <span class="stat-label">distance</span>
     </div>
   </div>
+  <!-- Route map: shows the loop the user just walked, same map-preview/
+     route-map styling and `map` Stimulus controller as walks#new's route
+     preview. -->
+  <div class="map-preview route-map"
+       data-controller="map"
+       data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+       data-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
+       data-map-route-value="<%= @walk.journey.route_coordinates.to_json %>">
+  </div>
   <!-- Form for the two editable, optional fields: mood_after and reflection -->
   <div class="emoji-form d-flex flex-column align-items-center">
     <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
@@ -72,14 +91,104 @@
         </button>
         <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
           data-community-share-target="button"
-          data-action="click->community-share#share">
-          <i class="fa-solid fa-arrow-up-from-bracket"></i>
-          Share
+          data-bs-toggle="modal" data-bs-target="#shareModal">
+          <i class="fa-solid fa-arrow-up-from-bracket" data-community-share-target="buttonIcon"></i>
+          <span data-community-share-target="buttonLabel">Share</span>
         </button>
       </div>
       <!-- The one real action on this page: submits mood_after + reflection,
            then WalksController#update redirects to the memory-card page -->
       <%= f.submit "Done", class: "done-btn mt-3 mb-5 w-100" %>
     <% end %>
+  </div>
+</div>
+
+  <!-- Share to Community modal (see screenshot mockup): rating + optional
+       review, submitted via community-share#share as a PATCH to
+       WalksController#share. Lives outside the mood/reflection form above
+       so it isn't nested inside another <form>. Bootstrap's JS (loaded
+       globally, see application.js) handles opening/closing via the
+       data-bs-toggle/data-bs-target attributes and Modal instance below. -->
+  <div class="modal fade share-modal" id="shareModal" tabindex="-1" aria-hidden="true"
+       data-community-share-target="modal"
+       data-action="shown.bs.modal->community-share#prefillReview">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content share-modal-content">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h2 class="modal-title editorial-title share-modal-title">Share to Community</h2>
+            <p class="text-muted mb-0">Share your walk to inspire other walkers 🌿</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="share-preview-card">
+            <div class="share-preview-photo">
+              <% if @walk.photo.attached? %>
+                <%= image_tag @walk.photo, class: "share-preview-image" %>
+              <% else %>
+                <%= image_tag "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg", class: "share-preview-image" %>
+              <% end %>
+            </div>
+            <div class="share-preview-body">
+              <div class="d-flex align-items-start gap-2">
+                <span class="share-preview-icon"><i class="fa-solid fa-location-dot"></i></span>
+                <div>
+                  <h3 class="share-preview-name"><%= @walk.journey.name %></h3>
+                  <% if @walk.journey.description.present? %>
+                    <p class="share-preview-description text-muted mb-0"><%= @walk.journey.description %></p>
+                  <% end %>
+                </div>
+              </div>
+              <div class="share-preview-stats d-flex">
+                <div class="share-preview-stat text-center">
+                  <div class="share-preview-stat-icon">👣</div>
+                  <div class="share-preview-stat-value fw-bold"><%= @walk.actual_steps %></div>
+                  <div class="share-preview-stat-label text-muted">steps</div>
+                </div>
+                <div class="share-preview-stat text-center">
+                  <div class="share-preview-stat-icon"><i class="fa-regular fa-clock"></i></div>
+                  <div class="share-preview-stat-value fw-bold"><%= @walk.duration_in_minutes %> min</div>
+                  <div class="share-preview-stat-label text-muted">walking</div>
+                </div>
+                <div class="share-preview-stat text-center">
+                  <div class="share-preview-stat-icon"><i class="fa-solid fa-location-dot"></i></div>
+                  <div class="share-preview-stat-value fw-bold"><%= @walk.actual_distance %> km</div>
+                  <div class="share-preview-stat-label text-muted">distance</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="share-question mt-4 mb-1">How was your walk?</h4>
+          <p class="text-muted mb-2">Rate your overall experience</p>
+          <div class="share-star-rating" data-community-share-target="stars">
+            <% (1..5).each do |value| %>
+              <i class="fa-solid fa-star share-star" data-rating="<%= value %>" data-action="click->community-share#setRating"></i>
+            <% end %>
+          </div>
+          <p class="share-rating-label text-center mb-0" data-community-share-target="ratingLabel">&nbsp;</p>
+
+          <h4 class="share-question mt-4 mb-2">Write a review <span class="text-muted fw-normal">(optional)</span></h4>
+          <textarea class="share-review-textarea" maxlength="150" rows="3"
+            placeholder="What made this walk special?"
+            data-community-share-target="review"
+            data-action="input->community-share#countChars"></textarea>
+          <p class="share-char-count text-end text-muted mb-0">
+            <span data-community-share-target="charCount">0</span>/150
+          </p>
+
+          <button type="button" class="done-btn w-100 mt-3 d-flex align-items-center justify-content-center gap-2"
+            data-community-share-target="submitButton"
+            data-action="click->community-share#share">
+            <i class="fa-solid fa-users"></i>
+            <span data-community-share-target="submitLabel">Share to Community</span>
+          </button>
+          <p class="share-modal-footnote text-center text-muted mb-1 mt-2">
+            <i class="fa-solid fa-lock"></i> Your name will be shown as MoodWalker
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

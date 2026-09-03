@@ -32,12 +32,14 @@
   <div class="d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">
       <%= link_to root_path,
-      class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none" do %>
+      class: "choice-btn w-50 d-flex align-items-center gap-3 justify-content-center text-decoration-none",
+      data: { controller: "history-back", "history-back-fallback-url-value": root_path, action: "click->history-back#back" } do %>
         <i class="fa-solid fa-backward"></i> Back
       <% end %>
       <button type="button" class="choice-btn d-flex align-items-center gap-3 justify-content-center w-50"
         data-controller="journey-save"
         data-journey-save-save-url-value="<%= save_journey_path(@journey) %>"
+        data-journey-save-saved-value="<%= @journey_saved %>"
         data-journey-save-target="button"
         data-action="click->journey-save#save">
         <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>

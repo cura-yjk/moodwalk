@@ -10,11 +10,7 @@
 
   <div class="route-card-body d-flex flex-column align-items-start w-100">
     <div class="mb-1 d-flex align-items-center mb-2">
-      <i class="fa-solid fa-location-dot me-1"></i><span>Location name</span>
-    </div>
-    <div class="route-card-meta d-flex justify-content-evenly gap-3 mb-2">
-      <span><%= journey.length_label %></span>
-      <span><i class="fa-solid fa-person-walking"></i> <%= journey.placeholder_walker_count %></span>
+      <i class="fa-solid fa-location-dot me-1"></i><span><%= journey.location_name || "Nearby" %></span>
     </div>
     <div class="route-card-tags d-flex flex-wrap gap-1">
       <% journey.tags.each do |tag| %>

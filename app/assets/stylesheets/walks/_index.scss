@@ -21,6 +21,21 @@
   box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.08);
 }
 
+// Photo markers on the exploration map, one per walk with a photo attached.
+.exploration-photo-pin {
+  width: 56px;
+  height: 56px;
+
+  border-radius: 12px;
+  border: 3px solid white;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+
+  background-size: cover;
+  background-position: center;
+
+  cursor: pointer;
+}
+
 .page-header {
   display: flex;
   align-items: center;
@@ -330,6 +345,63 @@
 .mood-transition-arrow {
   font-size: 0.6rem;
   color: rgba(14, 0, 0, 0.4);
+}
+
+.walk-location-row {
+  gap: 8px;
+}
+
+// Re-starts the same journey from a past walk's history card -- links to
+// the walk preview page (walks#new) rather than the memory card, which is
+// what tapping the rest of the card already opens (see walk-card#open).
+.walk-start-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+
+  // .walk-details has 16px of right padding, but .walk-card-map-toggle sits
+  // only 8px from the card edge -- pull the button out by the difference so
+  // its right edge lines up with the map icon's.
+  margin-right: -8px;
+
+  padding: 6px 14px;
+
+  border-radius: 999px;
+  border: none;
+
+  background-color: #52774c;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.walk-start-btn:hover {
+  transform: scale(1.05);
+  color: white;
+}
+
+.walk-start-btn i {
+  font-size: 0.7rem;
+}
+
+// Below this width the card is too narrow for the pill + label -- collapse
+// down to just the circular play icon, matching the mockup's fallback.
+@media (max-width: 360px) {
+  .walk-start-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .walk-start-label {
+    display: none;
+  }
 }
 
 .empty-state {
