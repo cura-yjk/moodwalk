@@ -1,5 +1,5 @@
 // Import Google fonts
-@import url('https://fonts.googleapis.com/css?family=Nunito:400,700|Work+Sans:400,700|Playfair+Display:400,600,700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Nunito:400,700|Work+Sans:400,700|Playfair+Display:400,600,700|Caveat:500,600&display=swap');
 
 // Define fonts for body and headers
 $body-font: "Work Sans", "Helvetica", "sans-serif";
@@ -9,6 +9,11 @@ $headers-font: "Nunito", "Helvetica", "sans-serif";
 // ready", "Walk complete!") -- distinct from $headers-font, which stays on
 // the rest of the h1/h2 hierarchy.
 $editorial-font: "Playfair Display", "Georgia", "serif";
+
+// Handwriting-style font for small pencil-annotation UI hints (e.g. the
+// homepage "check in" onboarding cue) -- not used anywhere in the main
+// type hierarchy above.
+$handwriting-font: "Caveat", "Segoe Script", cursive;
 
 // To use a font file (.woff) uncomment following lines
 // @font-face {

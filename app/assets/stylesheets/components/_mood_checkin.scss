@@ -15,6 +15,7 @@ $mood-checkin-fg: #4a7c59; // darker green -- matches walks/_edit.scss's
 // into (see the flex row wrapping it in pages/home.html.erb) -- the sheet and
 // its backdrop are fixed, so this wrapper otherwise takes up no extra space.
 .mood-checkin {
+  position: relative;
   display: inline-flex;
 }
 
@@ -35,6 +36,20 @@ $mood-checkin-fg: #4a7c59; // darker green -- matches walks/_edit.scss's
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+// Brief pulse the checkin-hint controller applies to the avatar once its
+// arrow animation reaches the icon -- kept on the button (not the icon
+// image) so the whole tappable target grows together. transform-only so it
+// never affects layout or the button's hit area during the animation.
+@keyframes mood-checkin-avatar-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.mood-checkin-avatar.is-pulsing {
+  animation: mood-checkin-avatar-pulse 0.5s ease-out;
 }
 
 .mood-sheet-backdrop {
@@ -146,4 +161,147 @@ $mood-checkin-fg: #4a7c59; // darker green -- matches walks/_edit.scss's
   color: #a3a3a3;
   font-size: 0.9rem;
   text-decoration: underline;
+}
+
+// One-time "check in" pencil annotation (see checkin_hint_controller.js)
+// pointing at the mood-checkin avatar above. Muted grey-green sibling of
+// $mood-checkin-fg -- softer/less saturated so it reads as a faint pencil
+// mark, not another UI control. .mood-checkin is exactly avatar-sized, so
+// right: 100%/bottom: 100% tuck this whole block into the quadrant above
+// and to the left of the avatar (a diagonal "check in" -> arrow -> icon
+// composition, not stacked directly on top of it) while staying clear of
+// the header row -- and therefore of the greeting/headline beside it --
+// regardless of how much horizontal room the greeting text leaves. The
+// visible gap between the arrowhead and the avatar comes from the arrow
+// SVG's own viewBox padding (see .mood-check-hint__arrow below), not an
+// extra margin here.
+.checkin-hint {
+  --checkin-hint-color: #7c9484;
+  --checkin-hint-text-duration: 0.7s;
+  --checkin-hint-arrow-duration: 0.5s;
+  --checkin-hint-fade-duration: 0.4s;
+
+  position: absolute;
+  right: 100%;
+  // Just under 100% (rather than flush) so growing .checkin-hint-text's
+  // margin-top doesn't just push this whole block further up toward the
+  // viewport top -- borrows a little space from the avatar's own box
+  // instead, which is safe since the avatar is a circle, not a square: this
+  // much of its top-left bounding-box corner isn't covered by visible
+  // avatar pixels.
+  bottom: calc(100% - 36px);
+  z-index: 5;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  // Decorative only -- must never sit between a tap and the avatar button.
+  pointer-events: none;
+
+  opacity: 0;
+
+  &.is-visible {
+    opacity: 1;
+  }
+
+  &.is-fading {
+    animation: checkin-hint-fade-out var(--checkin-hint-fade-duration) ease-in forwards;
+  }
+}
+
+.checkin-hint-text {
+  margin-top: 36px;
+  margin-bottom: 2px;
+
+  font-family: $handwriting-font;
+  font-size: clamp(1.14rem, 5.4vw, 1.5rem);
+  // Caveat's default line-height is unusually tall (~1.5x); "check in" has
+  // no descenders, so a tight box is safe and keeps the whole hint short
+  // enough to clear the ~72px of header space above it (container's mt-5 +
+  // header row's my-4) without the text getting clipped by the viewport top.
+  line-height: 1;
+  font-weight: 600;
+  color: var(--checkin-hint-color);
+  white-space: nowrap;
+
+  clip-path: inset(0 100% 0 0);
+
+  .checkin-hint.is-visible & {
+    animation: checkin-hint-text-reveal var(--checkin-hint-text-duration) ease-out forwards;
+  }
+}
+
+// Sized so the path's start point (x=10 of the 72-wide viewBox, ~14% across)
+// lands roughly under the middle of the text above it, and so the combined
+// text+arrow height still clears the ~72px of header space above it
+// (container's mt-5 + header row's my-4).
+.mood-check-hint__arrow {
+  width: clamp(40px, 12.5vw, 52px);
+  height: auto;
+  color: var(--checkin-hint-color); // read via currentColor by the path stroke and #mood-arrowhead below
+  overflow: visible;
+}
+
+.mood-check-hint__arrow-path {
+  stroke-dashoffset: var(--checkin-hint-arrow-length, 70);
+
+  .checkin-hint.is-arrow-drawing & {
+    animation: checkin-hint-arrow-draw var(--checkin-hint-arrow-duration) ease-out forwards;
+  }
+}
+
+// The arrowhead is an SVG marker (see the view) rather than a separate
+// path, so stroke-dasharray/dashoffset on the line above doesn't hide it by
+// itself -- markers are painted at the path's end vertex regardless of how
+// much of the stroke is dashed away. Fading in its source path (which every
+// rendered marker instance follows) keeps the "arrowhead appears only once
+// the line is nearly drawn" behavior.
+#mood-arrowhead path {
+  opacity: 0;
+
+  .checkin-hint.is-arrow-drawing & {
+    animation: checkin-hint-fade-in 0.15s ease-out forwards;
+    animation-delay: calc(var(--checkin-hint-arrow-duration) * 0.75);
+  }
+}
+
+// Reduced-motion: skip the drawing/pulse choreography entirely and just
+// show the finished cue briefly before fading it out.
+.checkin-hint.is-reduced-motion {
+  .checkin-hint-text {
+    clip-path: none;
+  }
+
+  .mood-check-hint__arrow-path {
+    stroke-dashoffset: 0;
+  }
+
+  #mood-arrowhead path {
+    opacity: 1;
+  }
+}
+
+@keyframes checkin-hint-text-reveal {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes checkin-hint-arrow-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes checkin-hint-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes checkin-hint-fade-out {
+  to {
+    opacity: 0;
+  }
 }

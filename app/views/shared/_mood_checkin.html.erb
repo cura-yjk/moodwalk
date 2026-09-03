@@ -6,14 +6,59 @@
     same feature. Selection is remembered client-side only (localStorage) via
     mood_checkin_controller.js; there's no server-side model for it. %>
 <div class="mood-checkin"
-  data-controller="mood-checkin"
+  data-controller="mood-checkin checkin-hint"
   data-mood-checkin-icons-value="<%= ApplicationHelper::MOOD_ICONS.transform_values { |image| asset_path(image) }.to_json %>">
+
+  <%# Soft pencil-annotation onboarding cue pointing at the avatar below --
+      see checkin_hint_controller.js. Purely decorative/pointer-events: none,
+      so it can never block a tap on the avatar. %>
+  <div class="checkin-hint" data-checkin-hint-target="hint">
+    <span class="checkin-hint-text" data-checkin-hint-target="text">check in</span>
+    <svg
+      class="mood-check-hint__arrow"
+      viewBox="0 0 72 60"
+      aria-hidden="true"
+    >
+      <defs>
+        <marker
+          id="mood-arrowhead"
+          markerWidth="7"
+          markerHeight="7"
+          refX="6"
+          refY="3.5"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path
+            d="M 0 0 L 7 3.5 L 0 7"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </marker>
+      </defs>
+
+      <path
+        class="mood-check-hint__arrow-path"
+        d="M 8 6 C 14 30, 28 40, 65 36"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        marker-end="url(#mood-arrowhead)"
+      />
+    </svg>
+  </div>
 
   <button type="button"
     class="mood-checkin-avatar"
     aria-haspopup="dialog"
     aria-label="Check in on your mood"
-    data-action="click->mood-checkin#open">
+    data-action="click->mood-checkin#open"
+    data-checkin-hint-target="icon">
     <%= image_tag ApplicationHelper::MOOD_ICONS["Neutral"], alt: "Mood check-in",
           class: "mood-checkin-avatar-icon", data: { "mood-checkin-target": "avatarFace" } %>
   </button>
