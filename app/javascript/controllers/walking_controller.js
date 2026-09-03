@@ -15,6 +15,14 @@ const TURN_FLASH_MS = 1800
 const SIMULATION_BASE_SPEED_MPS = 1.4
 const SIMULATION_TICK_MS = 500
 
+// GPS breadcrumb tracking (persisting where the user actually walked, vs. the
+// suggested route). Fixes worse than this accuracy are dropped as noise; fixes
+// closer than this to the previous kept one are skipped so a stationary walker
+// doesn't pile up near-duplicate points; buffered points POST in batches.
+const MAX_ACCURACY_METERS = 40
+const MIN_BREADCRUMB_GAP_METERS = 5
+const BREADCRUMB_BATCH_SIZE = 10
+
 // Display text for each waypoint's instruction type.
 const INSTRUCTION_LABELS = {
   start: "Keep going straight",
@@ -34,11 +42,27 @@ const TURN_ANGLES = {
 
 export default class extends Controller {
   static targets = ["arrow", "stepsCount", "instructionText", "nextRow", "nextInstructionText", "cameraButton", "endWalkForm"]
-  static values = { waypoints: Array, currentIndex: { type: Number, default: 0 }, devMode: Boolean, attachPhotoUrl: String }
+  static values = {
+    waypoints: Array,
+    currentIndex: { type: Number, default: 0 },
+    devMode: Boolean,
+    attachPhotoUrl: String,
+    trackUrl: String
+  }
 
   connect() {
     this.arrived = false
     this.transitioning = false
+
+    // Where the user has actually walked, streamed to the server in batches.
+    // trackBuffer holds points not yet POSTed; lastRecordedPoint survives each
+    // flush so the min-gap throttle keeps working across batches.
+    this.trackBuffer = []
+    this.lastRecordedPoint = null
+    // A full-page navigation (the "End Walk" button) can beat disconnect(), so
+    // also flush on pagehide with keepalive so the tail of the walk isn't lost.
+    this.flushOnPageHide = () => this.flushBreadcrumbs({ keepalive: true })
+    window.addEventListener("pagehide", this.flushOnPageHide)
 
     const params = new URLSearchParams(window.location.search)
 
@@ -144,12 +168,71 @@ export default class extends Controller {
     if (this.watchId) navigator.geolocation.clearWatch(this.watchId)
     if (this.simulationTimer) clearInterval(this.simulationTimer)
     if (this.transitionTimeout) clearTimeout(this.transitionTimeout)
+      if (this.flushOnPageHide) {
+      window.removeEventListener("pagehide", this.flushOnPageHide)
+      this.flushOnPageHide = null
+    }
+    this.flushBreadcrumbs({ keepalive: true })
+  }
+
+  // Buffers one GPS fix as a breadcrumb, dropping low-accuracy noise and points
+  // too close to the last kept one. Runs on every position update -- including
+  // after arrival and during turn transitions -- so the recorded path doesn't
+  // have gaps where handlePosition bails out early. Simulated positions (dev
+  // ?simulate=) have no accuracy/timestamp, so those checks are skipped.
+  recordBreadcrumb(position) {
+    if (!this.hasTrackUrlValue) return
+
+    const { latitude, longitude, accuracy } = position.coords
+    if (accuracy != null && accuracy > MAX_ACCURACY_METERS) return
+
+    const point = { lat: latitude, lng: longitude }
+    if (this.lastRecordedPoint &&
+        this.haversineMeters(this.lastRecordedPoint, point) < MIN_BREADCRUMB_GAP_METERS) {
+      return
+    }
+    this.lastRecordedPoint = point
+
+    this.trackBuffer.push({
+      latitude,
+      longitude,
+      accuracy_meters: accuracy ?? null,
+      recorded_at: new Date(position.timestamp ?? Date.now()).toISOString()
+    })
+
+    if (this.trackBuffer.length >= BREADCRUMB_BATCH_SIZE) this.flushBreadcrumbs()
+  }
+
+  // POSTs whatever breadcrumbs are buffered and clears them. `keepalive` lets
+  // the request outlive the page during the "End Walk" navigation (fetch still
+  // sends the CSRF header that way, unlike navigator.sendBeacon).
+  flushBreadcrumbs({ keepalive = false } = {}) {
+    if (this.trackBuffer.length === 0) return
+
+    const points = this.trackBuffer.splice(0)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+
+    fetch(this.trackUrlValue, {
+      method: "POST",
+      keepalive,
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify({ points })
+    }).catch(() => {
+      // Best-effort: if a batch fails to send, put it back so the next flush
+      // (or the pagehide flush) can retry it rather than losing it outright.
+      this.trackBuffer.unshift(...points)
+    })
   }
 
   // Mid-leg, the guidance is deliberately generic ("keep going straight") no
   // matter what the upcoming turn is -- the turn itself is only previewed in the
   // THEN row, and gets its moment on the main arrow in handleArrival below.
   handlePosition(position) {
+
+    // Record where the user is before any early return below, so the saved
+    // path stays continuous even after arrival / during turn transitions.
+    this.recordBreadcrumb(position)
+
     // Ignore updates while we've already arrived, or while mid-transition
     // between one waypoint and the next (avoids double-triggering arrival).
     if (this.arrived || this.transitioning) return

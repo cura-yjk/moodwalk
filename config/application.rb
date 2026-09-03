@@ -28,5 +28,7 @@ module Moodwalk
     #
     config.time_zone = "Osaka"#"Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    config.hosts << "60bb-136-144-33-44.ngrok-free.app"
+    config.hosts << "60bb-136-144-33-44.ngrok-free.app"
   end
 end

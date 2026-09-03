@@ -61,6 +61,24 @@
     </div>
   </div>
 
+  <!-- Suggested route vs. where the walker actually went. Only shown when the
+       walk was GPS-tracked (see walking_controller.js / Walk#finalize_actual_path!). -->
+  <% if @walk.actual_route_coordinates.any? %>
+    <div class="route-compare">
+      <div class="route-compare-map"
+           data-controller="route-comparison-map"
+           data-route-comparison-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+           data-route-comparison-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
+           data-route-comparison-map-suggested-value="<%= @walk.journey.route_coordinates.to_json %>"
+           data-route-comparison-map-actual-value="<%= @walk.actual_route_coordinates.to_json %>">
+      </div>
+      <div class="route-compare-legend d-flex justify-content-center gap-4">
+        <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--suggested"></span> Suggested</span>
+        <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--actual"></span> Your route</span>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Form for the two editable, optional fields: mood_after and reflection -->
   <div class="emoji-form d-flex flex-column align-items-center">
     <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
