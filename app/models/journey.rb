@@ -89,10 +89,19 @@ class Journey < ApplicationRecord
 
   # Placeholder images
   PLACEHOLDER_IMAGES = [
-    "https://images.unsplash.com/photo-1783394422782-2e8d9c80dc5e?q=80&w=1752&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "https://thumbs.dreamstime.com/b/quiet-street-small-american-town-42895985.jpg"
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmIbzDkbQKteSMpmw0K4p3aIYCqEYUxYeNqvziCIeUJMw1IbA5c_vK6BItlm_JAXaj8VHoOpLJhB79I3QiMMHimQVWAFVoICMWLjWkM75mLbaTE_zJIDQnDgBAFACgHFPRmRsod=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnEDlKMKnY_AIoNOwOwiNUO-j9TFVXlqD5kh9dowSCY2CDtPDCc7FDTWT9t7kMFZ6deIye0Wc5r7ROfhAQuHsbwFrzAxb8zzRkdNTyI23sD0TNIgqMEEeNxf_0b0UsZ1JsK_yXpsQ=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnhR37unymt0_QfrldIarhGRaf-fHsM-QGWabV6A_f2geaP0LtiPwCywQYl5CHIKT6xiaR-UOexzAiYfwI5w0bPhRT-vf8hboVWYKEwbVipPtbVCR6QuiG7zRJpUepweHii6tt7dg=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnJxOsyKTWnG9cchTE4I1s5i3xwLddM10Y8M7Hy82_eX-Pahm4Ck3PzwLb7tBGk9iMn4jgvRj6F8OkFApyxZhvFxuU7_Uu9ZERFZUZhHk9t8u_KzyCDuD8Mn6KUDYdT0yKJK9peMA=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlSD5SFmc2LQPsdORxTNTKJ2ZBQGQNMR45qU_QxBJijKbvGM09DvtP2jAFQX-CCrZVDMK1X7V8cuvBavU2pv86r1efjOcB9npy_zJXcK7t5YiBygtizQcG5VeDxn-NYU53kBPQ=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlQ_zf5NQskgWi_WmraAlsyj9QFikhmgzlVUNpS11GaT-gNawBt1F5BBw3J42W-kemgym9MZHkF-R7bOoQgdqSzbusap5_sd6mZFgXAUhzCQqhgKmIw4Uzis_qkjJAbACfglVsC=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlrT_bbmnthSna1Wn41PYAvVSTk10ZEqd_jlLSvAQpsB98emmhyW4kZMD_mWk9Gdk1zO4HWVOV3JlcbwW_QfTVIkpYuYXhwXaMVS3e_XdNToMD2TNSI3Y1NaBzNZbsXsycXcuY7Ig=s2000",
+    "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWlOSFbSwUg0K8VDbGkylUKgKmaSxp7NACTqhMl_dmdFNGltBJTNUeT2Mnome-6303b3UVXfRctb402DI8DSGG4pClrwZREiazw1LIU2ZDNnJrNUiAmqy39CAn5eFaHXuTZNhyJy2Q=s2000"
   ]
+
+  def carousel_images
+    PLACEHOLDER_IMAGES.sample(3)
+  end
 
   # decodes `encoded_polyline` (Google/Mapbox encoded polyline, precision 5) into
   # [lng, lat] pairs, ready to drop into a GeoJSON LineString for Mapbox GL.
