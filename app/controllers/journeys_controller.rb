@@ -33,6 +33,20 @@ class JourneysController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  def highlights
+    @journey = Journey.find(params[:id])
+    return render json: { highlights: @journey.highlights_text } if @journey.highlights_text.present?
+
+    result = JourneyHighlightsGenerator.new(journey: @journey).call
+
+    if result.success?
+      @journey.update(highlights_text: result.highlights)
+      render json: { highlights: result.highlights }
+    else
+      render json: { highlights: @journey.highlights }
+    end
+  end
+
   private
 
   # When generation fails, prefer a saved journey tagged with the same theme and (if a duration

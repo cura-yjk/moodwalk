@@ -23,11 +23,13 @@
        data-map-center-value="<%= @journey.start_coordinates.to_json %>"
        data-map-route-value="<%= @journey.route_coordinates.to_json %>">
   </div>
-  <ul class="route-highlights list-unstyled">
-    <% @journey.highlights.each do |highlight| %>
-      <li class="mb-1 fs-5"><%= highlight[:icon] %> <%= highlight[:text] %></li>
-    <% end %>
-</ul>
+
+  <ul class="route-highlights list-unstyled"
+      data-controller="journey-highlights"
+      data-journey-highlights-url-value="<%= highlights_journey_path(@journey) %>"
+      data-journey-highlights-target="list">
+    <!-- populated by journey_highlights_controller.js on connect -->
+  </ul>
 
   <div class="d-flex flex-column w-100 gap-3 my-2">
     <div class="d-flex gap-2 mb-1">

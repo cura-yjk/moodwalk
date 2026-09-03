@@ -74,6 +74,19 @@ class Journey < ApplicationRecord
       .order(Arel.sql("start_point <-> ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography"))
   }
 
+  PLACE_IMAGES = {
+    "Meguro River Loop" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWl2njWwiwoNU7VP1wL1k6xUW7WE44yFymMmwBdR02vjpWgtTzESUyZIp3coC1r7jb_vCRu1k0XXCX88oKa1_uCUXyVLxSvvICfY90bgHz34aApjX2mFxqvKx2yb15O5kk1t2Xr7=s500",
+    "Nakameguro Backstreets" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWktTtpRocPqCncbWpUzH8N3kJPFThuHR7QDz0T5rJfJIrm-aJZH527tUrcfdKShNROAgdRLlTdqAchqvbpOIUxHpiN0SGtqifao75cEDtZJqJRYWY8PLvw2NqsxkEUkkOzS_uxrRA=s500",
+    "Yutenji Green Escape" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnE2AkzMKrI-5MgtOO2We2UIrEOzV_BwPHgdVYLRbe2zf7yDNGwi5w_2AhK107p6HffuR6_M_sP9NfdCZZvfbMIkHzbnKOsRn5YYXZtJH9jgmcMro4uCJ7X9M5pstxXWnSQRAmo=s500",
+    "Riverside Stroll" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnB-FJI6_0W6PBGe24EkNbWyDC0bwGGvKLzeJxM3Z5xidwgXF4tEt8wbcpLzo96IY09DC2Xf8HKgiDJlLMhWyhON3y_Su11f2cf8q7Ake3t7ICuS7MJe5FhvFr38cgjptlERL0Y=s500",
+    "Park Escape" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmQ1twhbIGLP8Gw3TGlP6ED1CWWPe6l1Bzwj1YjSJkJN3vJ89zIeFQCFZ6EDm0ybeYNvN7iJniBSVBZQ_COo882VoG4VbV8z5cJu-i-pARZbF03wy1hWs3Xj6xwZNCJ1hX7Iik=s500",
+    "Morning Refresh" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmauNUgwVghbEzZkSsanUul2SxQIJULga6BHvfZQnZ3cgXzHqGYz9C1K6a4lOBrzAUcX60yGl5oApqQTdrq_SQxUj8yIhfWeFeZrsfXazIqJhAK0tH2nlHFGmqbMT6rlB4hbz2K=s500"
+  }.freeze
+
+  def placeholder_image
+    PLACE_IMAGES[name]
+  end
+
   # Placeholder images
   PLACEHOLDER_IMAGES = [
     "https://images.unsplash.com/photo-1783394422782-2e8d9c80dc5e?q=80&w=1752&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",

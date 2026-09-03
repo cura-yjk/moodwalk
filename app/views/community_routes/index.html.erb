@@ -10,8 +10,7 @@
     <% @journeys.each do |journey| %>
       <%= link_to community_route_path(journey), class: "route-card text-decoration-none text-reset" do %>
         <div class="route-card-photo">
-          <%= image_tag journey.community_photos(limit: 1).first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
-                class: "route-card-image" %>
+          <%= image_tag journey.community_photos(limit: 1).first&.photo || journey.placeholder_image, class: "route-card-image" %>
           <span class="route-card-duration"><i class="fa-regular fa-clock"></i> <%= journey.estimated_duration_seconds / 60 %> min</span>
           <span class="route-card-title"><%= journey.name %></span>
         </div>

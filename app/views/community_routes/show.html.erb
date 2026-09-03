@@ -1,5 +1,5 @@
 <div class="route-hero">
-  <%= image_tag @recent_photos.first&.photo || Journey::PLACEHOLDER_IMAGES.sample,
+  <%= image_tag @recent_photos.first&.photo || @journey.placeholder_image,
         class: "route-hero-image" %>
 </div>
 
