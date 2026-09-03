@@ -76,21 +76,21 @@
         <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-4", id: "journal-input", rows: 2 %>
         <!-- Suggested route vs. where the walker actually went. Only shown when the
        walk was GPS-tracked (see walking_controller.js / Walk#finalize_actual_path!). -->
-        <% if @walk.actual_route_coordinates.any? %>
-          <div class="route-compare">
-            <div class="route-compare-map"
+        <%# if @walk.actual_route_coordinates.any? %>
+        <div class="route-compare">
+          <div class="route-compare-map"
               data-controller="route-comparison-map"
               data-route-comparison-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
               data-route-comparison-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
               data-route-comparison-map-suggested-value="<%= @walk.journey.route_coordinates.to_json %>"
               data-route-comparison-map-actual-value="<%= @walk.actual_route_coordinates.to_json %>">
-            </div>
-            <div class="route-compare-legend d-flex justify-content-center gap-4">
-              <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--suggested"></span> Suggested</span>
-              <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--actual"></span> Your route</span>
-            </div>
           </div>
-        <% end %>
+          <div class="route-compare-legend d-flex justify-content-center gap-4">
+            <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--suggested"></span> Suggested</span>
+            <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--actual"></span> Your route</span>
+          </div>
+        </div>
+        <%# end %>
         <!-- Placeholder actions — not wired up yet, per your request -->
         <%= f.submit "Done", class: "done-btn my-3 w-100" %>
         <div class="placeholder-actions d-flex w-100 gap-3 my-2 mb-5">
