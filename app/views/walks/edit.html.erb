@@ -12,122 +12,106 @@
      data-community-share-rating-value="<%= @walk.rating %>"
      data-journey-save-save-url-value="<%= save_journey_path(@walk.journey) %>"
      data-journey-save-saved-value="<%= @journey_saved %>">
-<div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
-  <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
+  <div class="container walk-complete-page d-flex flex-column align-items-center mt-5">
+    <!-- Decorative entrance celebration (app/javascript/controllers/leaves_controller.js):
        a brief, calm scatter of leaves/ribbons/particles plus a soft glow near
        the top, playing once on load. Sits behind all the real content below
        but above the body's background gradient -- see .walk-complete-page /
        .leaf-layer stacking in walks/_edit.scss. Purely decorative: it doesn't
        change this page's layout or content. -->
-  <div class="leaf-layer" data-controller="leaves">
-    <div class="entrance-glow"></div>
-  </div>
-
-  <!-- Header copy matching the "walk complete" mockup -->
-  <h1 class="mt-5 editorial-title">Walk complete! 🌿</h1>
-  <p class="mb-3 text-center">A little more of the world,<br>discovered.</p>
-  <!-- Hero image: shows the photo captured during the walk, if one exists.
+    <div class="leaf-layer" data-controller="leaves">
+      <div class="entrance-glow"></div>
+    </div>
+    <!-- Header copy matching the "walk complete" mockup -->
+    <h1 class="mt-5 editorial-title">Walk complete! 🌿</h1>
+    <p class="mb-3 text-center">A little more of the world,<br>
+      discovered.</p>
+    <!-- Hero image: shows the photo captured during the walk, if one exists.
      No photo means the walker skipped the camera step, so nothing renders here. -->
-  <% if @walk.photo.attached? %>
-    <div class="walk-image">
-      <%= image_tag @walk.photo,
+    <% if @walk.photo.attached? %>
+      <div class="walk-image">
+        <%= image_tag @walk.photo,
         class: "walk-image"
       %>
-    </div>
-  <% end %>
-  <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
-  <div class="stats-row my-4">
-    <div class="stats-card">
-      <span class="stat-value fw-bold fs-5">
-        <i class="fa-solid fa-shoe-prints stats-icon"></i>
-        <%= number_with_delimiter(@walk.actual_steps) %></span>
-      <span class="stat-label">steps</span>
-    </div>
-    <div class="stats-card">
-      <span class="stat-value fw-bold fs-5">
-      <i class="fa-regular fa-clock stats-icon"></i>
-      <%= @walk.duration_in_minutes %> min</span>
-      <span class="stat-label">walking</span>
-    </div>
-    <div class="stats-card">
-      <span class="stat-value fw-bold fs-5">
-      <i class="fa-solid fa-map-pin stats-icon"></i>
-      <%= @walk.actual_distance %> km</span>
-      <span class="stat-label">distance</span>
-    </div>
-  </div>
-
-  <!-- Suggested route vs. where the walker actually went. Only shown when the
-       walk was GPS-tracked (see walking_controller.js / Walk#finalize_actual_path!). -->
-  <% if @walk.actual_route_coordinates.any? %>
-    <div class="route-compare">
-      <div class="route-compare-map"
-           data-controller="route-comparison-map"
-           data-route-comparison-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
-           data-route-comparison-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
-           data-route-comparison-map-suggested-value="<%= @walk.journey.route_coordinates.to_json %>"
-           data-route-comparison-map-actual-value="<%= @walk.actual_route_coordinates.to_json %>">
       </div>
-      <div class="route-compare-legend d-flex justify-content-center gap-4">
-        <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--suggested"></span> Suggested</span>
-        <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--actual"></span> Your route</span>
+    <% end %>
+    <!-- Stat boxes: steps, duration, distance — all pulled from existing data -->
+    <div class="stats-row my-4">
+      <div class="stats-card">
+        <span class="stat-value fw-bold fs-5">
+          <i class="fa-solid fa-shoe-prints stats-icon"></i>
+          <%= number_with_delimiter(@walk.actual_steps) %></span>
+        <span class="stat-label">steps</span>
+      </div>
+      <div class="stats-card">
+        <span class="stat-value fw-bold fs-5">
+          <i class="fa-regular fa-clock stats-icon"></i>
+          <%= @walk.duration_in_minutes %> min</span>
+        <span class="stat-label">walking</span>
+      </div>
+      <div class="stats-card">
+        <span class="stat-value fw-bold fs-5">
+          <i class="fa-solid fa-map-pin stats-icon"></i>
+          <%= @walk.actual_distance %> km</span>
+        <span class="stat-label">distance</span>
       </div>
     </div>
-  <% end %>
-
-  <!-- Form for the two editable, optional fields: mood_after and reflection -->
-  <div class="emoji-form d-flex flex-column align-items-center">
-    <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
-      <h4 class="my-3 text-start mood-question">How do you feel now?</h4>
-      <!-- Mood options come from the shared ApplicationHelper::MOOD_ICONS
+    <!-- Form for the two editable, optional fields: mood_after and reflection -->
+    <div class="emoji-form d-flex flex-column align-items-center">
+      <%= form_with model: @walk, url: walk_path(@walk), method: :patch do |f| %>
+        <h4 class="my-3 text-start mood-question">How do you feel now?</h4>
+        <!-- Mood options come from the shared ApplicationHelper::MOOD_ICONS
           mapping, not stored in the DB as a table — mood_after is a plain
           string, and this keeps the picker in sync with the icons shown
           elsewhere (e.g. the walks index) -->
-      <div class="mood-selector d-flex justify-content-center gap-2">
-        <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
-          <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
-            <%= f.radio_button :mood_after, value, checked: (@walk.mood_after == value), class: "mood-radio-hidden" %>
-            <%= image_tag image, alt: value, class: "mood-icon" %>
-          </label>
+        <div class="mood-selector d-flex justify-content-center gap-2">
+          <% ApplicationHelper::MOOD_ICONS.each do |value, image| %>
+            <label class="mood-btn <%= 'selected' if @walk.mood_after == value %>">
+              <%= f.radio_button :mood_after, value, checked: (@walk.mood_after == value), class: "mood-radio-hidden" %>
+              <%= image_tag image, alt: value, class: "mood-icon" %>
+            </label>
+          <% end %>
+        </div>
+        <h6 class="my-4 text-start">Anything you want to remember?</h6>
+        <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-4", id: "journal-input", rows: 2 %>
+        <!-- Suggested route vs. where the walker actually went. Only shown when the
+       walk was GPS-tracked (see walking_controller.js / Walk#finalize_actual_path!). -->
+        <% if @walk.actual_route_coordinates.any? %>
+          <div class="route-compare">
+            <div class="route-compare-map"
+              data-controller="route-comparison-map"
+              data-route-comparison-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
+              data-route-comparison-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
+              data-route-comparison-map-suggested-value="<%= @walk.journey.route_coordinates.to_json %>"
+              data-route-comparison-map-actual-value="<%= @walk.actual_route_coordinates.to_json %>">
+            </div>
+            <div class="route-compare-legend d-flex justify-content-center gap-4">
+              <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--suggested"></span> Suggested</span>
+              <span class="route-compare-key"><span class="route-compare-swatch route-compare-swatch--actual"></span> Your route</span>
+            </div>
+          </div>
         <% end %>
-      </div>
-      <h6 class="my-4 text-start">Anything you want to remember?</h6>
-      <%= f.text_area :reflection, placeholder: "A thought, a feeling, something you noticed...", class: "mb-4", id: "journal-input", rows: 2 %>
-
-      <!-- Route map: shows the loop the user just walked, same map-preview/
-      route-map styling and `map` Stimulus controller as walks#new's route
-      preview. -->
-      <div class="map-preview route-map"
-          data-controller="map"
-          data-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
-          data-map-center-value="<%= @walk.journey.start_coordinates.to_json %>"
-          data-map-route-value="<%= @walk.journey.route_coordinates.to_json %>">
-      </div>
-
-      <!-- Placeholder actions — not wired up yet, per your request -->
-      <%= f.submit "Done", class: "done-btn my-3 w-100" %>
-      <div class="placeholder-actions d-flex w-100 gap-3 my-2 mb-5">
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
+        <!-- Placeholder actions — not wired up yet, per your request -->
+        <%= f.submit "Done", class: "done-btn my-3 w-100" %>
+        <div class="placeholder-actions d-flex w-100 gap-3 my-2 mb-5">
+          <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
           data-journey-save-target="button"
           data-action="click->journey-save#save">
-          <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>
-          <span data-journey-save-target="label">Save</span>
-        </button>
-        <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
+            <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>
+            <span data-journey-save-target="label">Save</span>
+          </button>
+          <button type="button" class="choice-btn w-50 d-flex align-items-center gap-3 justify-content-center"
           data-community-share-target="button"
           data-bs-toggle="modal" data-bs-target="#shareModal">
-          <i class="fa-solid fa-share" data-community-share-target="buttonIcon"></i>
-          <span data-community-share-target="buttonLabel">Post</span>
-        </button>
-      </div>
-
-
-      <!-- The one real action on this page: submits mood_after + reflection,
+            <i class="fa-solid fa-share" data-community-share-target="buttonIcon"></i>
+            <span data-community-share-target="buttonLabel">Post</span>
+          </button>
+        </div>
+        <!-- The one real action on this page: submits mood_after + reflection,
            then WalksController#update redirects to the memory-card page -->
-    <% end %>
+      <% end %>
+    </div>
   </div>
-</div>
-
   <!-- Share to Community modal (see screenshot mockup): rating + optional
        review, submitted via community-share#share as a PATCH to
        WalksController#share. Lives outside the mood/reflection form above
@@ -182,7 +166,6 @@
               </div>
             </div>
           </div>
-
           <h4 class="share-question mt-4 mb-1">How was your walk?</h4>
           <p class="text-muted mb-2">Rate your overall experience</p>
           <div class="share-star-rating" data-community-share-target="stars">
@@ -191,7 +174,6 @@
             <% end %>
           </div>
           <p class="share-rating-label text-center mb-0" data-community-share-target="ratingLabel">&nbsp;</p>
-
           <h4 class="share-question mt-4 mb-2">Write a review <span class="text-muted fw-normal">(optional)</span></h4>
           <textarea class="share-review-textarea" maxlength="150" rows="3"
             placeholder="What made this walk special?"
@@ -200,7 +182,6 @@
           <p class="share-char-count text-end text-muted mb-0">
             <span data-community-share-target="charCount">0</span>/150
           </p>
-
           <button type="button" class="done-btn w-100 mt-3 d-flex align-items-center justify-content-center gap-2"
             data-community-share-target="submitButton"
             data-action="click->community-share#share">

@@ -206,12 +206,12 @@ export default class extends Controller {
   // the request outlive the page during the "End Walk" navigation (fetch still
   // sends the CSRF header that way, unlike navigator.sendBeacon).
   flushBreadcrumbs({ keepalive = false } = {}) {
-    if (this.trackBuffer.length === 0) return
+    if (this.trackBuffer.length === 0) return Promise.resolve()
 
     const points = this.trackBuffer.splice(0)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 
-    fetch(this.trackUrlValue, {
+    return fetch(this.trackUrlValue, {
       method: "POST",
       keepalive,
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
@@ -356,17 +356,20 @@ export default class extends Controller {
       '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
   }
 
-  // Intercepts the End Walk button's submit -- if a photo upload is still in
-  // flight, waits for it to settle first so the edit page doesn't render
-  // before the attachment has actually landed (see attach_photo race).
+  // Intercepts the End Walk button's submit -- waits for any in-flight photo
+  // upload to settle (see attach_photo race), then flushes whatever
+  // breadcrumbs are still buffered so the tail of the walk is actually
+  // persisted before WalksController#complete reads walk_track_points and
+  // builds actual_path. Without this, the leftover (<10) breadcrumbs only
+  // flush on disconnect(), which fires after #complete has already run --
+  // the trailing part of the route (or all of it, for a short walk) would
+  // silently never make it into the recorded path.
   endWalk(event) {
-    if (!this.photoUploadPromise) return // nothing pending, let the form submit normally
-
     event.preventDefault()
 
-    this.photoUploadPromise.finally(() => {
-      this.endWalkFormTarget.requestSubmit()
-    })
+    Promise.resolve(this.photoUploadPromise)
+      .finally(() => this.flushBreadcrumbs())
+      .finally(() => this.endWalkFormTarget.requestSubmit())
   }
 
   // Geolocation failure handler -- distinguishes "user said no" (permission
