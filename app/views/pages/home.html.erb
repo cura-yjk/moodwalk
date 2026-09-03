@@ -11,6 +11,7 @@
       <div class="subtitle">
         <h1 class="mb-3 editorial-title">Pick a feeling. MoodWalk will do the rest.</h1>
         <h6>We map the route. You walk and journal.</h6>
+        <%# Location point start %>
         <div class="d-flex justify-content-between" data-controller="location-search">
           <div class="position-relative">
             <p class="mb-4">📍 Starting from <%= current_user.current_location_name || "your area" %></p>
@@ -30,6 +31,7 @@
             <%= link_to "Change", "#", class: "link-btn", data: { action: "location-search#toggle" } %>
           </div>
         </div>
+      <%# Location point end %>
       </div>
       <%= render "theme_picker" %>
       <div class="d-flex justify-content-between align-items-center mt-2">        <h5 class="mb-0">Ideas for you, right here</h5>
