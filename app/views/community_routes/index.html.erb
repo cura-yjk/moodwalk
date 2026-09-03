@@ -17,7 +17,7 @@
 
         <div class="route-card-body">
           <div class="mb-1 d-flex align-items-center mb-2">
-            <i class="fa-solid fa-location-dot me-1"></i><span>Location name</span>
+            <i class="fa-solid fa-location-dot me-1"></i><span><%= journey.location_name || "Nearby" %></span>
             <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
           </div>
           <div class="route-card-meta">

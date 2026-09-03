@@ -20,6 +20,11 @@ export default class extends Controller {
     Turbo.visit(this.memoryUrlValue)
   }
 
+  // No-op target for the Start button -- its :stop modifier keeps the click
+  // from bubbling into #open (which would navigate to the memory page
+  // instead of following the button's own link to the walk preview page).
+  stopPropagation() {}
+
   flip() {
     this.innerTarget.classList.toggle("flipped")
 

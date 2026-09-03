@@ -21,10 +21,14 @@ class JourneysController < ApplicationController
     end
   end
 
+  # Toggles the saved state: creates the SavedJourney if it doesn't exist yet,
+  # destroys it if it does. The button on the other end treats this endpoint
+  # as a toggle, not a one-way "save".
   def save
     @journey = Journey.find(params[:id])
-    current_user.saved_journeys.find_or_create_by(journey: @journey)
-    render json: { saved: true }
+    saved_journey = current_user.saved_journeys.find_by(journey: @journey)
+    saved_journey ? saved_journey.destroy! : current_user.saved_journeys.create!(journey: @journey)
+    render json: { saved: saved_journey.nil? }
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

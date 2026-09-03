@@ -117,15 +117,29 @@ class JourneyGenerator
   end
 
   def build_journey(directions)
-    Journey.new(
+    Journey.new(route_attrs(directions).merge(descriptive_attrs))
+  end
+
+  def route_attrs(directions)
+    {
       encoded_polyline: directions[:polyline],
       distance_meters: directions[:distance],
       estimated_duration_seconds: directions[:duration],
       estimated_steps: (directions[:distance] / 0.75).round,
+      start_point: start_point
+    }
+  end
+
+  def descriptive_attrs
+    {
       description: @description,
       theme_key: @theme_key,
       name: @name,
-      start_point: RGeo::Geographic.spherical_factory(srid: 4326).point(@lng, @lat)
-    )
+      location_name: MapboxGeocoder.reverse(@lat, @lng)
+    }
+  end
+
+  def start_point
+    RGeo::Geographic.spherical_factory(srid: 4326).point(@lng, @lat)
   end
 end

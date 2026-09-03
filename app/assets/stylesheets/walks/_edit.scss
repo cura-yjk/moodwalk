@@ -1,6 +1,7 @@
 .fa-bookmark.saved {
   color: #52774c;
 }
+
 .carousel-track {
   display: flex;
   gap: 12px;
@@ -249,4 +250,140 @@ body:has(.walk-complete-page) {
   50% {
     scale: 0.65 1;
   }
+}
+
+// "Share to Community" modal (walks#edit) -- see app/javascript/controllers/
+// community_share_controller.js for the interaction it's styled around.
+.share-modal-content {
+  border: none;
+  border-radius: 28px;
+  background-color: #faf8f1;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.15) !important;
+  padding: 8px;
+}
+
+.share-modal-title {
+  font-size: 1.5rem;
+}
+
+.share-modal .btn-close {
+  background-color: #f0efe9;
+  border-radius: 50%;
+  opacity: 1;
+  padding: 0.6rem;
+}
+
+.share-preview-card {
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: #ffffff;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.08) !important;
+  margin-top: 4px;
+}
+
+.share-preview-photo {
+  height: 12em;
+}
+
+.share-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.share-preview-body {
+  padding: 16px;
+}
+
+.share-preview-icon {
+  color: #52774c;
+}
+
+.share-preview-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.share-preview-description {
+  font-size: 0.9rem;
+}
+
+.share-preview-stats {
+  border-top: 1px solid rgba(10, 10, 10, 0.08);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.share-preview-stat {
+  flex: 1;
+}
+
+.share-preview-stat-icon {
+  color: #52774c;
+  margin-bottom: 2px;
+}
+
+.share-preview-stat-label {
+  font-size: 0.75rem;
+}
+
+.share-question {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.share-star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.75rem;
+}
+
+.share-star {
+  color: #d8d8d0;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.share-star:hover {
+  transform: scale(1.1);
+}
+
+.share-star.active {
+  color: #52774c;
+}
+
+.share-rating-label {
+  color: #52774c;
+  font-weight: 700;
+  min-height: 1.5em;
+}
+
+.share-review-textarea {
+  width: 100%;
+
+  border-radius: 20px;
+  border: 2px solid transparent;
+  box-shadow: 0 20px 24px -4px rgba(10, 10, 10, 0.04) !important;
+
+  padding: 14px 16px;
+  resize: none;
+
+  background-color: rgba(184, 203, 187, 0.15);
+
+  transition: border-color 0.15s ease;
+}
+
+.share-review-textarea:focus {
+  outline: none;
+  border-color: #4a7c59;
+}
+
+.share-char-count {
+  font-size: 0.8rem;
+}
+
+.share-modal-footnote {
+  font-size: 0.8rem;
 }

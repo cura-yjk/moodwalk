@@ -84,6 +84,7 @@
       <button type="button" class="choice-btn d-flex align-items-center gap-3 justify-content-center w-50"
         data-controller="journey-save"
         data-journey-save-save-url-value="<%= save_journey_path(@journey) %>"
+        data-journey-save-saved-value="<%= @journey_saved %>"
         data-journey-save-target="button"
         data-action="click->journey-save#save">
         <i class="fa-regular fa-bookmark" data-journey-save-target="icon"></i>

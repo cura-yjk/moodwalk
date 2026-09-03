@@ -6,8 +6,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Moodwalk">
     <meta name="mobile-web-app-capable" content="yes">
-    <%# Added this to stop animations being weird when refreshing %>
-    <meta name="turbo-cache-control" content="no-preview">
+    <%# Added this to stop animations being weird when refreshing.
+        Pages whose content can go stale from actions taken elsewhere (e.g.
+        walks#index's saved list) can override via content_for(:turbo_cache_control, "no-cache")
+        so Turbo always re-fetches them instead of restoring a stale cached snapshot on back-nav. %>
+    <meta name="turbo-cache-control" content="<%= content_for(:turbo_cache_control).presence || "no-preview" %>">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 

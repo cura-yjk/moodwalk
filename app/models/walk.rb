@@ -3,12 +3,14 @@ class Walk < ApplicationRecord
   belongs_to :journey
   has_one_attached :photo
 
+  validates :rating, inclusion: { in: 1..5 }, allow_nil: true
+
   scope :shared, -> { where.not(shared_at: nil) }
   scope :with_photo, -> { joins(:photo_attachment) }
   scope :recent_with_photo, -> { shared.with_photo.order(completed_at: :desc) }
 
-  def share!
-    update!(shared_at: Time.current)
+  def share!(attrs = {})
+    update!(attrs.merge(shared_at: Time.current))
   end
 
   def shared?

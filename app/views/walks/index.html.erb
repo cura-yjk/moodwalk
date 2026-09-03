@@ -1,3 +1,4 @@
+<% content_for :turbo_cache_control, "no-cache" %>
 <div class="container my-5" id="history-container">
   <div class="page-header mt-5">
     <h1 class="mt-5 editorial-title">My Walks</h1>
@@ -24,7 +25,8 @@
              data-controller="exploration-map"
              data-exploration-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
              data-exploration-map-center-value="<%= @map_center.to_json %>"
-             data-exploration-map-routes-value="<%= @map_routes.to_json %>">
+             data-exploration-map-routes-value="<%= @map_routes.to_json %>"
+             data-exploration-map-photos-value="<%= @map_photo_points.to_json %>">
         </div>
       </div>
     <% end %>

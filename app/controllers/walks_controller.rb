@@ -10,6 +10,7 @@ class WalksController < ApplicationController
   def new
     @journey = Journey.find(params[:journey_id])
     @alternate_journey = @journey.alternate
+    @journey_saved = current_user.saved_journeys.exists?(journey: @journey)
   end
 
   def create
@@ -39,11 +40,13 @@ class WalksController < ApplicationController
       @stats = Walk.lifetime_stats(@walks)
       @map_center = exploration_map_center(@walks)
       @map_routes = @walks.map { |walk| walk.journey.route_coordinates }.uniq
+      @map_photo_points = exploration_photo_points(@walks)
     end
   end
 
   def edit
     @walk = current_user.walks.find(params[:id])
+    @journey_saved = current_user.saved_journeys.exists?(journey: @walk.journey)
   end
 
   def update
@@ -71,7 +74,7 @@ class WalksController < ApplicationController
 
   def share
     @walk = current_user.walks.find(params[:id])
-    @walk.share!
+    @walk.share!(share_params)
     render json: { shared: true }
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
@@ -109,6 +112,12 @@ class WalksController < ApplicationController
     params.require(:walk).permit(:mood_after, :reflection, :photo, :photo_latitude, :photo_longitude)
   end
 
+  def share_params
+    attrs = params.permit(:rating, :review)
+    attrs[:rating] = attrs[:rating].presence
+    attrs
+  end
+
   # The "Start walking" form carries along whatever mood the user last
   # picked in the homepage check-in (see mood_checkin_controller.js), as a
   # plain hidden field -- not a real form the user fills in, so validate it
@@ -126,6 +135,13 @@ class WalksController < ApplicationController
       [current_user.current_longitude, current_user.current_latitude]
     else
       walks.first&.journey&.start_coordinates
+    end
+  end
+
+  def exploration_photo_points(walks)
+    walks.select { |walk| walk.photo.attached? }.map do |walk|
+      lng, lat = walk.photo_coordinates
+      { lng: lng, lat: lat, photo_url: url_for(walk.photo) }
     end
   end
 
