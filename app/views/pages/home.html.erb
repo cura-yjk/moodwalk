@@ -9,11 +9,12 @@
         <%= render "shared/mood_checkin" %>
       </div>
       <div class="subtitle">
-        <h1 class="mb-3 editorial-title">Pick a feeling. MoodWalk will do the rest.</h1>
-        <h6 class="mb-4">We map the route. You walk and journal.</h6>
+        <h1 class="mb-3 editorial-title">How would you like to feel after your walk?</h1>
+        <h6 class="mb-4">Choose a feeling. MoodWalk will do the rest.</h6>
       </div>
       <%= render "theme_picker" %>
-      <div class="d-flex justify-content-between align-items-center mt-2">        <h5 class="mb-0">Ideas for you, right here</h5>
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <h5 class="mb-0">Ideas for you, right here</h5>
         <%= link_to "See all >", community_routes_path, class: "link-btn" %>
       </div>
       <div id="suggest-container" class="mt-3 mb-3 journey-cards">
