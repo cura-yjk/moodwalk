@@ -78,13 +78,13 @@ class Journey < ApplicationRecord
     "Meguro River Loop" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWl2njWwiwoNU7VP1wL1k6xUW7WE44yFymMmwBdR02vjpWgtTzESUyZIp3coC1r7jb_vCRu1k0XXCX88oKa1_uCUXyVLxSvvICfY90bgHz34aApjX2mFxqvKx2yb15O5kk1t2Xr7=s500",
     "Nakameguro Backstreets" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWktTtpRocPqCncbWpUzH8N3kJPFThuHR7QDz0T5rJfJIrm-aJZH527tUrcfdKShNROAgdRLlTdqAchqvbpOIUxHpiN0SGtqifao75cEDtZJqJRYWY8PLvw2NqsxkEUkkOzS_uxrRA=s500",
     "Yutenji Green Escape" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnE2AkzMKrI-5MgtOO2We2UIrEOzV_BwPHgdVYLRbe2zf7yDNGwi5w_2AhK107p6HffuR6_M_sP9NfdCZZvfbMIkHzbnKOsRn5YYXZtJH9jgmcMro4uCJ7X9M5pstxXWnSQRAmo=s500",
-    "Riverside Stroll" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWnB-FJI6_0W6PBGe24EkNbWyDC0bwGGvKLzeJxM3Z5xidwgXF4tEt8wbcpLzo96IY09DC2Xf8HKgiDJlLMhWyhON3y_Su11f2cf8q7Ake3t7ICuS7MJe5FhvFr38cgjptlERL0Y=s500",
-    "Park Escape" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmQ1twhbIGLP8Gw3TGlP6ED1CWWPe6l1Bzwj1YjSJkJN3vJ89zIeFQCFZ6EDm0ybeYNvN7iJniBSVBZQ_COo882VoG4VbV8z5cJu-i-pARZbF03wy1hWs3Xj6xwZNCJ1hX7Iik=s500",
-    "Morning Refresh" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmauNUgwVghbEzZkSsanUul2SxQIJULga6BHvfZQnZ3cgXzHqGYz9C1K6a4lOBrzAUcX60yGl5oApqQTdrq_SQxUj8yIhfWeFeZrsfXazIqJhAK0tH2nlHFGmqbMT6rlB4hbz2K=s500"
+    "Riverside Stroll" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkGNINhIGzMsuuEoV0gUJ6s8ecQAyTMbZaPCPFRN7ZIG_-yKM7reK4OoYQRwmz7IuHCa5NHRwUUAhKidWYLF3oT0X3ENAhqrlhyzji2WnvEwQhbgl75JTskGeaJIg0NPgKpHCxGkw=s2000",
+    "Park Escape" => "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "Morning Refresh" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmmP1UP1q-VF_q4qDur3KpBV4_ep0ioVA2xRh70f_YaZxjDGkOhs9OFKZjOX0riLHMAyAzMVdBX5DarOZ__43op4_2EVsxuvZv10JGVgdvONA_kKKXvFCigqWmLpFTMd5DsIrfX=s2000"
   }.freeze
 
   def placeholder_image
-    PLACE_IMAGES[name]
+    PLACE_IMAGES[name] || PLACEHOLDER_IMAGES[id % PLACEHOLDER_IMAGES.size]
   end
 
   # Placeholder images
