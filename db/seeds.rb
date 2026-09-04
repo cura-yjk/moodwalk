@@ -19,8 +19,8 @@ LE_WAGON_MEGURO_LNG = 139.70812599610076
 
 puts "👤 Creating user..."
 user = User.create!(
-  email: "twinky@mail.com",
-  name: "Twinky",
+  email: "matt@mail.com",
+  name: "Matt",
   password: "qwerty",
   current_latitude: LE_WAGON_MEGURO_LAT,
   current_longitude: LE_WAGON_MEGURO_LNG,
