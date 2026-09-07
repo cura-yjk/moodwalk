@@ -4,6 +4,14 @@ import { Controller } from "@hotwired/stimulus"
 // as "arrived" there — GPS accuracy means this can't be 0.
 const ARRIVAL_THRESHOLD_METERS = 8
 
+// How many waypoints ahead a single position jump is allowed to catch up
+// across. Needs to be more than 1 (see findArrivedWaypointIndex), but a
+// loop route's "end" sits back at the start coordinates - geometrically
+// close to wherever the walker still is early on - so scanning without a
+// cap risks matching a waypoint that's nearby in space but far away along
+// the actual path, rather than one that was genuinely just skipped over.
+const MAX_WAYPOINT_LOOKAHEAD = 5
+
 // Average meters per step, used to convert a raw distance into a rough step count.
 const STEP_LENGTH_METERS = 0.76
 
@@ -245,27 +253,75 @@ export default class extends Controller {
       this.updateTraveledFields()
     }
 
-    // Remembered so photoTaken can tag a photo with where the walker
-    // actually was when they took it, not just the route's start point.
+    // The segment just walked, not just the endpoint -- a big jump between
+    // two fixes (fast walker, a stale/delayed GPS update, or high-speed
+    // ?simulate= testing) can otherwise skip clean over a short leg without
+    // the endpoint ever landing inside its arrival radius, permanently
+    // stalling guidance on a waypoint the walker has already passed.
+    const previous = this.lastPosition || current
     this.lastPosition = current
+
+    const arrivedIndex = this.findArrivedWaypointIndex(previous, current)
+    if (arrivedIndex !== null) {
+      this.currentIndexValue = arrivedIndex
+      this.handleArrival(this.waypointsValue[arrivedIndex])
+      return
+    }
 
     const target = this.waypointsValue[this.currentIndexValue]
     if (!target) return
-
-    const distance = this.haversineMeters(current, target)
-
-    // Close enough to the current target waypoint -- treat this as arrival
-    // there, rather than continuing to show "keep going straight."
-    if (distance < ARRIVAL_THRESHOLD_METERS) {
-      this.handleArrival(target)
-      return
-    }
 
     // Still en route: reset the arrow to neutral and show the generic instruction.
     this.arrowTarget.style.transform = "rotate(0deg)"
     this.instructionTextTarget.textContent = "Keep going straight"
 
     this.renderNextTurn(target)
+  }
+
+  // Checks up to MAX_WAYPOINT_LOOKAHEAD waypoints ahead against the segment
+  // just walked, not only the immediate next one -- a single big jump (fast
+  // movement, a delayed fix, or high-speed simulation) can pass near
+  // several closely-spaced waypoints at once, and this catches the guidance
+  // up to the furthest one actually reached instead of advancing one at a
+  // time. Stops at the first miss following a hit, so a cluster reached in
+  // one jump doesn't get interrupted by one waypoint slightly out of range
+  // partway through it.
+  findArrivedWaypointIndex(segmentStart, segmentEnd) {
+    let found = null
+    const limit = Math.min(this.waypointsValue.length, this.currentIndexValue + MAX_WAYPOINT_LOOKAHEAD)
+
+    for (let i = this.currentIndexValue; i < limit; i++) {
+      const distance = this.closestDistanceToSegment(this.waypointsValue[i], segmentStart, segmentEnd)
+      if (distance < ARRIVAL_THRESHOLD_METERS) {
+        found = i
+      } else if (found !== null) {
+        break
+      }
+    }
+
+    return found
+  }
+
+  // Shortest distance (meters) from `point` to the line segment `a`-`b`.
+  // Projected onto a local flat plane first -- fine at these distances
+  // (single-digit to low-hundreds of meters), where the Earth's curvature
+  // isn't significant enough to matter.
+  closestDistanceToSegment(point, a, b) {
+    const metersPerDegreeLat = 111_320
+    const metersPerDegreeLng = 111_320 * Math.cos(a.lat * Math.PI / 180)
+    const toLocalMeters = (p) => ({
+      x: (p.lng - a.lng) * metersPerDegreeLng,
+      y: (p.lat - a.lat) * metersPerDegreeLat
+    })
+
+    const p = toLocalMeters(point)
+    const segmentEnd = toLocalMeters(b)
+
+    const lengthSquared = (segmentEnd.x ** 2) + (segmentEnd.y ** 2)
+    const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((p.x * segmentEnd.x) + (p.y * segmentEnd.y)) / lengthSquared))
+    const closest = { x: segmentEnd.x * t, y: segmentEnd.y * t }
+
+    return Math.sqrt(((p.x - closest.x) ** 2) + ((p.y - closest.y) ** 2))
   }
 
   // Shows the turn that's actually happening right now, briefly, then resets to
