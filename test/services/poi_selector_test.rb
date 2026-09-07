@@ -34,10 +34,9 @@ class PoiSelectorTest < ActiveSupport::TestCase
     ]
     pois = close_pair + far_options
 
-    # near-1 + near-2 is the pair closest to the start (smallest raw distances),
-    # with an out-and-back tour of ~683m. Pairing either far waypoint with a
-    # near one yields a tour of ~1600m - set the target there so the "closest
-    # to start" pair is clearly the wrong answer.
+    # near-1+near-2 is closest to the start (~683m tour); pairing either far
+    # waypoint with a near one yields ~1600m - target that to make "closest
+    # to start" the wrong answer.
     result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1600).call
 
     assert result.success?
@@ -70,6 +69,27 @@ class PoiSelectorTest < ActiveSupport::TestCase
     assert_equal ["park-far", "park-near"], selected_ids
   end
 
+  # Same category throughout (diversity ties at 1 everywhere) and only 3
+  # candidates (under CANDIDATES_PER_CATEGORY's cap of 3) - isolating spread
+  # and distance as the only factors deciding between them.
+  test "for a loop, prefers waypoints spread around the compass over a merely more compact cluster" do
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: clustered_and_spread_pois, round_trip: true).call
+
+    assert result.success?
+    selected_ids = result.waypoints.map { |wp| wp[:id] }.sort
+    assert_equal ["north-near", "south"], selected_ids,
+                 "expected the diametrically-opposite pair over the closer-together (if more compact) cluster"
+  end
+
+  test "spread doesn't matter for a one-way trip - picks the more compact option" do
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: clustered_and_spread_pois, round_trip: false).call
+
+    assert result.success?
+    selected_ids = result.waypoints.map { |wp| wp[:id] }.sort
+    assert_equal ["north-far", "north-near"], selected_ids,
+                 "with no return leg, compass spread isn't meaningful - the shorter option should win"
+  end
+
   test "falls back to a valid combination when only one category has candidates" do
     pois = [
       poi(id: "park-1", category: "park", distance_meters: 200, bearing: :north),
@@ -92,9 +112,8 @@ class PoiSelectorTest < ActiveSupport::TestCase
     result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: false).call
 
     assert result.success?
-    # Visiting near-then-far (900m total) is shorter than far-then-near
-    # (1500m, since you'd walk past "near" again on the way to "far") when
-    # there's no return leg to make the two orders equivalent.
+    # near-then-far (900m) beats far-then-near (1500m, walking past "near"
+    # twice) once there's no return leg to make the two orders equivalent.
     assert_equal(["near", "far"], result.waypoints.map { |wp| wp[:id] })
   end
 
@@ -111,10 +130,20 @@ class PoiSelectorTest < ActiveSupport::TestCase
 
   private
 
+  def clustered_and_spread_pois
+    [
+      poi(id: "north-near", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "north-far", category: "park", distance_meters: 450, bearing: :north),
+      poi(id: "south", category: "park", distance_meters: 450, bearing: :south)
+    ]
+  end
+
   def poi(id:, category:, distance_meters:, bearing:)
     lat, lng = case bearing
                when :north
                  [START_LAT + (distance_meters / METERS_PER_DEGREE_LAT), START_LNG]
+               when :south
+                 [START_LAT - (distance_meters / METERS_PER_DEGREE_LAT), START_LNG]
                when :east
                  [START_LAT, START_LNG + (distance_meters / METERS_PER_DEGREE_LNG)]
                end

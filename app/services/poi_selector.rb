@@ -49,25 +49,38 @@ class PoiSelector
 
     max_size = [MAX_WAYPOINTS, pool.size].min
 
-    (MIN_WAYPOINTS..max_size).flat_map { |n| pool.combination(n).to_a }.map do |combo|
-      order = best_order(combo)
+    (MIN_WAYPOINTS..max_size).flat_map { |n| pool.combination(n).to_a }.map { |combo| evaluate_combo(combo) }
+  end
 
-      { order: order, distance: tour_distance(order), diversity: combo.map { |poi| poi[:category] }.uniq.size }
-    end
+  def evaluate_combo(combo)
+    order = best_order(combo)
+
+    {
+      order: order,
+      distance: tour_distance(order),
+      diversity: combo.map { |poi| poi[:category] }.uniq.size,
+      spread: @round_trip ? bearing_spread(combo) : 0
+    }
   end
 
   # When there's a target distance to hit, honoring it comes first - a combo
   # touching more categories is nicer, but not if it means ignoring the
   # duration the user actually picked. Distance-fit is grouped into coarse
-  # bands (see DISTANCE_BAND_RATIO) rather than compared exactly, so
-  # diversity still gets to decide between options that are similarly close.
-  # With no target to honor, there's nothing distance should override, so
-  # diversity leads and compactness is just a tiebreaker.
+  # bands (see DISTANCE_BAND_RATIO) rather than compared exactly, so spread
+  # and diversity still get to decide between options that are similarly
+  # close. With no target to honor, there's nothing distance should
+  # override, so spread and diversity lead and compactness is a tiebreaker.
+  #
+  # Spread ranks above diversity: a loop whose waypoints all sit in the same
+  # direction from the start retraces nearly the same streets on the way
+  # back (looks like a one-way trip with a small detour in it), regardless
+  # of how many different categories it touches - so a well-spread-out loop
+  # wins over a merely more-diverse one that clusters in one direction.
   def score(candidate)
     if @target_distance_meters
-      [-distance_band(candidate), candidate[:diversity], -distance_off(candidate)]
+      [-distance_band(candidate), candidate[:spread], candidate[:diversity], -distance_off(candidate)]
     else
-      [candidate[:diversity], -candidate[:distance]]
+      [candidate[:spread], candidate[:diversity], -candidate[:distance]]
     end
   end
 
@@ -77,6 +90,31 @@ class PoiSelector
 
   def distance_band(candidate)
     (distance_off(candidate) / (@target_distance_meters * DISTANCE_BAND_RATIO)).round
+  end
+
+  # How evenly a combo's waypoints are spread around the compass from the
+  # start, as the largest gap between consecutive bearings (sorted, with
+  # wraparound) subtracted from a full circle - so two waypoints in the same
+  # direction score near 0 (one big empty arc on the other side), while two
+  # diametrically opposite waypoints score the maximum, 180. Order-independent,
+  # so it's computed once per combo rather than per permutation like tour_distance.
+  def bearing_spread(combo)
+    return 0 if combo.size < 2
+
+    bearings = combo.map { |poi| bearing_from_start(poi) }.sort
+    gaps = bearings.each_cons(2).map { |a, b| b - a }
+    gaps << (360 - bearings.last + bearings.first)
+    360 - gaps.max
+  end
+
+  def bearing_from_start(poi)
+    lat1 = @lat * Math::PI / 180
+    lat2 = poi[:lat] * Math::PI / 180
+    d_lng = (poi[:lng] - @lng) * Math::PI / 180
+
+    y = Math.sin(d_lng) * Math.cos(lat2)
+    x = (Math.cos(lat1) * Math.sin(lat2)) - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(d_lng))
+    ((Math.atan2(y, x) * 180 / Math::PI) + 360) % 360
   end
 
   # Brute-force the visiting order that minimizes total tour distance. At most
