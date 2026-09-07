@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Moodwalk is a Rails 8 app that generates short walking-loop routes ("journeys") near a user's
-location and lets users start/complete a "walk" along one, logging mood and reflection afterward.
-Routes are geospatial (PostGIS), and route geometry comes from the Mapbox Directions API.
+Moodwalk is a Rails 8 app that generates short walking routes ("journeys") near a user's
+location — a loop or a one-way trip, whichever the real nearby places support — and lets users
+start/complete a "walk" along one, with live turn-by-turn guidance and GPS tracking during the
+walk, logging mood and reflection afterward. Routes are geospatial (PostGIS); route geometry comes
+from the Mapbox Directions API, and real waypoints come from the Google Places API.
 
 ## Commands
 
@@ -33,23 +35,33 @@ Database is PostgreSQL with the `postgis` adapter (`activerecord-postgis-adapter
 ## Architecture
 
 **Domain model**: `User` -> has many `Walk`s. `Journey` -> has many `Walk`s. A `Journey` is a
-pre-generated walking loop route (polyline + distance/duration estimate) anchored at a
-`start_point` (PostGIS `geography` point). A `Walk` is one user's attempt at a `Journey`
-(`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
+pre-generated walking route (polyline + distance/duration estimate), either a loop or one-way,
+anchored at a `start_point` (PostGIS `geography` point). A `Walk` is one user's attempt at a
+`Journey` (`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
 
 **Route generation, real POI-based (`RouteBuilder` -> `PoiFinder` -> `PoiSelector` ->
 `RouteDescriber` -> `JourneyGenerator`)**: `RouteBuilder` is the theme-picker entry point.
 `PoiFinder` asks Google Places API (New) Nearby Search for real nearby places by category (one
 call per category in the theme's `categories` list, see `config/initializers/themes.rb` — the
 category slugs there are Google's published "Table A" place types, not Mapbox's). `PoiSelector` is
-plain Ruby (no HTTP/LLM call) that picks 2-4 of those candidates as waypoints, scoring
-combinations by category diversity then by how close a walking-order tour comes to any target
-distance. `RouteDescriber` (via the `ruby_llm`/`ruby_llm-schema` gems) writes the route's
-atmospheric description for the already-chosen waypoints — it does not pick them. Each stage
-returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing that
-stage's error. When a target duration is given, `RouteBuilder` widens/rescales its POI search
+plain Ruby (no HTTP/LLM call) that picks 2-4 of those candidates as waypoints. Scoring priority
+when a target distance exists: distance-fit first (grouped into coarse bands via
+`DISTANCE_BAND_RATIO` — a category-diverse combination is not allowed to override the duration the
+user actually picked), then bearing spread, then category diversity, then exact distance as a
+final tiebreak; with no target, spread leads, then diversity, then compactness. "Bearing spread" is
+the angular width of the smallest compass arc containing all of a combination's waypoints (0-180°)
+— `RouteBuilder` uses it to decide loop vs. one-way per request (not a coin flip): it tries
+`PoiSelector` with `round_trip: true` first and only keeps a loop if the winning spread clears
+`ROUND_TRIP_SPREAD_THRESHOLD_DEGREES` (90°), otherwise it re-selects as one-way with the same
+candidates — waypoints clustered in one direction otherwise produce a loop that just retraces the
+same streets on the way back. `RouteDescriber` (via the `ruby_llm`/`ruby_llm-schema` gems) writes
+the route's atmospheric description for the already-chosen waypoints — it does not pick them. Each
+stage returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing
+that stage's error. When a target duration is given, `RouteBuilder` widens/rescales its POI search
 radius and retries (its own `MAX_ATTEMPTS`/`TOLERANCE_RATIO`), same idea as `JourneyGenerator`'s
-own retry below.
+own retry below — `call_toward_target` tracks the best successful attempt across retries (`pick_best`)
+rather than trusting whichever attempt ran last, since a later radius rescale can shrink candidate
+density back below viable and would otherwise silently discard an earlier working route.
 
 **Route generation, synthetic loop (`app/services/journey_generator.rb`)**: `JourneyGenerator`
 talks to Mapbox Directions. Given real waypoints (from `PoiSelector`) it just routes through them;
@@ -64,6 +76,19 @@ down a dead-end path to reach a POI is expected to u-turn there). Returns a `Res
 `journey`. These are synchronous HTTP calls (via Faraday); there's no background job for them yet.
 `MapboxGeocoder` and `LocationsController` also call Mapbox separately, for reverse/forward
 geocoding — Mapbox isn't only used by `JourneyGenerator`.
+
+**In-walk navigation (`app/javascript/controllers/walking_controller.js`)**: once a walk starts,
+this Stimulus controller gives live turn-by-turn guidance from `Journey#turn_waypoints` (Mapbox
+route steps simplified into left/right/end nodes) by watching `navigator.geolocation.watchPosition`,
+and separately buffers/POSTs GPS breadcrumbs (`WalkTrackPoint`, via `WalksController#track`) so the
+actually-walked path can be shown against the suggested route afterward. Arrival detection checks
+the segment between consecutive GPS fixes against each upcoming waypoint (bounded to
+`MAX_WAYPOINT_LOOKAHEAD` waypoints ahead), not just the latest fix's distance to the current
+target — a big jump between fixes (real GPS gaps/lag, or fast movement) can otherwise skip clean
+over a short leg without the fix ever landing inside its arrival radius, permanently stalling
+guidance on a waypoint already passed. Has a dev-mode walk simulator
+(`?simulate=<speed multiplier>` on a walk's show page, gated by `Rails.env.development?`) that
+fakes movement along the route, useful for testing guidance without physically walking it.
 
 **Geospatial queries**: `Journey.near(lat, lng, radius_meters)` (`app/models/journey.rb`) does the
 PostGIS proximity query (`ST_DWithin` + distance ordering) — build lat/lng-radius searches on this
@@ -102,3 +127,7 @@ integration exists beyond it. Requires `OPENAI_API_KEY` (see `config/initializer
   still references the old name and should be renamed/updated, not treated as current.
 - `bin/ci`'s seed-replant step means `db/seeds.rb` must stay runnable (and idempotent) against a
   real Mapbox token in CI.
+- `test/services` has real coverage for `PoiFinder`, `PoiSelector`, `RouteBuilder`, and
+  `JourneyGenerator` (added alongside the Google Places migration, using `webmock` to stub Mapbox/
+  Google HTTP calls). Other test directories are still mostly the default empty stubs Rails
+  generates — don't assume equivalent coverage exists elsewhere.
