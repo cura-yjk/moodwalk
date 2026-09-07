@@ -8,13 +8,24 @@ class PoiSelector
   MAX_WAYPOINTS = 4
   CANDIDATES_PER_CATEGORY = 3
 
-  Result = Struct.new(:success?, :waypoints, :error, keyword_init: true)
+  # Combinations whose distance-fit differs by less than this fraction of the
+  # target are treated as equally good on distance, so diversity can break
+  # the tie between them - without this, two combos would need to land at
+  # the exact same distance (to the meter) before diversity ever mattered.
+  DISTANCE_BAND_RATIO = 0.15
 
-  def initialize(lat:, lng:, pois:, target_distance_meters: nil)
+  # spread is the winning combo's bearing_spread (0-180, see below) - exposed
+  # so RouteBuilder can decide whether a loop actually makes sense here
+  # (spread out) or a one-way trip would suit the real candidates better
+  # (clustered in one direction), instead of just coin-flipping the two.
+  Result = Struct.new(:success?, :waypoints, :spread, :error, keyword_init: true)
+
+  def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true)
     @lat = lat.to_f
     @lng = lng.to_f
     @pois = Array(pois)
     @target_distance_meters = target_distance_meters
+    @round_trip = round_trip
   end
 
   def call
@@ -24,7 +35,7 @@ class PoiSelector
     return empty_result("Could not find a suitable set of waypoints") if candidates.empty?
 
     best = candidates.max_by { |candidate| score(candidate) }
-    Result.new(success?: true, waypoints: best[:order], error: nil)
+    Result.new(success?: true, waypoints: best[:order], spread: best[:spread], error: nil)
   end
 
   private
@@ -42,24 +53,72 @@ class PoiSelector
 
     max_size = [MAX_WAYPOINTS, pool.size].min
 
-    (MIN_WAYPOINTS..max_size).flat_map { |n| pool.combination(n).to_a }.map do |combo|
-      order = best_order(combo)
+    (MIN_WAYPOINTS..max_size).flat_map { |n| pool.combination(n).to_a }.map { |combo| evaluate_combo(combo) }
+  end
 
-      { order: order, distance: tour_distance(order), diversity: combo.map { |poi| poi[:category] }.uniq.size }
+  def evaluate_combo(combo)
+    order = best_order(combo)
+
+    {
+      order: order,
+      distance: tour_distance(order),
+      diversity: combo.map { |poi| poi[:category] }.uniq.size,
+      spread: @round_trip ? bearing_spread(combo) : 0
+    }
+  end
+
+  # When there's a target distance to hit, honoring it comes first - a combo
+  # touching more categories is nicer, but not if it means ignoring the
+  # duration the user actually picked. Distance-fit is grouped into coarse
+  # bands (see DISTANCE_BAND_RATIO) rather than compared exactly, so spread
+  # and diversity still get to decide between options that are similarly
+  # close. With no target to honor, there's nothing distance should
+  # override, so spread and diversity lead and compactness is a tiebreaker.
+  #
+  # Spread ranks above diversity: a loop whose waypoints all sit in the same
+  # direction from the start retraces nearly the same streets on the way
+  # back (looks like a one-way trip with a small detour in it), regardless
+  # of how many different categories it touches - so a well-spread-out loop
+  # wins over a merely more-diverse one that clusters in one direction.
+  def score(candidate)
+    if @target_distance_meters
+      [-distance_band(candidate), candidate[:spread], candidate[:diversity], -distance_off(candidate)]
+    else
+      [candidate[:spread], candidate[:diversity], -candidate[:distance]]
     end
   end
 
-  # Diversity first (a walk touching more distinct categories is more
-  # interesting), then how close the tour comes to the target distance - or,
-  # with no target, simply how compact/walkable it is.
-  def score(candidate)
-    distance_score = if @target_distance_meters
-                       -(candidate[:distance] - @target_distance_meters).abs
-                     else
-                       -candidate[:distance]
-                     end
+  def distance_off(candidate)
+    (candidate[:distance] - @target_distance_meters).abs
+  end
 
-    [candidate[:diversity], distance_score]
+  def distance_band(candidate)
+    (distance_off(candidate) / (@target_distance_meters * DISTANCE_BAND_RATIO)).round
+  end
+
+  # How evenly a combo's waypoints are spread around the compass from the
+  # start, as the largest gap between consecutive bearings (sorted, with
+  # wraparound) subtracted from a full circle - so two waypoints in the same
+  # direction score near 0 (one big empty arc on the other side), while two
+  # diametrically opposite waypoints score the maximum, 180. Order-independent,
+  # so it's computed once per combo rather than per permutation like tour_distance.
+  def bearing_spread(combo)
+    return 0 if combo.size < 2
+
+    bearings = combo.map { |poi| bearing_from_start(poi) }.sort
+    gaps = bearings.each_cons(2).map { |a, b| b - a }
+    gaps << (360 - bearings.last + bearings.first)
+    360 - gaps.max
+  end
+
+  def bearing_from_start(poi)
+    lat1 = @lat * Math::PI / 180
+    lat2 = poi[:lat] * Math::PI / 180
+    d_lng = (poi[:lng] - @lng) * Math::PI / 180
+
+    y = Math.sin(d_lng) * Math.cos(lat2)
+    x = (Math.cos(lat1) * Math.sin(lat2)) - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(d_lng))
+    ((Math.atan2(y, x) * 180 / Math::PI) + 360) % 360
   end
 
   # Brute-force the visiting order that minimizes total tour distance. At most
@@ -68,8 +127,15 @@ class PoiSelector
     combo.permutation.min_by { |order| tour_distance(order) }
   end
 
+  # For a loop, the order that minimizes distance often visits the farthest
+  # point first and a nearer one on the way back - fine when the route
+  # actually returns to start, but for a one-way trip that same order means
+  # walking most of the way back toward start again before stopping, which
+  # looks like the path doubling back on itself. Only close the loop back to
+  # start when this route actually is one.
   def tour_distance(ordered_pois)
-    points = [{ lat: @lat, lng: @lng }] + ordered_pois + [{ lat: @lat, lng: @lng }]
+    points = [{ lat: @lat, lng: @lng }] + ordered_pois
+    points += [{ lat: @lat, lng: @lng }] if @round_trip
     points.each_cons(2).sum { |a, b| GeoDistance.haversine(a[:lat], a[:lng], b[:lat], b[:lng]) }
   end
 

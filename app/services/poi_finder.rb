@@ -1,5 +1,6 @@
 class PoiFinder
-  SEARCH_BOX_CATEGORY_URL = "https://api.mapbox.com/search/searchbox/v1/category"
+  NEARBY_SEARCH_URL = "https://places.googleapis.com/v1/places:searchNearby"
+  FIELD_MASK = "places.id,places.displayName,places.location,places.types"
 
   DEFAULT_RADIUS_METERS = 1500 # roughly a 15-20 minute walk
   DEFAULT_LIMIT_PER_CATEGORY = 10
@@ -24,45 +25,45 @@ class PoiFinder
 
   private
 
-  # Rough meters-per-degree conversion, good enough at city scale --
-  # 1 degree latitude ~= 111,320m everywhere; longitude shrinks with
-  # latitude, so it's scaled by cos(lat).
-  def bbox
-    lat_delta = @radius_meters / 111_320.0
-    lng_delta = @radius_meters / (111_320.0 * Math.cos(@lat * Math::PI / 180))
-
-    [
-      @lng - lng_delta,
-      @lat - lat_delta,
-      @lng + lng_delta,
-      @lat + lat_delta
-    ].join(",")
-  end
-
   def fetch_category(category)
-    response = Faraday.get("#{SEARCH_BOX_CATEGORY_URL}/#{category}") do |req|
-      req.params["proximity"] = "#{@lng},#{@lat}"
-      req.params["bbox"] = bbox
-      req.params["limit"] = @limit_per_category
-      req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
+    response = Faraday.post(NEARBY_SEARCH_URL) do |req|
+      apply_headers(req)
+      req.body = request_body(category).to_json
     end
 
     body = JSON.parse(response.body)
 
-    # Mapbox returns an error message instead of features when something's
+    # Google returns an "error" object instead of "places" when something's
     # wrong -- catch that explicitly rather than silently returning an empty list.
-    raise "Mapbox error (#{category}): #{body['message']}" if body["message"] && body["features"].nil?
+    raise "Google Places error (#{category}): #{body.dig('error', 'message')}" if body["error"]
 
-    (body["features"] || []).map { |feature| poi_from_feature(feature, category) }
+    (body["places"] || []).map { |place| poi_from_place(place, category) }
   end
 
-  def poi_from_feature(feature, category)
-    lat = feature.dig("geometry", "coordinates", 1) # GeoJSON order is [lng, lat]
-    lng = feature.dig("geometry", "coordinates", 0)
+  def apply_headers(req)
+    req.headers["Content-Type"] = "application/json"
+    req.headers["X-Goog-Api-Key"] = ENV.fetch("GOOGLE_PLACES_API_KEY", nil)
+    req.headers["X-Goog-FieldMask"] = FIELD_MASK
+  end
+
+  def request_body(category)
+    {
+      includedTypes: [category],
+      maxResultCount: @limit_per_category,
+      languageCode: "en",
+      locationRestriction: {
+        circle: { center: { latitude: @lat, longitude: @lng }, radius: @radius_meters }
+      }
+    }
+  end
+
+  def poi_from_place(place, category)
+    lat = place.dig("location", "latitude")
+    lng = place.dig("location", "longitude")
 
     {
-      id: feature.dig("properties", "mapbox_id"),
-      name: feature.dig("properties", "name"),
+      id: place["id"],
+      name: place.dig("displayName", "text"),
       category: category,
       lat: lat,
       lng: lng,

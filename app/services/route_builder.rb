@@ -19,6 +19,13 @@ class RouteBuilder
   MAX_ATTEMPTS = 3
   TOLERANCE_RATIO = 0.25
 
+  # A loop only looks like an actual loop if its waypoints spread out across
+  # different directions from the start (see PoiSelector's bearing_spread,
+  # 0-180) - below this, the outbound and return legs would retrace nearly
+  # the same streets, so a one-way trip suits the real candidates better.
+  # Not everyone wants to walk back the way they came anyway.
+  ROUND_TRIP_SPREAD_THRESHOLD_DEGREES = 90
+
   def initialize(lat:, lng:, theme_key:, duration_minutes: nil)
     @lat = lat.to_f
     @lng = lng.to_f
@@ -47,16 +54,36 @@ class RouteBuilder
   # play rather than a synthetic bearing/radius).
   def call_toward_target
     radius = @target_distance / 2.0
-    result = nil
+    best = nil
 
     MAX_ATTEMPTS.times do |attempt|
       result = attempt_toward_target(radius)
-      return result if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
+      best = pick_best(best, result)
+      return best if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
 
       radius = next_radius(result, radius)
     end
 
-    result
+    best
+  end
+
+  # A later attempt can come back worse than an earlier one - e.g. a rescale
+  # shrinks the search radius to correct for an over-long route and, in doing
+  # so, drops candidate density below what PoiSelector needs. Never let that
+  # throw away an earlier attempt that actually worked: only replace the
+  # running best with a real improvement (a success beats a failure; between
+  # two successes, whichever lands closer to the target distance wins).
+  def pick_best(current, candidate)
+    return candidate if current.nil?
+    return current if current.success? && !candidate.success?
+    return candidate if candidate.success? && !current.success?
+    return candidate unless current.success?
+
+    distance_off(candidate) < distance_off(current) ? candidate : current
+  end
+
+  def distance_off(result)
+    (result.journey.distance_meters - @target_distance).abs
   end
 
   def attempt_toward_target(radius)
@@ -94,8 +121,26 @@ class RouteBuilder
     Result.new(success?: true, journey: generation.journey)
   end
 
+  # Try a loop first; only keep it if the real candidates actually spread out
+  # enough to look like one. Otherwise, this route is a one-way trip - sets
+  # @round_trip as a side effect, since generate_journey needs to build the
+  # same shape it was just selected for.
   def select_waypoints(pois)
-    PoiSelector.new(lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance).call
+    loop_selection = poi_selector(pois, round_trip: true).call
+
+    if loop_selection.success? && loop_selection.spread >= ROUND_TRIP_SPREAD_THRESHOLD_DEGREES
+      @round_trip = true
+      return loop_selection
+    end
+
+    @round_trip = false
+    poi_selector(pois, round_trip: false).call
+  end
+
+  def poi_selector(pois, round_trip:)
+    PoiSelector.new(
+      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance, round_trip: round_trip
+    )
   end
 
   def describe(waypoints)
@@ -109,7 +154,8 @@ class RouteBuilder
       waypoints: waypoints,
       description: description,
       theme_key: @theme_key,
-      name: @theme[:label]
+      name: @theme[:label],
+      round_trip: @round_trip
     ).call
   end
 
