@@ -66,25 +66,11 @@ class PoiFinder
       category: category,
       lat: lat,
       lng: lng,
-      distance_meters: haversine_distance(@lat, @lng, lat, lng).round
+      distance_meters: GeoDistance.haversine(@lat, @lng, lat, lng).round
     }
   end
 
   def dedupe(pois)
     pois.uniq { |poi| poi[:id] }
-  end
-
-  # Straight-line distance from the search origin - lets callers (notably
-  # LlmPoiCurator) reason about how far out a candidate sits without a
-  # separate routing call.
-  def haversine_distance(lat1, lng1, lat2, lng2)
-    earth_radius = 6_378_137.0
-    d_lat = (lat2 - lat1) * Math::PI / 180
-    d_lng = (lng2 - lng1) * Math::PI / 180
-
-    a = (Math.sin(d_lat / 2)**2) +
-        (Math.cos(lat1 * Math::PI / 180) * Math.cos(lat2 * Math::PI / 180) * (Math.sin(d_lng / 2)**2))
-
-    2 * earth_radius * Math.asin(Math.sqrt(a))
   end
 end

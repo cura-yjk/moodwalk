@@ -1,7 +1,8 @@
-# theme_key -> PoiFinder -> LlmPoiCurator -> JourneyGenerator.
+# theme_key -> PoiFinder -> PoiSelector -> RouteDescriber -> JourneyGenerator.
 # Stops at the first stage that fails and surfaces that stage's error,
-# since "no parks nearby" and "Mapbox couldn't route between these
-# points" need different handling upstream.
+# since "no parks nearby," "couldn't find a good waypoint combination,"
+# and "Mapbox couldn't route between these points" all need different
+# handling upstream.
 class RouteBuilder
   Result = Struct.new(:success?, :journey, :error, keyword_init: true)
 
@@ -81,25 +82,32 @@ class RouteBuilder
   end
 
   def build_from(pois)
-    curation = curate(pois)
-    return failure(curation.error) unless curation.success?
+    selection = select_waypoints(pois)
+    return failure(selection.error) unless selection.success?
 
-    generation = generate_journey(curation)
+    description = describe(selection.waypoints)
+    return failure(description.error) unless description.success?
+
+    generation = generate_journey(selection.waypoints, description.description)
     return failure(generation.error) unless generation.success?
 
     Result.new(success?: true, journey: generation.journey)
   end
 
-  def curate(pois)
-    LlmPoiCurator.new(theme_key: @theme_key, pois: pois, target_distance_meters: @target_distance).call
+  def select_waypoints(pois)
+    PoiSelector.new(lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance).call
   end
 
-  def generate_journey(curation)
+  def describe(waypoints)
+    RouteDescriber.new(theme_key: @theme_key, waypoints: waypoints, target_distance_meters: @target_distance).call
+  end
+
+  def generate_journey(waypoints, description)
     JourneyGenerator.new(
       lat: @lat,
       lng: @lng,
-      waypoints: curation.waypoints,
-      description: curation.description,
+      waypoints: waypoints,
+      description: description,
       theme_key: @theme_key,
       name: @theme[:label]
     ).call
