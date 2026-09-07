@@ -8,6 +8,12 @@ class PoiSelector
   MAX_WAYPOINTS = 4
   CANDIDATES_PER_CATEGORY = 3
 
+  # Combinations whose distance-fit differs by less than this fraction of the
+  # target are treated as equally good on distance, so diversity can break
+  # the tie between them - without this, two combos would need to land at
+  # the exact same distance (to the meter) before diversity ever mattered.
+  DISTANCE_BAND_RATIO = 0.15
+
   Result = Struct.new(:success?, :waypoints, :error, keyword_init: true)
 
   def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true)
@@ -50,17 +56,27 @@ class PoiSelector
     end
   end
 
-  # Diversity first (a walk touching more distinct categories is more
-  # interesting), then how close the tour comes to the target distance - or,
-  # with no target, simply how compact/walkable it is.
+  # When there's a target distance to hit, honoring it comes first - a combo
+  # touching more categories is nicer, but not if it means ignoring the
+  # duration the user actually picked. Distance-fit is grouped into coarse
+  # bands (see DISTANCE_BAND_RATIO) rather than compared exactly, so
+  # diversity still gets to decide between options that are similarly close.
+  # With no target to honor, there's nothing distance should override, so
+  # diversity leads and compactness is just a tiebreaker.
   def score(candidate)
-    distance_score = if @target_distance_meters
-                       -(candidate[:distance] - @target_distance_meters).abs
-                     else
-                       -candidate[:distance]
-                     end
+    if @target_distance_meters
+      [-distance_band(candidate), candidate[:diversity], -distance_off(candidate)]
+    else
+      [candidate[:diversity], -candidate[:distance]]
+    end
+  end
 
-    [candidate[:diversity], distance_score]
+  def distance_off(candidate)
+    (candidate[:distance] - @target_distance_meters).abs
+  end
+
+  def distance_band(candidate)
+    (distance_off(candidate) / (@target_distance_meters * DISTANCE_BAND_RATIO)).round
   end
 
   # Brute-force the visiting order that minimizes total tour distance. At most

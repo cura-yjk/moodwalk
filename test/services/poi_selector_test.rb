@@ -47,6 +47,29 @@ class PoiSelectorTest < ActiveSupport::TestCase
     assert(selected_ids.include?("far-north") || selected_ids.include?("far-east"))
   end
 
+  test "prefers hitting the target distance over touching more categories" do
+    # A same-category pair that lands almost exactly on the target...
+    close_same_category = [
+      poi(id: "park-near", category: "park", distance_meters: 300, bearing: :north),
+      poi(id: "park-far", category: "park", distance_meters: 300, bearing: :east)
+    ]
+    # ...vs. a two-category pair that's diverse but far off target. Diversity
+    # alone shouldn't win when it means badly missing the duration the user
+    # actually asked for.
+    diverse_but_far = [
+      poi(id: "bakery-far", category: "bakery", distance_meters: 2000, bearing: :north)
+    ]
+    pois = close_same_category + diverse_but_far
+
+    result = PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1000, round_trip: true
+    ).call
+
+    assert result.success?
+    selected_ids = result.waypoints.map { |wp| wp[:id] }.sort
+    assert_equal ["park-far", "park-near"], selected_ids
+  end
+
   test "falls back to a valid combination when only one category has candidates" do
     pois = [
       poi(id: "park-1", category: "park", distance_meters: 200, bearing: :north),
