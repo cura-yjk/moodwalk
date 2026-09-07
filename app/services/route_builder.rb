@@ -55,16 +55,36 @@ class RouteBuilder
   # play rather than a synthetic bearing/radius).
   def call_toward_target
     radius = @target_distance / 2.0
-    result = nil
+    best = nil
 
     MAX_ATTEMPTS.times do |attempt|
       result = attempt_toward_target(radius)
-      return result if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
+      best = pick_best(best, result)
+      return best if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
 
       radius = next_radius(result, radius)
     end
 
-    result
+    best
+  end
+
+  # A later attempt can come back worse than an earlier one - e.g. a rescale
+  # shrinks the search radius to correct for an over-long route and, in doing
+  # so, drops candidate density below what PoiSelector needs. Never let that
+  # throw away an earlier attempt that actually worked: only replace the
+  # running best with a real improvement (a success beats a failure; between
+  # two successes, whichever lands closer to the target distance wins).
+  def pick_best(current, candidate)
+    return candidate if current.nil?
+    return current if current.success? && !candidate.success?
+    return candidate if candidate.success? && !current.success?
+    return candidate unless current.success?
+
+    distance_off(candidate) < distance_off(current) ? candidate : current
+  end
+
+  def distance_off(result)
+    (result.journey.distance_meters - @target_distance).abs
   end
 
   def attempt_toward_target(radius)
