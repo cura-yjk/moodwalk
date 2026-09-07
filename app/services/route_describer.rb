@@ -1,11 +1,14 @@
 require "ruby_llm/schema" # gem 'ruby_llm-schema'
 
-class LlmPoiCurator
-  Result = Struct.new(:success?, :waypoints, :description, :error, keyword_init: true)
+# Writes the atmospheric description for a route whose waypoints have already
+# been chosen (by PoiSelector). This used to also pick the waypoints, but that
+# was really a geometry problem wearing an LLM costume - see PoiSelector for
+# why that moved to plain Ruby. Description writing is the part that's
+# genuinely LLM-shaped: the tone rules below are hard to encode as templates.
+class RouteDescriber
+  Result = Struct.new(:success?, :description, :error, keyword_init: true)
 
-  class SelectionSchema < RubyLLM::Schema
-    array :selected_poi_ids, of: :string,
-                             description: "2-4 ids from the provided candidate list, in walking order"
+  class DescriptionSchema < RubyLLM::Schema
     string :description,
            description: "1-2 sentence atmospheric route description, grounded only in the " \
                         "selected places but naming none of them by name"
@@ -34,33 +37,23 @@ class LlmPoiCurator
       it's called. Naming a place turns "just walk" into "go find this,"
       which is one more thing to figure out.
 
-    Given a theme, a list of real nearby places (each with its straight-line
-    distance in meters from the walk's start/end point), and sometimes a
-    target walk distance, select 2-4 places that best fit the theme, put
-    them in a sensible walking order, and write a short description of the
-    route. When a target distance is given, favor a combination whose
-    distances from the start suggest a loop close to that length over one
-    that only fits the theme - a single far-off place visited out-and-back
-    covers roughly twice its own distance; more waypoints strung together
-    cover roughly the sum of the gaps between them.
+    Given a theme and the real places already chosen for this walk, in
+    walking order, write a short description of the route grounded in what's
+    actually there.
   PROMPT
 
-  def initialize(theme_key:, pois:, target_distance_meters: nil)
+  def initialize(theme_key:, waypoints:, target_distance_meters: nil)
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
-    @pois = Array(pois)
+    @waypoints = Array(waypoints)
     @target_distance_meters = target_distance_meters
   end
 
   def call
-    return empty_result("No nearby places found") if @pois.empty?
+    return empty_result("No waypoints to describe") if @waypoints.empty?
 
     parsed = request_llm
-    waypoints = resolve_waypoints(parsed["selected_poi_ids"])
-
-    return empty_result("LLM did not select any valid places") if waypoints.empty?
-
-    Result.new(success?: true, waypoints: waypoints, description: parsed["description"], error: nil)
+    Result.new(success?: true, description: parsed["description"], error: nil)
   rescue StandardError => e
     empty_result(e.message)
   end
@@ -70,7 +63,7 @@ class LlmPoiCurator
   def request_llm
     chat = RubyLLM.chat
                   .with_instructions(SYSTEM_PROMPT)
-                  .with_schema(SelectionSchema)
+                  .with_schema(DescriptionSchema)
 
     chat.ask(user_message).content
   end
@@ -80,8 +73,8 @@ class LlmPoiCurator
       Theme: #{@theme[:label]}
       Tone: #{@theme[:tone]}
       #{target_distance_line}
-      Nearby places found:
-      #{poi_list_as_json}
+      Places on this walk, in order:
+      #{waypoints_as_json}
     MSG
   end
 
@@ -91,20 +84,11 @@ class LlmPoiCurator
     "Target walk distance: about #{@target_distance_meters.round} meters round trip.\n"
   end
 
-  def poi_list_as_json
-    @pois.map { |poi| poi.slice(:id, :name, :category, :distance_meters) }.to_json
-  end
-
-  # Silently drops any id that doesn't match a real candidate (defensive --
-  # schema doesn't guarantee the ids are ones we actually sent).
-  def resolve_waypoints(selected_ids)
-    return [] if selected_ids.blank?
-
-    pois_by_id = @pois.index_by { |poi| poi[:id] }
-    selected_ids.filter_map { |id| pois_by_id[id] }
+  def waypoints_as_json
+    @waypoints.map { |poi| poi.slice(:id, :name, :category, :distance_meters) }.to_json
   end
 
   def empty_result(error_message)
-    Result.new(success?: false, waypoints: [], description: nil, error: error_message)
+    Result.new(success?: false, description: nil, error: error_message)
   end
 end

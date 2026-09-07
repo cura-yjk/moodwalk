@@ -106,7 +106,7 @@ puts "🎨 Generating themed journeys for the mood picker at Le Wagon Meguro..."
 # theme_key -> rough compass bearing (degrees, 0 = north) toward a real feature in that
 # direction from Le Wagon Meguro, so each theme's synthetic route leans somewhere plausible
 # instead of a bearing chosen uniformly at random. Best-effort, not exact POI targeting --
-# the real POI-based curation (RouteBuilder/PoiFinder/LlmPoiCurator) is still in development.
+# the real POI-based curation (RouteBuilder/PoiFinder/PoiSelector/RouteDescriber) is still in development.
 THEME_BEARINGS = {
   calm: 315,     # NW, away from the main road into quieter residential blocks
   refresh: 200,  # S/SSW, toward the Meguro River green corridor

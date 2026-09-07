@@ -4,6 +4,11 @@ class JourneyGenerator
   MAX_ATTEMPTS = 3
   TOLERANCE_RATIO = 0.15
 
+  # A u-turn right at a real waypoint is expected (a spur out to a POI down a
+  # dead-end path naturally turns back there); this allows for Mapbox snapping
+  # the route to the nearest road rather than the exact POI coordinate.
+  WAYPOINT_PROXIMITY_TOLERANCE_METERS = 30
+
   Result = Struct.new(:success?, :journey, :error, keyword_init: true)
 
   def initialize(lat:, lng:, target_distance_meters: nil, waypoints: nil, description: nil,
@@ -111,9 +116,25 @@ class JourneyGenerator
     { distance: route["distance"], duration: route["duration"], polyline: route["geometry"] }
   end
 
-  # A u-turn means retracing the same path (dead end). Only checked for themed routes.
+  # A u-turn away from any real waypoint means retracing the same path for no
+  # reason (dead end) - but a u-turn right at a waypoint is expected (see the
+  # tolerance constant above). Only checked for themed routes.
   def themed_dead_end?(route)
-    @theme_key && route["legs"].flat_map { |l| l["steps"] }.any? { |s| s.dig("maneuver", "modifier") == "uturn" }
+    return false unless @theme_key
+
+    route["legs"].flat_map { |l| l["steps"] }.any? do |step|
+      step.dig("maneuver", "modifier") == "uturn" && !near_waypoint?(step)
+    end
+  end
+
+  def near_waypoint?(step)
+    location = step.dig("maneuver", "location")
+    return false unless location
+
+    step_lng, step_lat = location
+    Array(@waypoints).any? do |wp|
+      GeoDistance.haversine(step_lat, step_lng, wp[:lat], wp[:lng]) <= WAYPOINT_PROXIMITY_TOLERANCE_METERS
+    end
   end
 
   def build_journey(directions)

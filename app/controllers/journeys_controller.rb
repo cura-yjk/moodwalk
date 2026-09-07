@@ -91,9 +91,9 @@ class JourneysController < ApplicationController
     current_user.current_latitude && current_user.current_longitude
   end
 
-  # PoiFinder/LlmPoiCurator/JourneyGenerator can each fail independently
-  # (no nearby places, LLM picked nothing valid, no route found) -
-  # result.error carries whichever one it was.
+  # PoiFinder/PoiSelector/RouteDescriber/JourneyGenerator can each fail
+  # independently (no nearby places, no viable waypoint combination, LLM
+  # description failed, no route found) - result.error carries whichever one it was.
   def generate_journey
     RouteBuilder.new(
       lat: current_user.current_latitude,
