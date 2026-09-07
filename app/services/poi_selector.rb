@@ -14,7 +14,11 @@ class PoiSelector
   # the exact same distance (to the meter) before diversity ever mattered.
   DISTANCE_BAND_RATIO = 0.15
 
-  Result = Struct.new(:success?, :waypoints, :error, keyword_init: true)
+  # spread is the winning combo's bearing_spread (0-180, see below) - exposed
+  # so RouteBuilder can decide whether a loop actually makes sense here
+  # (spread out) or a one-way trip would suit the real candidates better
+  # (clustered in one direction), instead of just coin-flipping the two.
+  Result = Struct.new(:success?, :waypoints, :spread, :error, keyword_init: true)
 
   def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true)
     @lat = lat.to_f
@@ -31,7 +35,7 @@ class PoiSelector
     return empty_result("Could not find a suitable set of waypoints") if candidates.empty?
 
     best = candidates.max_by { |candidate| score(candidate) }
-    Result.new(success?: true, waypoints: best[:order], error: nil)
+    Result.new(success?: true, waypoints: best[:order], spread: best[:spread], error: nil)
   end
 
   private

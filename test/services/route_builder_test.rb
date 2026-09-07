@@ -41,4 +41,50 @@ class RouteBuilderTest < ActiveSupport::TestCase
     failure = FakeResult.new(success?: false, error: "no candidates")
     assert_equal failure, @builder.send(:pick_best, nil, failure)
   end
+
+  # select_waypoints decides loop vs. one-way from the real candidates (via
+  # PoiSelector's actual spread scoring) instead of a coin flip - exercised
+  # directly with real POI data rather than mocking PoiSelector, since the
+  # whole point is that the decision follows from real spread math.
+  test "chooses a loop when real candidates spread out enough" do
+    pois = [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "south", category: "park", distance_meters: 450, bearing: :south)
+    ]
+
+    selection = @builder.send(:select_waypoints, pois)
+
+    assert selection.success?
+    assert @builder.instance_variable_get(:@round_trip)
+  end
+
+  test "falls back to one-way when real candidates cluster in one direction" do
+    pois = [
+      poi(id: "north-near", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "north-far", category: "park", distance_meters: 450, bearing: :north)
+    ]
+
+    selection = @builder.send(:select_waypoints, pois)
+
+    assert selection.success?
+    assert_not @builder.instance_variable_get(:@round_trip)
+  end
+
+  private
+
+  def poi(id:, category:, distance_meters:, bearing:)
+    lat = @builder.instance_variable_get(:@lat)
+    lng = @builder.instance_variable_get(:@lng)
+    meters_per_degree_lat = 111_320.0
+    meters_per_degree_lng = 111_320.0 * Math.cos(lat * Math::PI / 180)
+
+    poi_lat, poi_lng = case bearing
+                       when :north
+                         [lat + (distance_meters / meters_per_degree_lat), lng]
+                       when :south
+                         [lat - (distance_meters / meters_per_degree_lat), lng]
+                       end
+
+    { id: id, name: id, category: category, lat: poi_lat, lng: poi_lng, distance_meters: distance_meters }
+  end
 end

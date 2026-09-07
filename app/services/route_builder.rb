@@ -19,20 +19,19 @@ class RouteBuilder
   MAX_ATTEMPTS = 3
   TOLERANCE_RATIO = 0.25
 
+  # A loop only looks like an actual loop if its waypoints spread out across
+  # different directions from the start (see PoiSelector's bearing_spread,
+  # 0-180) - below this, the outbound and return legs would retrace nearly
+  # the same streets, so a one-way trip suits the real candidates better.
+  # Not everyone wants to walk back the way they came anyway.
+  ROUND_TRIP_SPREAD_THRESHOLD_DEGREES = 90
+
   def initialize(lat:, lng:, theme_key:, duration_minutes: nil)
     @lat = lat.to_f
     @lng = lng.to_f
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
     @target_distance = duration_minutes.to_f * WALKING_METERS_PER_MINUTE if duration_minutes.present?
-
-    # Decided once per request (not re-rolled on each retry attempt below) and
-    # threaded through to both PoiSelector and JourneyGenerator, so the
-    # waypoint order is optimized for the same trip shape that actually gets
-    # generated - not everyone wants to go back to where they came from, but
-    # a one-way trip needs its waypoints ordered outward, not "there and
-    # partway back," which is what a loop-optimized order looks like.
-    @round_trip = [true, false].sample
   end
 
   def call
@@ -122,10 +121,26 @@ class RouteBuilder
     Result.new(success?: true, journey: generation.journey)
   end
 
+  # Try a loop first; only keep it if the real candidates actually spread out
+  # enough to look like one. Otherwise, this route is a one-way trip - sets
+  # @round_trip as a side effect, since generate_journey needs to build the
+  # same shape it was just selected for.
   def select_waypoints(pois)
+    loop_selection = poi_selector(pois, round_trip: true).call
+
+    if loop_selection.success? && loop_selection.spread >= ROUND_TRIP_SPREAD_THRESHOLD_DEGREES
+      @round_trip = true
+      return loop_selection
+    end
+
+    @round_trip = false
+    poi_selector(pois, round_trip: false).call
+  end
+
+  def poi_selector(pois, round_trip:)
     PoiSelector.new(
-      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance, round_trip: @round_trip
-    ).call
+      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance, round_trip: round_trip
+    )
   end
 
   def describe(waypoints)
