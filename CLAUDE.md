@@ -24,7 +24,8 @@ Routes are geospatial (PostGIS), and route geometry comes from the Mapbox Direct
 - Seed the dev DB (also calls out to the live Mapbox API): `bin/rails db:seed`
 
 Requires a `MAPBOX_ACCESS_TOKEN` env var (see `.env`, loaded via `dotenv-rails` in dev/test) for
-anything that generates journeys (seeding, `JourneyGenerator`).
+anything that generates journeys (seeding, `JourneyGenerator`). Requires a `GOOGLE_PLACES_API_KEY`
+env var for real POI-based route generation from the app (`PoiFinder`) — not used by seeding.
 
 Database is PostgreSQL with the `postgis` adapter (`activerecord-postgis-adapter` /
 `rgeo`) — do not swap in a plain `pg` adapter or plain lat/lng columns for geospatial data.
@@ -36,14 +37,33 @@ pre-generated walking loop route (polyline + distance/duration estimate) anchore
 `start_point` (PostGIS `geography` point). A `Walk` is one user's attempt at a `Journey`
 (`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
 
-**Route generation (`app/services/journey_generator.rb`)**: `JourneyGenerator` is the only place
-that talks to Mapbox. Given a lat/lng and a target distance, it plants 4 waypoints roughly evenly
-around a circle (bearings 0/90/180/270 + jitter) whose radius approximates the target loop
-circumference, then asks Mapbox Directions for a walking route through start -> waypoints -> start.
-If the returned distance is outside `TOLERANCE_RATIO` (15%) of the target, it rescales the radius
-by the inverse of the distance ratio and retries, up to `MAX_ATTEMPTS`. Returns a `Result` struct
+**Route generation, real POI-based (`RouteBuilder` -> `PoiFinder` -> `PoiSelector` ->
+`RouteDescriber` -> `JourneyGenerator`)**: `RouteBuilder` is the theme-picker entry point.
+`PoiFinder` asks Google Places API (New) Nearby Search for real nearby places by category (one
+call per category in the theme's `categories` list, see `config/initializers/themes.rb` — the
+category slugs there are Google's published "Table A" place types, not Mapbox's). `PoiSelector` is
+plain Ruby (no HTTP/LLM call) that picks 2-4 of those candidates as waypoints, scoring
+combinations by category diversity then by how close a walking-order tour comes to any target
+distance. `RouteDescriber` (via the `ruby_llm`/`ruby_llm-schema` gems) writes the route's
+atmospheric description for the already-chosen waypoints — it does not pick them. Each stage
+returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing that
+stage's error. When a target duration is given, `RouteBuilder` widens/rescales its POI search
+radius and retries (its own `MAX_ATTEMPTS`/`TOLERANCE_RATIO`), same idea as `JourneyGenerator`'s
+own retry below.
+
+**Route generation, synthetic loop (`app/services/journey_generator.rb`)**: `JourneyGenerator`
+talks to Mapbox Directions. Given real waypoints (from `PoiSelector`) it just routes through them;
+given none (and a target distance instead — used by `db/seeds.rb`, which doesn't go through
+`RouteBuilder`), it plants 4 synthetic waypoints roughly evenly around a circle (bearings
+0/90/180/270 + jitter) whose radius approximates the target loop circumference. If the returned
+distance is outside `TOLERANCE_RATIO` (15%) of the target, it rescales the radius by the inverse of
+the distance ratio and retries, up to `MAX_ATTEMPTS`. For themed routes, a u-turn maneuver in the
+response is treated as an invalid dead-end *unless* it's near one of the real waypoints (a spur
+down a dead-end path to reach a POI is expected to u-turn there). Returns a `Result` struct
 (`success?`, `journey`, `error`) rather than raising — callers must check `success?` before using
-`journey`. This is a synchronous HTTP call (via Faraday); there's no background job for it yet.
+`journey`. These are synchronous HTTP calls (via Faraday); there's no background job for them yet.
+`MapboxGeocoder` and `LocationsController` also call Mapbox separately, for reverse/forward
+geocoding — Mapbox isn't only used by `JourneyGenerator`.
 
 **Geospatial queries**: `Journey.near(lat, lng, radius_meters)` (`app/models/journey.rb`) does the
 PostGIS proximity query (`ST_DWithin` + distance ordering) — build lat/lng-radius searches on this
@@ -70,9 +90,10 @@ Sprockets asset pipeline (`sassc-rails`) + Hotwire (Turbo + Stimulus) + importma
 Node/webpack/yarn build step). Forms use `simple_form`. Stimulus controllers live in
 `app/javascript/controllers/`.
 
-**Unused-but-present dependency**: the `ruby_llm` / `ruby_llm-schema` gems are in the Gemfile but
-not wired into any code yet — don't assume an LLM integration exists just because the gem is
-present.
+**LLM usage**: the `ruby_llm` / `ruby_llm-schema` gems are wired into `RouteDescriber`
+(`app/services/route_describer.rb`), which writes each route's description using
+`RubyLLM.chat.with_schema(...)`. It's the only LLM call in the app — don't assume broader LLM
+integration exists beyond it. Requires `OPENAI_API_KEY` (see `config/initializers/ruby_llm.rb`).
 
 ## Notes
 

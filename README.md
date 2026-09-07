@@ -57,9 +57,11 @@ Three main things in the app, and how they relate:
   finished, and afterward, their mood and a written reflection.
 
 Behind the scenes, `app/services/journey_generator.rb` is the piece of code that talks to Mapbox to
-create new journeys. Given a starting point and a target distance, it picks a few points roughly in
-a circle around that starting point and asks Mapbox for a walking route connecting them. If the
-resulting route is too short or too long, it adjusts and tries again.
+turn a set of points into an actual walking route. Those points either come from real nearby
+places — `app/services/poi_finder.rb` asks Google Places for parks, bakeries, and similar spots
+near the user, and `app/services/poi_selector.rb`/`app/services/route_describer.rb` pick a few of
+them and write a short description — or, when there aren't enough real places nearby, a synthetic
+loop shape. If the resulting route is too short or too long, it adjusts and tries again.
 
 ## Getting it running on your machine
 
@@ -71,14 +73,18 @@ bin/setup            # installs everything the app needs and sets up the databas
 bin/setup --reset    # same, but wipes and rebuilds the database from scratch
 ```
 
-Open the `.env` file and add a Mapbox access token:
+Open the `.env` file and add these keys:
 
 ```
 MAPBOX_ACCESS_TOKEN=your_token_here
+GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
 ```
 
-Without this, anything that creates journeys (like seeding sample data) won't work — the app needs
-it to ask Mapbox for real walking directions.
+Without the Mapbox token, anything that creates journeys (like seeding sample data) won't work —
+the app needs it to ask Mapbox for real walking directions. The Google Places key is needed for
+looking up real nearby places when generating a themed route from the app itself (seeding doesn't
+use it). Getting a key means creating a Google Cloud project, enabling "Places API (New)", turning
+on billing, and creating a server-side API key restricted to that API.
 
 ## Running the app day-to-day
 
