@@ -10,11 +10,12 @@ class PoiSelector
 
   Result = Struct.new(:success?, :waypoints, :error, keyword_init: true)
 
-  def initialize(lat:, lng:, pois:, target_distance_meters: nil)
+  def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true)
     @lat = lat.to_f
     @lng = lng.to_f
     @pois = Array(pois)
     @target_distance_meters = target_distance_meters
+    @round_trip = round_trip
   end
 
   def call
@@ -68,8 +69,15 @@ class PoiSelector
     combo.permutation.min_by { |order| tour_distance(order) }
   end
 
+  # For a loop, the order that minimizes distance often visits the farthest
+  # point first and a nearer one on the way back - fine when the route
+  # actually returns to start, but for a one-way trip that same order means
+  # walking most of the way back toward start again before stopping, which
+  # looks like the path doubling back on itself. Only close the loop back to
+  # start when this route actually is one.
   def tour_distance(ordered_pois)
-    points = [{ lat: @lat, lng: @lng }] + ordered_pois + [{ lat: @lat, lng: @lng }]
+    points = [{ lat: @lat, lng: @lng }] + ordered_pois
+    points += [{ lat: @lat, lng: @lng }] if @round_trip
     points.each_cons(2).sum { |a, b| GeoDistance.haversine(a[:lat], a[:lng], b[:lat], b[:lng]) }
   end
 

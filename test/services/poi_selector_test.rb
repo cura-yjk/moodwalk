@@ -60,6 +60,21 @@ class PoiSelectorTest < ActiveSupport::TestCase
     assert_includes PoiSelector::MIN_WAYPOINTS..PoiSelector::MAX_WAYPOINTS, result.waypoints.size
   end
 
+  test "for a one-way trip, orders waypoints outward instead of there-and-partway-back" do
+    pois = [
+      poi(id: "near", category: "park", distance_meters: 300, bearing: :north),
+      poi(id: "far", category: "park", distance_meters: 900, bearing: :north)
+    ]
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: false).call
+
+    assert result.success?
+    # Visiting near-then-far (900m total) is shorter than far-then-near
+    # (1500m, since you'd walk past "near" again on the way to "far") when
+    # there's no return leg to make the two orders equivalent.
+    assert_equal(["near", "far"], result.waypoints.map { |wp| wp[:id] })
+  end
+
   test "fails when fewer than two candidates exist" do
     result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: []).call
     assert_not result.success?

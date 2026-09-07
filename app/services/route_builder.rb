@@ -25,6 +25,14 @@ class RouteBuilder
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
     @target_distance = duration_minutes.to_f * WALKING_METERS_PER_MINUTE if duration_minutes.present?
+
+    # Decided once per request (not re-rolled on each retry attempt below) and
+    # threaded through to both PoiSelector and JourneyGenerator, so the
+    # waypoint order is optimized for the same trip shape that actually gets
+    # generated - not everyone wants to go back to where they came from, but
+    # a one-way trip needs its waypoints ordered outward, not "there and
+    # partway back," which is what a loop-optimized order looks like.
+    @round_trip = [true, false].sample
   end
 
   def call
@@ -95,7 +103,9 @@ class RouteBuilder
   end
 
   def select_waypoints(pois)
-    PoiSelector.new(lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance).call
+    PoiSelector.new(
+      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance, round_trip: @round_trip
+    ).call
   end
 
   def describe(waypoints)
@@ -109,7 +119,8 @@ class RouteBuilder
       waypoints: waypoints,
       description: description,
       theme_key: @theme_key,
-      name: @theme[:label]
+      name: @theme[:label],
+      round_trip: @round_trip
     ).call
   end
 
