@@ -9,8 +9,10 @@ short reflection.
 - **Ruby on Rails** (version 8) — the web framework the whole app is built on.
 - **PostgreSQL with PostGIS** — our database, with an extra add-on (PostGIS) that lets it understand
   locations, distances, and map shapes, not just plain numbers and text.
-- **Mapbox Directions API** — an outside service we call to get real walking directions and turn
-  them into a route on a map.
+- **Mapbox** — an outside service we call for walking directions, the map you see on screen, and
+  turning an address into coordinates (or back).
+- **Google Places API** — a separate outside service we call to find real nearby places (parks,
+  bakeries, and similar spots) to build a themed route around.
 - **Devise** — handles sign up, log in, log out, and password resets, so we don't have to build that
   from scratch.
 - **Hotwire (Turbo + Stimulus) and Bootstrap** — these make pages feel responsive and look decent
@@ -39,20 +41,21 @@ If the list above still reads like a wall of proper nouns, here's the general vo
 - **CSS framework** — a library of ready-made visual styles (buttons, forms, spacing) so pages look
   decent without designing every pixel by hand. That's **Bootstrap**.
 - **Third-party API / service** — a completely separate company's product that our app talks to
-  over the internet to get something it can't do itself. **Mapbox** is not part of our codebase at
-  all — we send it a request (e.g. "give me walking directions between these points") and it sends
-  data back.
+  over the internet to get something it can't do itself. **Mapbox** and **Google Places** aren't
+  part of our codebase at all — we send each a request (e.g. "give me walking directions between
+  these points," or "what parks are near this location?") and they send data back.
 
-Roughly: language → framework → database (+ extensions) → gems/libraries, with one outside
-service (Mapbox) bolted on for maps.
+Roughly: language → framework → database (+ extensions) → gems/libraries, with two outside
+services (Mapbox, Google Places) bolted on for maps and places.
 
 ## The basic idea (data model)
 
 Three main things in the app, and how they relate:
 
 - **User** — someone with an account. A user can go on many walks.
-- **Journey** — a pre-made walking route: a loop that starts and ends at the same spot, with an
-  estimated distance and time. Many users can each do their own walk along the same journey.
+- **Journey** — a pre-made walking route, with an estimated distance and time: either a loop
+  (starts and ends at the same spot) or a one-way trip, depending on which suits the real places
+  along the way. Many users can each do their own walk along the same journey.
 - **Walk** — one specific attempt by one user at one journey: when they started, when they
   finished, and afterward, their mood and a written reflection.
 
@@ -62,6 +65,14 @@ places — `app/services/poi_finder.rb` asks Google Places for parks, bakeries, 
 near the user, and `app/services/poi_selector.rb`/`app/services/route_describer.rb` pick a few of
 them and write a short description — or, when there aren't enough real places nearby, a synthetic
 loop shape. If the resulting route is too short or too long, it adjusts and tries again.
+
+Once a walk is actually underway, `app/javascript/controllers/walking_controller.js` gives live
+turn-by-turn guidance (an arrow plus "turn left"/"turn right" instructions) by watching the
+phone's GPS and comparing it to the route as you go, and separately records breadcrumbs of where
+you actually walked so it can be compared to the suggested route afterward. It has a built-in
+dev-mode walk simulator (visit a walk's page with `?simulate=<speed multiplier>`, e.g.
+`?simulate=10`) that fakes movement along the route, so you can test the whole guidance experience
+without physically walking it.
 
 ## Getting it running on your machine
 
@@ -116,3 +127,8 @@ CI pipeline runs automatically, so running it locally first can save you a round
   tell you something's broken.
 - [`CLAUDE.md`](CLAUDE.md) has more in-depth technical notes about the codebase — worth a skim if
   you want more detail than this file gives.
+
+## License
+
+[MIT](LICENSE) — free to use, copy, modify, and share, including commercially, as long as the
+original copyright notice stays attached.
