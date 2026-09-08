@@ -1,134 +1,68 @@
-# Moodwalk
+# 🌿 Moodwalk
 
-Moodwalk is an app that suggests short walking routes ("journeys") near wherever you are, and lets
-you go for a "walk" along one of them. After you finish, you log how you're feeling and write a
-short reflection.
+Moodwalk suggests short walking routes near wherever you are based on how you're feeling, then lets you log your mood and a reflection once you're done.
 
-## What it's built with
+_DROP SCREENSHOT HERE_
+<br>
+App home: https://moodwalk-ec6251edd332.herokuapp.com/
 
-- **Ruby on Rails** (version 8) — the web framework the whole app is built on.
-- **PostgreSQL with PostGIS** — our database, with an extra add-on (PostGIS) that lets it understand
-  locations, distances, and map shapes, not just plain numbers and text.
-- **Mapbox** — an outside service we call for walking directions, the map you see on screen, and
-  turning an address into coordinates (or back).
-- **Google Places API** — a separate outside service we call to find real nearby places (parks,
-  bakeries, and similar spots) to build a themed route around.
-- **Devise** — handles sign up, log in, log out, and password resets, so we don't have to build that
-  from scratch.
-- **Hotwire (Turbo + Stimulus) and Bootstrap** — these make pages feel responsive and look decent
-  without us writing a lot of custom JavaScript or CSS.
-- **simple_form** — a helper for building HTML forms more easily.
+## Getting Started
+### Setup
 
-You don't need to be an expert in any of these to contribute — the setup steps below get you
-running without deep knowledge of what's happening under the hood.
-
-## Glossary — what kind of thing each of these is
-
-If the list above still reads like a wall of proper nouns, here's the general vocabulary:
-
-- **Programming language** — the language the actual code is written in. Ours is **Ruby**.
-- **Framework** — a big pre-built toolkit for building a certain kind of app, so you're not
-  starting from zero. **Rails** is a framework for building web apps in Ruby. "8" is just the
-  version number.
-- **Database** — where the app's data actually lives long-term (users, journeys, walks, etc.),
-  like a very powerful, structured spreadsheet. Ours is **PostgreSQL**.
-- **Database extension** — an add-on that gives a database new abilities. **PostGIS** is an
-  extension for PostgreSQL that teaches it to understand map locations and distances, which a
-  plain database can't do on its own.
-- **Gem / library** — a chunk of reusable code someone else wrote that we plug into our app instead
-  of writing ourselves. **Devise** (login/signup), **Hotwire**/**Turbo**/**Stimulus** (snappier
-  pages with less custom JavaScript), and **simple_form** (easier HTML forms) are all gems.
-- **CSS framework** — a library of ready-made visual styles (buttons, forms, spacing) so pages look
-  decent without designing every pixel by hand. That's **Bootstrap**.
-- **Third-party API / service** — a completely separate company's product that our app talks to
-  over the internet to get something it can't do itself. **Mapbox** and **Google Places** aren't
-  part of our codebase at all — we send each a request (e.g. "give me walking directions between
-  these points," or "what parks are near this location?") and they send data back.
-
-Roughly: language → framework → database (+ extensions) → gems/libraries, with two outside
-services (Mapbox, Google Places) bolted on for maps and places.
-
-## The basic idea (data model)
-
-Three main things in the app, and how they relate:
-
-- **User** — someone with an account. A user can go on many walks.
-- **Journey** — a pre-made walking route, with an estimated distance and time: either a loop
-  (starts and ends at the same spot) or a one-way trip, depending on which suits the real places
-  along the way. Many users can each do their own walk along the same journey.
-- **Walk** — one specific attempt by one user at one journey: when they started, when they
-  finished, and afterward, their mood and a written reflection.
-
-Behind the scenes, `app/services/journey_generator.rb` is the piece of code that talks to Mapbox to
-turn a set of points into an actual walking route. Those points either come from real nearby
-places — `app/services/poi_finder.rb` asks Google Places for parks, bakeries, and similar spots
-near the user, and `app/services/poi_selector.rb`/`app/services/route_describer.rb` pick a few of
-them and write a short description — or, when there aren't enough real places nearby, a synthetic
-loop shape. If the resulting route is too short or too long, it adjusts and tries again.
-
-Once a walk is actually underway, `app/javascript/controllers/walking_controller.js` gives live
-turn-by-turn guidance (an arrow plus "turn left"/"turn right" instructions) by watching the
-phone's GPS and comparing it to the route as you go, and separately records breadcrumbs of where
-you actually walked so it can be compared to the suggested route afterward. It has a built-in
-dev-mode walk simulator (visit a walk's page with `?simulate=<speed multiplier>`, e.g.
-`?simulate=10`) that fakes movement along the route, so you can test the whole guidance experience
-without physically walking it.
-
-## Getting it running on your machine
-
-You'll need PostgreSQL installed with the PostGIS extension available (this is what lets the
-database handle map locations).
-
-```bash
-bin/setup            # installs everything the app needs and sets up the database
-bin/setup --reset    # same, but wipes and rebuilds the database from scratch
+Install gems
+```
+bundle install
 ```
 
-Open the `.env` file and add these keys:
-
+### ENV Variables
+Create `.env` file
 ```
-MAPBOX_ACCESS_TOKEN=your_token_here
-GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
+touch .env
 ```
-
-Without the Mapbox token, anything that creates journeys (like seeding sample data) won't work —
-the app needs it to ask Mapbox for real walking directions. The Google Places key is needed for
-looking up real nearby places when generating a themed route from the app itself (seeding doesn't
-use it). Getting a key means creating a Google Cloud project, enabling "Places API (New)", turning
-on billing, and creating a server-side API key restricted to that API.
-
-## Running the app day-to-day
-
-```bash
-bin/dev              # starts the app so you can view it in a browser
-bin/rails db:seed    # fills the database with sample data (uses the real Mapbox API, so it needs the token above)
+Inside `.env`, set these variables. For any API keys, see group Slack channel.
+```
+MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
+GOOGLE_PLACES_API_KEY=your_google_places_api_key
+CLOUDINARY_URL=your_own_cloudinary_url_key
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-## Checking your work before opening a PR
-
-```bash
-bin/rails test                              # runs all the automated tests
-bin/rails test test/models/walk_test.rb     # runs just one test file
-bin/rubocop                                 # checks code style/formatting
-bin/brakeman                                # scans for common security mistakes
-bin/bundler-audit                           # checks our dependencies for known vulnerabilities
+### DB Setup
+This app uses PostgreSQL with the PostGIS extension (needed for location/map data) — make sure PostGIS is installed before running this.
+```
+rails db:create
+rails db:migrate
+rails db:seed
 ```
 
-`bin/ci` runs everything above, plus a couple of extra checks, in one go — it's the same thing our
-CI pipeline runs automatically, so running it locally first can save you a round trip.
+### Run a server
+```
+rails s
+```
+(or `bin/dev`, which this repo also has set up as a shortcut for the same thing)
 
-## Working together on this repo
+## Built With
+- [Rails 8](https://guides.rubyonrails.org/) - Backend / Front-end
+- [Stimulus JS](https://stimulus.hotwired.dev/) - Front-end JS
+- [Heroku](https://heroku.com/) - Deployment
+- [PostgreSQL + PostGIS](https://postgis.net/) - Database
+- [Bootstrap](https://getbootstrap.com/) — Styling
+- [Mapbox](https://www.mapbox.com/) — Maps, walking directions, geocoding
+- [Google Places API](https://developers.google.com/maps/documentation/places/web-service) — Finding real nearby places for each route
 
-- Create a new branch for whatever you're working on, and open a Pull Request (PR) into `master`
-  when it's ready (or even partway done, as a "draft" PR, if you want early feedback).
-- In the PR description, explain *why* you made the change, not just *what* you changed — that's
-  the part that's hard to figure out later just by reading the code.
-- Before opening a PR, run `bin/rubocop` and `bin/rails test` locally so you're not waiting on CI to
-  tell you something's broken.
-- [`CLAUDE.md`](CLAUDE.md) has more in-depth technical notes about the codebase — worth a skim if
-  you want more detail than this file gives.
+## Acknowledgements
+
+Inspired by the walks we take when we don't really know where we want to go — only how we hope to feel when we come back.
+
+MoodWalk explores a different relationship with navigation: less about the fastest way from A to B, and more about slowing down, wandering, noticing, and rediscovering the world around us.
+
+## Team Members
+- [Matthew Hardcastle](https://www.linkedin.com/in/matthew-hardcastle-7762123aa/)
+- [Twinky Hung](https://www.linkedin.com/in/twinky-hung/)
+- [Yusuke Kamihanawa](https://www.linkedin.com/in/cura-yjk/)
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. See [`CLAUDE.md`](CLAUDE.md) for more in-depth technical notes about the codebase.
 
 ## License
-
-[MIT](LICENSE) — free to use, copy, modify, and share, including commercially, as long as the
-original copyright notice stays attached.
+This project is licensed under the MIT License
