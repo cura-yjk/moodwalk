@@ -8,6 +8,11 @@ class PoiSelector
   MAX_WAYPOINTS = 4
   CANDIDATES_PER_CATEGORY = 3
 
+  # Hard ceiling on the combination search's input size (see candidate_pool).
+  # 12 keeps it at 781 combinations - the bound the per-category cap alone used
+  # to imply back when themes had at most 4 categories.
+  MAX_POOL = 12
+
   # Combinations whose distance-fit differs by less than this fraction of the
   # target are treated as equally good on distance, so diversity can break
   # the tie between them - without this, two combos would need to land at
@@ -40,11 +45,45 @@ class PoiSelector
 
   private
 
-  # Cap candidates per category so the combination search below stays cheap -
-  # with up to 4 theme categories that's at most 12 candidates total.
+  # Cap the pool before the combination search below, which is O(pool^4) and
+  # so needs a bound that doesn't move when themes grow. Capping per category
+  # alone isn't enough: themes now carry 7-8 categories (see
+  # config/initializers/themes.rb), so CANDIDATES_PER_CATEGORY on its own
+  # allows a pool of 24, which is 12,926 combinations - roughly a second of
+  # pure CPU per attempt, and RouteBuilder retries up to MAX_ATTEMPTS times.
+  # MAX_POOL holds that at 781 combinations regardless of category count.
   def candidate_pool
-    @pois.group_by { |poi| poi[:category] }
-         .flat_map { |_category, group| group.sort_by { |poi| poi[:distance_meters] }.first(CANDIDATES_PER_CATEGORY) }
+    per_category = @pois.group_by { |poi| poi[:category] }
+                        .values
+                        .map { |group| group.sort_by { |poi| pool_fitness(poi) }.first(CANDIDATES_PER_CATEGORY) }
+
+    round_robin(per_category).first(MAX_POOL)
+  end
+
+  # Take one candidate from each category before taking a second from any, so
+  # that a cap which actually bites can't quietly collapse the pool onto a
+  # single category and take diversity off the table before scoring begins.
+  def round_robin(groups)
+    return [] if groups.empty?
+
+    groups.map(&:size).max.times.flat_map { |i| groups.filter_map { |group| group[i] } }
+  end
+
+  # How well a candidate suits the distance the user asked for. With a target,
+  # that's proximity to the radius a tour of that length wants its waypoints
+  # at - the same circle JourneyGenerator plants its synthetic waypoints on -
+  # so trimming the pool doesn't bias it toward POIs that are merely close by
+  # and leave a long walk with nothing far enough out to reach. With no target
+  # there's nothing to aim at, so nearest-first, as before.
+  def pool_fitness(poi)
+    return poi[:distance_meters] unless @target_distance_meters
+
+    (poi[:distance_meters] - ideal_waypoint_radius_meters).abs
+  end
+
+  def ideal_waypoint_radius_meters
+    @ideal_waypoint_radius_meters ||=
+      @round_trip ? @target_distance_meters / (2 * Math::PI) : @target_distance_meters / 2.0
   end
 
   def evaluate_combinations
@@ -57,11 +96,11 @@ class PoiSelector
   end
 
   def evaluate_combo(combo)
-    order = best_order(combo)
+    order, distance = best_order(combo)
 
     {
       order: order,
-      distance: tour_distance(order),
+      distance: distance,
       diversity: combo.map { |poi| poi[:category] }.uniq.size,
       spread: @round_trip ? bearing_spread(combo) : 0
     }
@@ -112,19 +151,15 @@ class PoiSelector
   end
 
   def bearing_from_start(poi)
-    lat1 = @lat * Math::PI / 180
-    lat2 = poi[:lat] * Math::PI / 180
-    d_lng = (poi[:lng] - @lng) * Math::PI / 180
-
-    y = Math.sin(d_lng) * Math.cos(lat2)
-    x = (Math.cos(lat1) * Math.sin(lat2)) - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(d_lng))
-    ((Math.atan2(y, x) * 180 / Math::PI) + 360) % 360
+    GeoDistance.bearing(@lat, @lng, poi[:lat], poi[:lng])
   end
 
   # Brute-force the visiting order that minimizes total tour distance. At most
   # 4 waypoints, so at most 24 permutations - cheap enough to just try them all.
+  # Returns [order, distance] so the caller doesn't have to re-measure the
+  # winner that was just measured here.
   def best_order(combo)
-    combo.permutation.min_by { |order| tour_distance(order) }
+    combo.permutation.map { |order| [order, tour_distance(order)] }.min_by(&:last)
   end
 
   # For a loop, the order that minimizes distance often visits the farthest
