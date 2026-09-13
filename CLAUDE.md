@@ -24,6 +24,14 @@ from the Mapbox Directions API, and real waypoints come from the Google Places A
   `bin/importmap audit`, brakeman, `bin/rails test`, then `db:seed:replant` in `RAILS_ENV=test` as a
   smoke test of `db/seeds.rb`. See `config/ci.rb`.
 - Seed the dev DB (also calls out to the live Mapbox API): `bin/rails db:seed`
+- Backfill missing journey neighborhood labels: `bin/rails journeys:backfill_location_names`
+  (one-off; `Journey#location_name` no longer geocodes lazily on read)
+
+GitHub Actions runs the same checks on push/PR (`.github/workflows/ci.yml`): a lint job
+(rubocop/brakeman/audits) and a test job against a `postgis` service container. The seed smoke test
+runs only on pushes, since it needs the real `MAPBOX_ACCESS_TOKEN` secret. Pre-existing structural
+rubocop offenses are tracked in `.rubocop_todo.yml` — remove entries as files are refactored rather
+than adding new ones.
 
 Requires a `MAPBOX_ACCESS_TOKEN` env var (see `.env`, loaded via `dotenv-rails` in dev/test) for
 anything that generates journeys (seeding, `JourneyGenerator`). Requires a `GOOGLE_PLACES_API_KEY`
@@ -34,9 +42,11 @@ Database is PostgreSQL with the `postgis` adapter (`activerecord-postgis-adapter
 
 ## Architecture
 
-**Domain model**: `User` -> has many `Walk`s. `Journey` -> has many `Walk`s. A `Journey` is a
-pre-generated walking route (polyline + distance/duration estimate), either a loop or one-way,
-anchored at a `start_point` (PostGIS `geography` point). A `Walk` is one user's attempt at a
+**Domain model**: `User` -> has many `Walk`s. `Journey` -> has many `Walk`s. `User` <-> `Journey`
+also join through `SavedJourney` (bookmarks; `user.saved_routes` / `journey.saved_by?(user)`), and a
+`Walk` has many `WalkTrackPoint`s (raw GPS breadcrumbs, collapsed into `Walk#actual_path` on
+completion). A `Journey` is a pre-generated walking route (polyline + distance/duration estimate),
+either a loop or one-way, anchored at a `start_point` (PostGIS `geography` point). A `Walk` is one user's attempt at a
 `Journey` (`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
 
 **Route generation, real POI-based (`RouteBuilder` -> `PoiFinder` -> `PoiSelector` ->
@@ -90,20 +100,31 @@ guidance on a waypoint already passed. Has a dev-mode walk simulator
 (`?simulate=<speed multiplier>` on a walk's show page, gated by `Rails.env.development?`) that
 fakes movement along the route, useful for testing guidance without physically walking it.
 
+**Shared helpers**: `GeoDistance` (`app/services/geo_distance.rb`) owns the great-circle math —
+`haversine`, `bearing`, `destination_point` — and `PolylineDecoder` owns encoded-polyline decoding;
+use these rather than re-deriving the formulas (they were previously duplicated across `Journey`,
+`PoiSelector` and `JourneyGenerator`). `ExternalApi` (`app/services/external_api.rb`) builds the
+Faraday connection for every third-party call, so they all carry timeouts — route new HTTP calls
+through it. `Walk::STEP_LENGTH_METERS` is the one step-length constant (mirrored in
+`walking_controller.js`); planned and actual step counts must divide by the same number.
+
 **Geospatial queries**: `Journey.near(lat, lng, radius_meters)` (`app/models/journey.rb`) does the
 PostGIS proximity query (`ST_DWithin` + distance ordering) — build lat/lng-radius searches on this
-scope rather than hand-rolling new geospatial SQL. Note the raw SQL interpolates `lng`/`lat` directly
-into the `ORDER BY` clause (not parameterized) — if reusing that pattern elsewhere with user input,
-parameterize it instead.
+scope rather than hand-rolling new geospatial SQL. The `ORDER BY` is built via `sanitize_sql_array` rather
+than interpolated, because `Arel.sql` switches off Rails' injection guard — keep it that way if you
+extend the scope.
 
-**Routing/controllers**: Journeys are only ever accessed as a nested resource under a `walk`'s
-creation flow (`/journeys/:journey_id/walks/new|create`); there is no top-level journeys index/show
-route or controller. `WalksController` otherwise exposes `show`, `index`, `edit`, `update`, and a
-member `complete` action. All walk lookups outside `create` are scoped through `current_user.walks`
-(never bare `Walk.find`) — preserve that scoping when adding actions. `ApplicationController`
-requires authentication (Devise `authenticate_user!`) on every action by default; controllers that
-need to be public must explicitly `skip_before_action :authenticate_user!` (see
-`PagesController#home`).
+**Routing/controllers**: `JourneysController` exposes only `create` plus member `save`/`highlights`;
+journeys are otherwise reached as a nested resource under a walk's creation flow
+(`/journeys/:journey_id/walks/new|create`) — there is no journeys index/show. `CommunityRoutesController`
+(`index`/`show`) is the browse surface, scoped through the `Journey.community` scope.
+`WalksController` exposes `show`, `index`, `edit`, `update` and members `complete`, `attach_photo`,
+`share`, `track`, `share_quote`, `memory`. **All walk lookups outside `create` are scoped through
+`current_user.walks`** (never bare `Walk.find`) — preserve that scoping when adding actions; a bare
+`Walk.find` in `share_quote` was a cross-user read/write hole, and
+`test/controllers/walks_controller_test.rb` now guards it. `ApplicationController` requires
+authentication (Devise `authenticate_user!`) on every action by default; controllers that need to be
+public must explicitly `skip_before_action :authenticate_user!` (see `PagesController#home`).
 
 **Auth**: Devise (`database_authenticatable, registerable, recoverable, rememberable, validatable`)
 on `User`. Sign-up/account-update permit an extra `name` param via
@@ -122,12 +143,17 @@ integration exists beyond it. Requires `OPENAI_API_KEY` (see `config/initializer
 
 ## Notes
 
-- Model/attribute naming has shifted recently: "routes" were renamed to "journeys" via migration
-  `db/migrate/20260825012336_rename_routes_to_journeys.rb`; a stale `test/models/route_test.rb`
-  still references the old name and should be renamed/updated, not treated as current.
+- Model/attribute naming has shifted: "routes" were renamed to "journeys" via migration
+  `db/migrate/20260825012336_rename_routes_to_journeys.rb`. The stale `test/models/route_test.rb`
+  and the dead `RoutesController` (which called a `pending_journeys` table dropped in
+  `db/migrate/20260831110924_drop_pending_journeys.rb`) have both been removed.
 - `bin/ci`'s seed-replant step means `db/seeds.rb` must stay runnable (and idempotent) against a
   real Mapbox token in CI.
-- `test/services` has real coverage for `PoiFinder`, `PoiSelector`, `RouteBuilder`, and
-  `JourneyGenerator` (added alongside the Google Places migration, using `webmock` to stub Mapbox/
-  Google HTTP calls). Other test directories are still mostly the default empty stubs Rails
-  generates — don't assume equivalent coverage exists elsewhere.
+- `test/fixtures` has `users`/`journeys`/`walks` fixtures (the `journeys` one writes its PostGIS
+  `start_point` as EWKT). Coverage: `test/services` for `PoiFinder`, `PoiSelector`, `RouteBuilder`,
+  `JourneyGenerator`; `test/models` for `Journey`, `Walk`, `User`, `SavedJourney`;
+  `test/controllers` for `WalksController` and `CommunityRoutesController`. `webmock` stubs all
+  outbound HTTP — a test that unexpectedly hits the network fails loudly, which is what keeps
+  `Journey#location_name` honest about not geocoding on read. Still uncovered: `RouteDescriber`,
+  `MapboxGeocoder`, `ShareQuoteGenerator`, `JourneyHighlightsGenerator`, `PagesController`,
+  `LocationsController`, and all JS.
