@@ -26,12 +26,12 @@ class PoiFinder
   private
 
   def fetch_category(category)
-    response = Faraday.post(NEARBY_SEARCH_URL) do |req|
+    response = ExternalApi.connection.post(NEARBY_SEARCH_URL) do |req|
       apply_headers(req)
       req.body = request_body(category).to_json
     end
 
-    body = JSON.parse(response.body)
+    body = ExternalApi.parse_json(response, service: "Google Places")
 
     # Google returns an "error" object instead of "places" when something's
     # wrong -- catch that explicitly rather than silently returning an empty list.

@@ -11,11 +11,6 @@ class LocationsController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
-  # Typeahead suggestions as the user types in the location search box.
-  def autocomplete
-    render json: { results: suggest(params[:query]) }
-  end
-
   private
 
   # `name` is already known when this comes from a picked autocomplete
@@ -48,7 +43,7 @@ class LocationsController < ApplicationController
   def suggest(query, limit: 5)
     return [] if query.blank?
 
-    response = Faraday.get(GEOCODE_URL) do |req|
+    response = ExternalApi.connection.get(GEOCODE_URL) do |req|
       req.params["q"] = query
       req.params["autocomplete"] = true
       req.params["limit"] = limit
@@ -56,7 +51,8 @@ class LocationsController < ApplicationController
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
 
-    JSON.parse(response.body)["features"].to_a.map { |feature| feature_to_suggestion(feature) }
+    ExternalApi.parse_json(response, service: "Mapbox Geocoding")["features"]
+               .to_a.map { |feature| feature_to_suggestion(feature) }
   end
 
   # Mapbox returns coordinates as [longitude, latitude] -- easy to mix up.
