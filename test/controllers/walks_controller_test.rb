@@ -33,6 +33,47 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
     assert_equal "A quiet hour by the river.", response.parsed_body["quote"]
   end
 
+  # The memory card renders an empty <p> and fills it from this endpoint, so a
+  # failing LLM used to leave the quote area permanently blank -- and returned
+  # the provider's raw error (API key fragments included) to the browser.
+  test "share_quote falls back to a plain quote when the LLM is unavailable" do
+    stub_openai_failure
+    walk = walks(:completed_walk)
+    walk.update!(share_quote: nil)
+
+    post share_quote_walk_path(walk), params: { mood_after: walk.mood_after, reflection: "x" }
+
+    assert_response :success
+    quote = response.parsed_body["quote"]
+    assert quote.present?, "the memory card must never be left with an empty quote"
+    assert_nil response.parsed_body["error"]
+    assert_no_match(/sk-|openai|api key/i, response.body, "must not leak provider detail to the client")
+  end
+
+  # share_quote is generated once and reused forever, so persisting a
+  # stand-in would permanently deny this walk a real quote.
+  test "share_quote does not persist the fallback" do
+    stub_openai_failure
+    walk = walks(:completed_walk)
+    walk.update!(share_quote: nil)
+
+    post share_quote_walk_path(walk), params: { mood_after: walk.mood_after }
+
+    assert_response :success
+    assert_nil walk.reload.share_quote, "the fallback must not be cached"
+  end
+
+  test "share_quote persists a real LLM quote" do
+    stub_openai_success("Cold air, and the river going the other way.")
+    walk = walks(:completed_walk)
+    walk.update!(share_quote: nil)
+
+    post share_quote_walk_path(walk), params: { mood_after: walk.mood_after }
+
+    assert_response :success
+    assert_equal "Cold air, and the river going the other way.", walk.reload.share_quote
+  end
+
   test "show refuses another user's walk" do
     get walk_path(walks(:other_users_walk))
 
@@ -138,4 +179,19 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
     assert walk.reload.completed_at.present?
   end
 
+  private
+
+  def stub_openai_failure
+    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+      .to_return(status: 429, headers: { "Content-Type" => "application/json" }, body: {
+        "error" => { "message" => "Incorrect API key provided: sk-proj-abc123" }
+      }.to_json)
+  end
+
+  def stub_openai_success(quote)
+    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+        "choices" => [{ "message" => { "content" => { quote: quote }.to_json } }]
+      }.to_json)
+  end
 end
