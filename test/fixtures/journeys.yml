@@ -1,0 +1,23 @@
+# encoded_polyline is the canonical Google-documented sample polyline, which
+# decodes to three points -- enough for route_coordinates/turn_waypoints to
+# have something real to chew on. start_point is written as EWKT; the postgis
+# adapter parses it into the geography(Point) column.
+meguro_loop:
+  name: Meguro River Loop
+  description: A quiet loop along the river.
+  encoded_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+  start_point: "SRID=4326;POINT(139.77 35.68)"
+  distance_meters: 2000
+  estimated_duration_seconds: 1500
+  estimated_steps: 2631
+  location_name: Meguro
+  theme_key: calm
+  recommendable: true
+
+# Deliberately missing distance/duration, to exercise the nil paths in
+# Journey#length_label, #duration_minutes and #distance_km.
+unmeasured:
+  name: Unmeasured Route
+  encoded_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+  start_point: "SRID=4326;POINT(139.70 35.66)"
+  recommendable: false

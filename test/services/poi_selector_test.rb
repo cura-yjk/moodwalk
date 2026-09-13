@@ -128,6 +128,56 @@ class PoiSelectorTest < ActiveSupport::TestCase
     assert_equal "Could not find a suitable set of waypoints", result.error
   end
 
+  # Regression test for the MAX_POOL cap. With 8 categories the raw pool is 24
+  # candidates, well over MAX_POOL, so the cap actually bites here. Trimming it
+  # nearest-first would keep only the close POIs and make a long walk
+  # unreachable - the pool has to stay biased toward the distance asked for.
+  test "with a long target, the pool cap keeps far candidates rather than the nearest ones" do
+    pois = 8.times.flat_map do |i|
+      category = "category-#{i}"
+      [
+        poi(id: "#{category}-near", category: category, distance_meters: 150, bearing: :north),
+        poi(id: "#{category}-near-2", category: category, distance_meters: 200, bearing: :east),
+        poi(id: "#{category}-far", category: category, distance_meters: 1400, bearing: i.even? ? :north : :south)
+      ]
+    end
+
+    target = 9000
+    result = PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: target, round_trip: true
+    ).call
+
+    assert result.success?
+    selected = result.waypoints.map { |wp| wp[:id] }
+
+    # The scorer may still mix in a nearer POI if that lands closer to the
+    # target - what must not happen is the cap discarding the far candidates
+    # outright, which would leave nothing able to reach 9km.
+    assert_operator selected.count { |id| id.end_with?("-far") }, :>=, 2,
+                    "expected the cap to retain the far candidates a #{target}m loop needs, got #{selected.inspect}"
+
+    # Deliberately not asserting the tour length here: best_order minimizes it,
+    # so a loop through waypoints on the ideal radius still comes in under the
+    # target. That tradeoff is the scorer's, and predates this cap.
+  end
+
+  test "the pool cap still leaves room for more than one category" do
+    pois = 8.times.flat_map do |i|
+      category = "category-#{i}"
+      3.times.map do |n|
+        poi(id: "#{category}-#{n}", category: category, distance_meters: 300 + (n * 50),
+            bearing: n.zero? ? :north : :east)
+      end
+    end
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois).call
+
+    assert result.success?
+    categories = result.waypoints.map { |wp| wp[:category] }.uniq
+    assert_operator categories.size, :>, 1,
+                    "capping the pool must not collapse it onto a single category"
+  end
+
   private
 
   def clustered_and_spread_pois

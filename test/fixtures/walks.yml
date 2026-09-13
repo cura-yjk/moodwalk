@@ -1,0 +1,23 @@
+completed_walk:
+  user: walker
+  journey: meguro_loop
+  started_at: <%= 2.days.ago.change(hour: 9) %>
+  completed_at: <%= 2.days.ago.change(hour: 10) %>
+  mood_before: Stressed
+  mood_after: Calm
+  actual_distance: 2.1
+  actual_steps: 2763
+
+in_progress_walk:
+  user: walker
+  journey: meguro_loop
+  started_at: <%= 10.minutes.ago %>
+
+# Belongs to the *other* user -- used to check cross-user access is refused.
+other_users_walk:
+  user: other
+  journey: meguro_loop
+  started_at: <%= 3.days.ago %>
+  completed_at: <%= 3.days.ago + 45.minutes %>
+  mood_after: Good
+  reflection: Something private.
