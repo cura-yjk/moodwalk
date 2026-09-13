@@ -42,6 +42,51 @@ class RouteDescriber
     actually there.
   PROMPT
 
+  # Plain-Ruby stand-in for when the LLM is unavailable (no credits, rate
+  # limited, timed out). A route's description is prose for a card -- losing
+  # it should cost the description, not the whole walk -- so RouteBuilder
+  # falls back to this rather than failing. It lives here, next to
+  # SYSTEM_PROMPT, because it has to obey the same tone rules: concrete and
+  # sensory, no cheerfulness, no pressure, nothing about how the reader
+  # feels, and -- like the prompt says -- no place names.
+  #
+  # Keyed on the Google place types in config/initializers/themes.rb; the
+  # values describe what's there, not what it's called.
+  # Each value is a single phrase with no internal "and", so they can be
+  # joined into a list without the sentence stacking conjunctions.
+  FEATURE_NOUNS = {
+    "park" => "trees", "city_park" => "trees", "national_park" => "trees",
+    "nature_preserve" => "trees", "wildlife_refuge" => "trees", "woods" => "trees",
+    "hiking_area" => "wooded paths",
+    "campground" => "open ground", "picnic_ground" => "open ground",
+    "playground" => "open ground",
+    "botanical_garden" => "planted beds", "garden" => "planted beds",
+    "lake" => "water", "beach" => "water", "marina" => "water",
+    "scenic_spot" => "a long view", "observation_deck" => "a long view",
+    "mountain_peak" => "higher ground",
+    "farmers_market" => "market stalls", "flea_market" => "market stalls",
+    "market" => "market stalls",
+    "bakery" => "a place to stop", "cafe" => "a place to stop",
+    "ice_cream_shop" => "a place to stop", "dessert_shop" => "a place to stop"
+  }.freeze
+
+  CLOSING_LINES = {
+    calm: "Mostly quiet streets in between.",
+    refresh: "Open air most of the way.",
+    cheerful: "A few things to look at along the way.",
+    recharge: "Green space, and wider paths."
+  }.freeze
+
+  GENERIC_DESCRIPTION = "A short walk through the streets nearby."
+
+  def self.fallback_for(theme_key:, waypoints:)
+    features = Array(waypoints).filter_map { |wp| FEATURE_NOUNS[wp[:category].to_s] }.uniq.first(3)
+    return GENERIC_DESCRIPTION if features.empty?
+
+    listed = features.to_sentence(two_words_connector: " and ", last_word_connector: " and ")
+    ["A walk past #{listed}.", CLOSING_LINES[theme_key.to_sym]].compact.join(" ")
+  end
+
   def initialize(theme_key:, waypoints:, target_distance_meters: nil)
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
