@@ -5,7 +5,7 @@
     <h2 class="journey-title editorial-title"><%= @journey.name %></h2>
     <p class="walk-stats fw-semibold fs-5">
       <% if @journey.estimated_duration_seconds %>
-        <%= @journey.estimated_duration_seconds / 60 %> min
+        <%= @journey.duration_minutes %> min
       <% else %>
         -- min
       <% end %>

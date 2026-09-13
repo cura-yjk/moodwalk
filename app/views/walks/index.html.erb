@@ -24,9 +24,9 @@
         <div class="exploration-map"
              data-controller="exploration-map"
              data-exploration-map-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>"
-             data-exploration-map-center-value="<%= @map_center.to_json %>"
+             data-exploration-map-center-value="<%= exploration_map_center(@walks).to_json %>"
              data-exploration-map-routes-value="<%= @map_routes.to_json %>"
-             data-exploration-map-photos-value="<%= @map_photo_points.to_json %>">
+             data-exploration-map-photos-value="<%= exploration_photo_points(@walks).to_json %>">
         </div>
       </div>
     <% end %>
@@ -51,7 +51,7 @@
     <% if @walks.empty? %>
       <p class="empty-state">No walks yet — head out and start your first one!</p>
     <% else %>
-      <% @grouped_walks.each do |section, walks_in_section| %>
+      <% group_walks_by_date(@walks).each do |section, walks_in_section| %>
         <h3 class="section-header"><%= section %></h3>
         <% walks_in_section.each do |walk| %>
           <%= render "walk_card", walk: walk, section: section %>

@@ -14,12 +14,12 @@
     <div class="route-detail-stats">
       <div class="route-detail-stat">
         <i class="fa-regular fa-clock"></i>
-        <span class="route-detail-stat-value"><%= @journey.estimated_duration_seconds / 60 %> min</span>
+        <span class="route-detail-stat-value"><%= @journey.duration_minutes %> min</span>
         <span class="route-detail-stat-label">Duration</span>
       </div>
       <div class="route-detail-stat">
         <i class="fa-solid fa-route"></i>
-        <span class="route-detail-stat-value"><%= (@journey.distance_meters / 1000.0).round(1) %> km</span>
+        <span class="route-detail-stat-value"><%= @journey.distance_km %> km</span>
         <span class="route-detail-stat-label">Distance</span>
       </div>
       <div class="route-detail-stat">
