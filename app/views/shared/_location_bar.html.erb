@@ -1,0 +1,39 @@
+<%# Current location, plus the controls to correct it.
+
+    Automatic detection lives on the same element (geolocation controller): it
+    gets the user's stored coordinates so it can tell whether a new fix is
+    actually different, rather than rewriting the record on every page load. %>
+<div class="location-bar"
+     data-controller="geolocation location-entry"
+     data-geolocation-lat-value="<%= current_user.current_latitude %>"
+     data-geolocation-lng-value="<%= current_user.current_longitude %>">
+
+  <div class="location-bar-current">
+    <i class="fa-solid fa-location-dot"></i>
+    <span class="location-bar-name">
+      <% if current_user.current_location_name.present? %>
+        Starting from <strong><%= current_user.current_location_name %></strong>
+      <% else %>
+        <strong>No location set yet</strong>
+      <% end %>
+    </span>
+    <button type="button" class="link-btn location-bar-change"
+            data-action="location-entry#toggle">Change</button>
+  </div>
+
+  <p class="location-bar-status" data-geolocation-target="status" hidden></p>
+
+  <form class="location-bar-form" data-location-entry-target="form"
+        data-action="submit->location-entry#submit"
+        hidden>
+    <label class="visually-hidden" for="location-query">Town, district or landmark</label>
+    <input type="text" id="location-query" class="form-control"
+           placeholder="Town, district or landmark"
+           autocomplete="off"
+           data-location-entry-target="input">
+    <button type="submit" class="btn btn-primary"
+            data-location-entry-target="submit">Use this place</button>
+  </form>
+
+  <p class="location-bar-error" data-location-entry-target="error" hidden></p>
+</div>
