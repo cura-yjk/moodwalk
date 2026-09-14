@@ -25,6 +25,30 @@ class ShareQuoteGenerator
       based only on the shift from mood_before to mood_after.
   PROMPT
 
+  # Plain-Ruby stand-in for when the LLM is unavailable, so the memory card
+  # shows something rather than an empty space. Obeys the same rules as
+  # SYSTEM_PROMPT: short, plain, never falsely cheerful, no pressure or guilt,
+  # no place names -- and, critically, it invents nothing. It only ever
+  # restates the moods the user logged themselves, which is what the prompt
+  # tells the model to fall back on when a reflection is too short to use.
+  QUOTE_BY_MOOD_AFTER = {
+    "Calm" => "The walk ended quieter than it started.",
+    "Good" => "A steadier finish than the start.",
+    "Energised" => "Moving helped.",
+    "Neutral" => "A walk, and then the rest of the day.",
+    "Stressed" => "Not every walk settles things. This one still happened."
+  }.freeze
+
+  GENERIC_QUOTE = "A walk, start to finish."
+
+  def self.fallback_for(mood_before:, mood_after:)
+    return QUOTE_BY_MOOD_AFTER.fetch(mood_after, GENERIC_QUOTE) if mood_before.blank? ||
+                                                                   mood_after.blank? ||
+                                                                   mood_before == mood_after
+
+    "Set out #{mood_before.downcase}. Finished #{mood_after.downcase}."
+  end
+
   def initialize(reflection:, mood_before:, mood_after:)
     @reflection = reflection.to_s
     @mood_before = mood_before

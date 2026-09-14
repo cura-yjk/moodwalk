@@ -70,6 +70,88 @@ class RouteBuilderTest < ActiveSupport::TestCase
     assert_not @builder.instance_variable_get(:@round_trip)
   end
 
+  # --- LLM off the critical path -------------------------------------------
+  #
+  # RouteDescriber used to run mid-pipeline and abort the build on failure, so
+  # an OpenAI outage took down route generation even with Google and Mapbox
+  # both healthy. These exercise #call end-to-end with the HTTP layer stubbed.
+
+  test "still returns a route when the LLM is unavailable" do
+    stub_happy_geo_apis
+    stub_openai_failure
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?, "an LLM outage must not fail a route: #{result.error}"
+    assert result.journey.present?
+    assert result.journey.description.present?, "expected a fallback description"
+  end
+
+  test "the fallback description follows the tone rules the prompt sets" do
+    stub_happy_geo_apis
+    stub_openai_failure
+
+    description = build_toward(duration_minutes: 30).journey.description
+
+    assert_no_match(/!/, description, "no exclamation points")
+    # The prompt forbids naming places; the POIs here are named "north"/"south".
+    assert_no_match(/north|south/i, description, "must not name specific places")
+    assert_operator description.split(/[.!?]/).reject(&:blank?).size, :<=, 2, "1-2 sentences"
+  end
+
+  # The LLM is no longer called during generation at all -- it was two thirds
+  # of a route's build time. JourneyDescriptionJob swaps the real description
+  # in afterwards (see test/jobs/journey_description_job_test.rb).
+  test "never calls the LLM during generation, even when it is available" do
+    stub_happy_geo_apis
+    stub_openai_success("Water on one side, trees on the other.")
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?
+    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_equal RouteDescriber.fallback_for(theme_key: :calm, waypoints: result.waypoints),
+                 result.journey.description
+  end
+
+  # The retry loop is where the LLM used to be called repeatedly -- once per
+  # attempt, with all but one description thrown away.
+  test "no LLM call however many attempts the retry loop takes" do
+    stub_happy_geo_apis(distance: 100_000) # nowhere near target -> forces every retry
+    stub_openai_success("A quiet stretch.")
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?
+    # Guard against this passing trivially: prove the retry loop really ran.
+    assert_requested :get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/},
+                     times: RouteBuilder::MAX_ATTEMPTS
+    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+  end
+
+  # Each category is fetched on its own thread now; they must all still arrive.
+  test "gathers every theme category despite fetching them concurrently" do
+    stub_happy_geo_apis
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?
+    THEMES[:calm][:categories].each do |category|
+      assert_requested :post, PoiFinder::NEARBY_SEARCH_URL,
+                       body: hash_including("includedTypes" => [category]), at_least_times: 1
+    end
+  end
+
+  test "a route-building failure still fails, and never reaches the LLM" do
+    stub_nearby_search_empty
+    stub_openai_success("unused")
+
+    result = build_toward(duration_minutes: 30)
+
+    assert_not result.success?
+    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+  end
+
   private
 
   def poi(id:, category:, distance_meters:, bearing:)
@@ -86,5 +168,56 @@ class RouteBuilderTest < ActiveSupport::TestCase
                        end
 
     { id: id, name: id, category: category, lat: poi_lat, lng: poi_lng, distance_meters: distance_meters }
+  end
+
+  def build_toward(duration_minutes:)
+    RouteBuilder.new(lat: 35.68, lng: 139.77, theme_key: :calm, duration_minutes: duration_minutes).call
+  end
+
+  # Two POIs spread north/south so PoiSelector yields a viable loop.
+  def stub_happy_geo_apis(distance: 2400.0)
+    THEMES[:calm][:categories].each do |category|
+      stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+        .with(body: hash_including("includedTypes" => [category]))
+        .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+          "places" => [
+            google_place(id: "#{category}-north", name: "north", lat: 35.6836, lng: 139.77),
+            google_place(id: "#{category}-south", name: "south", lat: 35.6764, lng: 139.77)
+          ]
+        }.to_json)
+    end
+
+    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse})
+      .to_return(status: 200, body: { "features" => [] }.to_json, headers: { "Content-Type" => "application/json" })
+
+    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/})
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+        "code" => "Ok",
+        "routes" => [{ "distance" => distance, "duration" => distance / 1.33,
+                       "geometry" => "encodedpolyline", "legs" => [{ "steps" => [] }] }]
+      }.to_json)
+  end
+
+  def stub_nearby_search_empty
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .to_return(status: 200, body: { "places" => [] }.to_json, headers: { "Content-Type" => "application/json" })
+  end
+
+  def stub_openai_failure
+    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+      .to_return(status: 429, headers: { "Content-Type" => "application/json" }, body: {
+        "error" => { "message" => "You have no credits remaining.", "code" => "credit_balance_exhausted" }
+      }.to_json)
+  end
+
+  def stub_openai_success(description)
+    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+        "choices" => [{ "message" => { "content" => { description: description }.to_json } }]
+      }.to_json)
+  end
+
+  def google_place(id:, name:, lat:, lng:)
+    { "id" => id, "displayName" => { "text" => name }, "location" => { "latitude" => lat, "longitude" => lng } }
   end
 end

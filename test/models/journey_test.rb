@@ -75,6 +75,47 @@ class JourneyTest < ActiveSupport::TestCase
     end
   end
 
+  # Regression: theme_tags renders Google place-type slugs ("Botanical
+  # garden") while HIGHLIGHT_PHRASES is keyed on mood words, so themed
+  # journeys resolved to zero highlights and the route preview rendered an
+  # empty list whenever the LLM-written highlights_text wasn't there.
+  test "a themed journey has highlights without needing the LLM" do
+    journey = journeys(:meguro_loop) # theme_key: calm
+    assert_nil journey.highlights_text
+
+    highlights = journey.highlights
+    assert_not_empty highlights, "themed journeys must resolve highlights from their categories"
+    assert(highlights.all? { |h| h[:icon].present? && h[:text].present? })
+  end
+
+  test "every theme resolves to at least one highlight" do
+    THEMES.each_key do |theme_key|
+      journey = Journey.new(theme_key: theme_key.to_s, name: "x", encoded_polyline: "x")
+      assert_not_empty journey.highlights, "#{theme_key} resolved to no highlights"
+    end
+  end
+
+  test "highlights fold in what the description mentions, on top of the categories" do
+    journey = journeys(:meguro_loop)
+    journey.description = "Old stone walls and a quiet lane."
+
+    texts = journey.highlights.map { |h| h[:text] }
+    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Quiet"][:text]
+  end
+
+  test "an unthemed journey still derives highlights from its text" do
+    journey = journeys(:unmeasured)
+    journey.description = "A path by the river, under the trees."
+
+    texts = journey.highlights.map { |h| h[:text] }
+    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Water"][:text]
+    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Nature"][:text]
+  end
+
+  test "highlights are capped at three" do
+    assert_operator journeys(:meguro_loop).highlights.size, :<=, 3
+  end
+
   test "saved_by? reflects whether the user bookmarked it" do
     journey = journeys(:meguro_loop)
     assert_not journey.saved_by?(users(:walker))

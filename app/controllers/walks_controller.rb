@@ -110,10 +110,22 @@ class WalksController < ApplicationController
       mood_after: params[:mood_after]
     ).call
 
-    return render json: { error: result.error }, status: :unprocessable_entity unless result.success?
+    if result.success?
+      walk.update(share_quote: result.quote)
+      return render json: { quote: result.quote }
+    end
 
-    walk.update(share_quote: result.quote)
-    render json: { quote: result.quote }
+    render json: { quote: fallback_quote_for(walk, result.error) }
+  end
+
+  # Deliberately NOT persisted: share_quote is generated once and reused
+  # forever after (see #share_quote), so caching a stand-in would freeze it in
+  # place and this walk would never get a real quote once the LLM is reachable
+  # again. The provider's error stays in the log rather than going to the
+  # browser, which used to hand the client raw OpenAI messages.
+  def fallback_quote_for(walk, error)
+    Rails.logger.warn("ShareQuoteGenerator unavailable (#{error}) - using fallback")
+    ShareQuoteGenerator.fallback_for(mood_before: walk.mood_before, mood_after: params[:mood_after])
   end
 
   def walk_params

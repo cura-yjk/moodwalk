@@ -1,0 +1,140 @@
+// Where a walk starts from (shared/_location_bar). Quiet until opened: it only
+// needs attention when detection is blocked or the place is wrong.
+.location-bar {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.location-bar-current {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.9375rem;
+  color: rgba($gray, 0.75);
+
+  strong {
+    color: $gray;
+    font-weight: 600;
+  }
+}
+
+.location-bar-pinned {
+  font-size: 0.8125rem;
+  color: rgba($gray, 0.55);
+}
+
+.location-pinned-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba($gray, 0.6);
+}
+
+.location-bar-change {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+// Only shown when automatic detection fails. Silent failure was the old
+// behaviour, and the reason a stale location looked like the app ignoring you.
+.location-bar-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: $orange;
+}
+
+.location-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+// The no-typing path, so it leads.
+.location-detect {
+  width: 100%;
+}
+
+.location-recents {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.location-recents-label {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba($gray, 0.55);
+}
+
+.location-recent {
+  border: 1px solid rgba($gray, 0.15);
+  background: $light-gray;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+  color: $gray;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba($gray, 0.4);
+  }
+}
+
+.location-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba($gray, 0.12);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.location-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+
+  // One highlight for both input methods: arrow keys and the pointer set the
+  // same state, so the list never shows two different "current" rows.
+  &.is-active {
+    background: $light-gray;
+  }
+}
+
+// Long result lists stay usable without pushing the page down.
+.location-results {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.location-result-name {
+  font-weight: 600;
+  color: $gray;
+}
+
+// The district line is the point of the list: it makes a wrong match obvious
+// before it is applied, rather than after.
+.location-result-context {
+  font-size: 0.8125rem;
+  color: rgba($gray, 0.6);
+}
+
+.location-result-empty {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  color: rgba($gray, 0.6);
+}
+
+.location-bar-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: $red;
+}

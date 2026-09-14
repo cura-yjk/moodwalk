@@ -1,0 +1,78 @@
+<%# Where a walk starts from, and the three ways to change it.
+
+    Ordered by effort: re-detect (no typing), a place you used recently (one
+    tap), then search (typing, and you pick from named results rather than the
+    app guessing). Automatic detection runs on the same element -- it is given
+    the stored coordinates so it can tell whether a new fix is actually
+    different, instead of rewriting the record on every page load. %>
+<div class="location-bar"
+     data-controller="geolocation location-entry"
+     data-geolocation-lat-value="<%= current_user.current_latitude %>"
+     data-geolocation-lng-value="<%= current_user.current_longitude %>"
+     data-geolocation-manual-value="<%= current_user.location_manually_set %>">
+
+  <div class="location-bar-current">
+    <i class="fa-solid fa-location-dot"></i>
+    <span class="location-bar-name">
+      <% if current_user.current_location_name.present? %>
+        Starting from <strong><%= current_user.current_location_name %></strong>
+        <%# Says why the app has stopped following you around, and the panel
+            below has the button that hands tracking back. %>
+        <% if current_user.location_manually_set %>
+          <span class="location-bar-pinned" title="Automatic detection is paused">· pinned</span>
+        <% end %>
+      <% else %>
+        <strong>No location set yet</strong>
+      <% end %>
+    </span>
+    <button type="button" class="link-btn location-bar-change"
+            data-action="location-entry#toggle">Change</button>
+  </div>
+
+  <p class="location-bar-status" data-geolocation-target="status" hidden></p>
+
+  <div class="location-panel" data-location-entry-target="panel" hidden>
+    <button type="button" class="btn btn-primary location-detect"
+            data-location-entry-target="detect"
+            data-action="location-entry#detect">Use my current location</button>
+    <% if current_user.location_manually_set %>
+      <p class="location-pinned-hint">
+        This place is pinned, so you won't be moved automatically. Use the button above to follow your location again.
+      </p>
+    <% end %>
+
+    <% recents = current_user.recent_locations_list %>
+    <% if recents.any? %>
+      <div class="location-recents">
+        <span class="location-recents-label">Recent</span>
+        <% recents.each do |place| %>
+          <button type="button" class="location-recent"
+                  data-action="location-entry#useRecent"
+                  data-name="<%= place[:name] %>"
+                  data-lat="<%= place[:lat] %>"
+                  data-lng="<%= place[:lng] %>"><%= place[:name] %></button>
+        <% end %>
+      </div>
+    <% end %>
+
+    <label class="visually-hidden" for="location-query">Search for a place</label>
+    <%# Combobox wiring: arrow keys move a highlight through the listbox while
+        focus stays here, so aria-activedescendant is what announces the
+        active option rather than focus moving into the list. %>
+    <input type="text" id="location-query" class="form-control location-search"
+           placeholder="Search a district or landmark"
+           autocomplete="off"
+           role="combobox"
+           aria-expanded="false"
+           aria-autocomplete="list"
+           aria-controls="location-results"
+           data-location-entry-target="input"
+           data-action="input->location-entry#search keydown->location-entry#navigate">
+
+    <ul class="location-results" id="location-results" role="listbox"
+        aria-label="Place suggestions"
+        data-location-entry-target="results" hidden></ul>
+  </div>
+
+  <p class="location-bar-error" data-location-entry-target="error" hidden></p>
+</div>

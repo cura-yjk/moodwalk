@@ -1,10 +1,19 @@
-# theme_key -> PoiFinder -> PoiSelector -> RouteDescriber -> JourneyGenerator.
-# Stops at the first stage that fails and surfaces that stage's error,
-# since "no parks nearby," "couldn't find a good waypoint combination,"
-# and "Mapbox couldn't route between these points" all need different
-# handling upstream.
+# theme_key -> PoiFinder -> PoiSelector -> JourneyGenerator -> RouteDescriber.
+#
+# Stops at the first *route-building* stage that fails and surfaces that
+# stage's error, since "no parks nearby," "couldn't find a good waypoint
+# combination," and "Mapbox couldn't route between these points" all need
+# different handling upstream.
+#
+# RouteDescriber is the exception, and runs last for that reason: it only
+# writes the card's prose, so it can't fail a route. It used to run in the
+# middle of the pipeline and abort the build, which meant an LLM outage took
+# down route generation entirely even while Google and Mapbox were healthy.
+# See #describe!.
 class RouteBuilder
-  Result = Struct.new(:success?, :journey, :error, keyword_init: true)
+  # waypoints ride along so the description can be written once, for the
+  # winning attempt only, after the retry loop has settled (see #call).
+  Result = Struct.new(:success?, :journey, :waypoints, :error, keyword_init: true)
 
   # Average adult walking speed, used to translate a chosen duration into a
   # target route distance (and, below, a POI search radius) to aim for.
@@ -35,17 +44,24 @@ class RouteBuilder
   end
 
   def call
-    return call_toward_target if @target_distance
-
-    poi_result = PoiFinder.new(lat: @lat, lng: @lng, categories: @theme[:categories]).call
-    return failure(poi_result.error) unless poi_result.success?
-
-    build_from(poi_result.pois)
+    result = @target_distance ? call_toward_target : attempt
+    apply_fallback_description(result) if result&.success?
+    result
   rescue ArgumentError => e
     failure(e.message)
   end
 
   private
+
+  # One pass of the pipeline at a given search radius. The retry loop below
+  # calls this repeatedly with a rescaled radius; with no target duration
+  # there's nothing to rescale toward, so it runs once at PoiFinder's default.
+  def attempt(radius = PoiFinder::DEFAULT_RADIUS_METERS)
+    poi_result = PoiFinder.new(lat: @lat, lng: @lng, categories: @theme[:categories], radius_meters: radius).call
+    return failure(poi_result.error) unless poi_result.success?
+
+    build_from(poi_result.pois)
+  end
 
   # A loop covers roughly the round trip of its farthest waypoint, so start
   # the search about half the target distance out, then rescale by how far
@@ -57,7 +73,7 @@ class RouteBuilder
     best = nil
 
     MAX_ATTEMPTS.times do |attempt|
-      result = attempt_toward_target(radius)
+      result = attempt(radius)
       best = pick_best(best, result)
       return best if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
 
@@ -86,13 +102,6 @@ class RouteBuilder
     (result.journey.distance_meters - @target_distance).abs
   end
 
-  def attempt_toward_target(radius)
-    poi_result = PoiFinder.new(lat: @lat, lng: @lng, categories: @theme[:categories], radius_meters: radius).call
-    return failure(poi_result.error) unless poi_result.success?
-
-    build_from(poi_result.pois)
-  end
-
   def on_target?(result)
     return false unless result.success?
 
@@ -108,17 +117,31 @@ class RouteBuilder
     radius * (@target_distance / result.journey.distance_meters)
   end
 
+  # Deliberately does NOT write the description. Mapbox rejects routes often
+  # enough (dead ends, u-turns, unroutable waypoints) that describing first
+  # meant paying for prose about routes that turned out not to exist - and
+  # this method runs once per retry attempt, so it also meant up to
+  # MAX_ATTEMPTS descriptions of which all but one were thrown away.
   def build_from(pois)
     selection = select_waypoints(pois)
     return failure(selection.error) unless selection.success?
 
-    description = describe(selection.waypoints)
-    return failure(description.error) unless description.success?
-
-    generation = generate_journey(selection.waypoints, description.description)
+    generation = generate_journey(selection.waypoints)
     return failure(generation.error) unless generation.success?
 
-    Result.new(success?: true, journey: generation.journey)
+    Result.new(success?: true, journey: generation.journey, waypoints: selection.waypoints)
+  end
+
+  # Every journey leaves here with a description, written in plain Ruby.
+  #
+  # The LLM is no longer called in the request at all: it was two thirds of a
+  # route's generation time (~3s of a ~4.5s build), it is the one dependency
+  # that can be down on its own while Google and Mapbox are fine, and nothing
+  # downstream needs its output. JourneyDescriptionJob replaces this text with
+  # the real description once the journey is saved -- see
+  # JourneysController#create.
+  def apply_fallback_description(result)
+    result.journey.description = RouteDescriber.fallback_for(theme_key: @theme_key, waypoints: result.waypoints)
   end
 
   # Try a loop first; only keep it if the real candidates actually spread out
@@ -143,16 +166,11 @@ class RouteBuilder
     )
   end
 
-  def describe(waypoints)
-    RouteDescriber.new(theme_key: @theme_key, waypoints: waypoints, target_distance_meters: @target_distance).call
-  end
-
-  def generate_journey(waypoints, description)
+  def generate_journey(waypoints)
     JourneyGenerator.new(
       lat: @lat,
       lng: @lng,
       waypoints: waypoints,
-      description: description,
       theme_key: @theme_key,
       name: @theme[:label],
       round_trip: @round_trip

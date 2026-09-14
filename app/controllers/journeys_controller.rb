@@ -17,6 +17,9 @@ class JourneysController < ApplicationController
       redirect_to new_journey_walk_path(fallback_journey)
     else
       result.journey.save
+      # The journey already carries a readable fallback description; this
+      # swaps in the LLM-written one without making the user wait for it.
+      JourneyDescriptionJob.perform_later(result.journey, result.waypoints) if result.journey.persisted?
       redirect_to new_journey_walk_path(result.journey)
     end
   end
