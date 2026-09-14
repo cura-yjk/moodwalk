@@ -12,9 +12,13 @@ const LAST_SYNC_KEY = "moodwalk:location-synced-at"
 
 export default class extends Controller {
   static targets = ["status"]
-  static values = { lat: Number, lng: Number }
+  static values = { lat: Number, lng: Number, manual: Boolean }
 
   connect() {
+    // A place the user picked stays picked. Detection used to overwrite it on
+    // the next page load, because a chosen location was indistinguishable from
+    // a stale one. "Use my current location" is the way back to tracking.
+    if (this.manualValue) return
     if (!("geolocation" in navigator)) return this.showStatus("This browser can't detect your location.")
     if (this.syncedRecently()) return
 
