@@ -45,7 +45,7 @@ class RouteBuilder
 
   def call
     result = @target_distance ? call_toward_target : attempt
-    describe!(result) if result&.success?
+    apply_fallback_description(result) if result&.success?
     result
   rescue ArgumentError => e
     failure(e.message)
@@ -132,18 +132,15 @@ class RouteBuilder
     Result.new(success?: true, journey: generation.journey, waypoints: selection.waypoints)
   end
 
-  # The description is prose for a card, and the LLM is the one dependency
-  # here that can be down on its own (no credits, rate limited, timed out)
-  # while Google and Mapbox are both fine. Losing it costs the description,
-  # never the walk - so this writes a plain-Ruby description instead and
-  # logs, rather than throwing away a route that is already built.
-  def describe!(result)
-    described = RouteDescriber.new(
-      theme_key: @theme_key, waypoints: result.waypoints, target_distance_meters: @target_distance
-    ).call
-    return result.journey.description = described.description if described.success?
-
-    Rails.logger.warn("RouteBuilder: LLM description unavailable (#{described.error}) - using fallback")
+  # Every journey leaves here with a description, written in plain Ruby.
+  #
+  # The LLM is no longer called in the request at all: it was two thirds of a
+  # route's generation time (~3s of a ~4.5s build), it is the one dependency
+  # that can be down on its own while Google and Mapbox are fine, and nothing
+  # downstream needs its output. JourneyDescriptionJob replaces this text with
+  # the real description once the journey is saved -- see
+  # JourneysController#create.
+  def apply_fallback_description(result)
     result.journey.description = RouteDescriber.fallback_for(theme_key: @theme_key, waypoints: result.waypoints)
   end
 

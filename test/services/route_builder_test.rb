@@ -99,20 +99,24 @@ class RouteBuilderTest < ActiveSupport::TestCase
     assert_operator description.split(/[.!?]/).reject(&:blank?).size, :<=, 2, "1-2 sentences"
   end
 
-  test "uses the LLM description when the LLM is available" do
+  # The LLM is no longer called during generation at all -- it was two thirds
+  # of a route's build time. JourneyDescriptionJob swaps the real description
+  # in afterwards (see test/jobs/journey_description_job_test.rb).
+  test "never calls the LLM during generation, even when it is available" do
     stub_happy_geo_apis
     stub_openai_success("Water on one side, trees on the other.")
 
     result = build_toward(duration_minutes: 30)
 
     assert result.success?
-    assert_equal "Water on one side, trees on the other.", result.journey.description
+    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_equal RouteDescriber.fallback_for(theme_key: :calm, waypoints: result.waypoints),
+                 result.journey.description
   end
 
-  # Previously build_from described every attempt, so a 3-attempt request paid
-  # for 3 descriptions and discarded 2. The description now runs once, on the
-  # attempt that actually won.
-  test "describes only the winning attempt, however many attempts it took" do
+  # The retry loop is where the LLM used to be called repeatedly -- once per
+  # attempt, with all but one description thrown away.
+  test "no LLM call however many attempts the retry loop takes" do
     stub_happy_geo_apis(distance: 100_000) # nowhere near target -> forces every retry
     stub_openai_success("A quiet stretch.")
 
@@ -122,7 +126,20 @@ class RouteBuilderTest < ActiveSupport::TestCase
     # Guard against this passing trivially: prove the retry loop really ran.
     assert_requested :get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/},
                      times: RouteBuilder::MAX_ATTEMPTS
-    assert_requested :post, "https://api.openai.com/v1/chat/completions", times: 1
+    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+  end
+
+  # Each category is fetched on its own thread now; they must all still arrive.
+  test "gathers every theme category despite fetching them concurrently" do
+    stub_happy_geo_apis
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?
+    THEMES[:calm][:categories].each do |category|
+      assert_requested :post, PoiFinder::NEARBY_SEARCH_URL,
+                       body: hash_including("includedTypes" => [category]), at_least_times: 1
+    end
   end
 
   test "a route-building failure still fails, and never reaches the LLM" do

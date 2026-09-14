@@ -51,9 +51,15 @@ Rails.application.configure do
   config.cache_store = :solid_cache_store
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
-  # config.active_job.queue_adapter = :solid_queue
-  # config.solid_queue.connects_to = { database: { writing: :queue } }
-  config.active_job.queue_adapter = :inline
+  #
+  # Not :inline -- that runs perform_later synchronously inside the request,
+  # which would put JourneyDescriptionJob's LLM call (two thirds of a route's
+  # build time) straight back on the critical path it was moved off.
+  #
+  # Requires SOLID_QUEUE_IN_PUMA=true so the supervisor runs inside the web
+  # process (see config/puma.rb), or a separate `bin/jobs` worker.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
