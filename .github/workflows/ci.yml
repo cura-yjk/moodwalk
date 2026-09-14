@@ -10,7 +10,7 @@ jobs:
     name: Lint & security
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -53,7 +53,7 @@ jobs:
       DATABASE_URL: postgis://postgres:postgres@localhost:5432/moodwalk_test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install PostgreSQL client libraries
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev
@@ -106,7 +106,7 @@ jobs:
       MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install PostgreSQL client libraries
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev
