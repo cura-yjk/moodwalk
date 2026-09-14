@@ -36,7 +36,7 @@
                         <div class="card-title-row">
                           <h4><%= journey.name %></h4>
                           <% if journey.estimated_duration_seconds.present? %>
-                            <span class="card-duration"><%= (journey.estimated_duration_seconds / 60.0).round %> min</span>
+                            <span class="card-duration"><%= journey.duration_minutes %> min</span>
                           <% end %>
                         </div>
                         <p>

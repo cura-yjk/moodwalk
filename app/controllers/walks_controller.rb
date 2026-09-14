@@ -1,10 +1,12 @@
 class WalksController < ApplicationController
   def attach_photo
     @walk = current_user.walks.find(params[:id])
-    @walk.update(walk_params)
-    head :ok
-  rescue StandardError => e
-    render json: { error: e.message }, status: :unprocessable_entity
+
+    if @walk.update(walk_params)
+      head :ok
+    else
+      render json: { error: @walk.errors.full_messages.to_sentence }, status: :unprocessable_entity
+    end
   end
 
   # Receives a batch of GPS breadcrumbs from walking_controller.js while a walk
@@ -13,7 +15,7 @@ class WalksController < ApplicationController
   # Walk#finalize_actual_path! when the walk completes.
   def track
     walk = current_user.walks.find(params[:id])
-    rows = breadcrumb_rows(walk)
+    rows = WalkTrackPoint.rows_for(walk, breadcrumb_params[:points])
 
     WalkTrackPoint.insert_all(rows) if rows.any?
     head :no_content
@@ -22,7 +24,7 @@ class WalksController < ApplicationController
   def new
     @journey = Journey.find(params[:journey_id])
     @alternate_journey = @journey.alternate
-    @journey_saved = current_user.saved_journeys.exists?(journey: @journey)
+    @journey_saved = @journey.saved_by?(current_user)
   end
 
   def create
@@ -48,17 +50,14 @@ class WalksController < ApplicationController
       @saved_journeys = current_user.saved_routes
     else
       @walks = current_user.walks.includes(:journey, photo_attachment: :blob).order(started_at: :desc)
-      @grouped_walks = group_walks_by_date(@walks)
       @stats = Walk.lifetime_stats(@walks)
-      @map_center = exploration_map_center(@walks)
       @map_routes = @walks.map { |walk| walk.journey.route_coordinates }.uniq
-      @map_photo_points = exploration_photo_points(@walks)
     end
   end
 
   def edit
     @walk = current_user.walks.find(params[:id])
-    @journey_saved = current_user.saved_journeys.exists?(journey: @walk.journey)
+    @journey_saved = @walk.journey.saved_by?(current_user)
   end
 
   def update
@@ -76,11 +75,9 @@ class WalksController < ApplicationController
 
   def complete
     @walk = current_user.walks.find(params[:id])
-    @walk.finalize_actual_path!
-    @walk.update(
-      completed_at: Time.current,
-      actual_steps: complete_params[:actual_steps].presence || @walk.journey.estimated_steps,
-      actual_distance: complete_params[:actual_distance].presence || journey_distance_km(@walk.journey)
+    @walk.finalize_actual_path!(
+      fallback_distance_km: complete_params[:actual_distance].presence,
+      fallback_steps: complete_params[:actual_steps].presence
     )
     redirect_to edit_walk_path(@walk)
   end
@@ -94,7 +91,7 @@ class WalksController < ApplicationController
   end
 
   def share_quote
-    walk = Walk.find(params[:id])
+    walk = current_user.walks.find(params[:id])
 
     # Generated once per walk and persisted -- the LLM isn't deterministic,
     # so without this, revisiting the memory page would show a different
@@ -113,12 +110,10 @@ class WalksController < ApplicationController
       mood_after: params[:mood_after]
     ).call
 
-    if result.success?
-      walk.update(share_quote: result.quote)
-      render json: { quote: result.quote }
-    else
-      render json: { error: result.error }, status: :unprocessable_entity
-    end
+    return render json: { error: result.error }, status: :unprocessable_entity unless result.success?
+
+    walk.update(share_quote: result.quote)
+    render json: { quote: result.quote }
   end
 
   def walk_params
@@ -126,43 +121,18 @@ class WalksController < ApplicationController
   end
 
   # Breadcrumb batch posted by walking_controller.js#flushBreadcrumbs. `points`
-  # is a plain JSON array; each entry carries what the browser's Geolocation API
-  # gave us for one fix. insert_all needs uniform keys and won't set timestamps,
-  # so every row is normalized in breadcrumb_row.
-  def breadcrumb_rows(walk)
-    now = Time.current
-    permitted = params.permit(points: %i[latitude longitude accuracy_meters recorded_at])
-
-    Array(permitted[:points]).filter_map do |point|
-      next if point[:latitude].blank? || point[:longitude].blank?
-
-      breadcrumb_row(point, walk, now)
-    end
+  # is a plain JSON array; each entry carries what the browser's Geolocation
+  # API gave us for one fix (see WalkTrackPoint.rows_for).
+  def breadcrumb_params
+    params.permit(points: %i[latitude longitude accuracy_meters recorded_at])
   end
 
-  def breadcrumb_row(point, walk, now)
-    {
-      walk_id: walk.id,
-      latitude: point[:latitude],
-      longitude: point[:longitude],
-      accuracy_meters: point[:accuracy_meters].presence,
-      recorded_at: point[:recorded_at].presence || now,
-      created_at: now,
-      updated_at: now
-    }
-  end
   # Real distance/steps tracked client-side over the course of the walk (see
   # walking_controller.js#updateTraveledFields). Blank when GPS tracking never
   # ran (e.g. geolocation unsupported, or the dev-only ?arrived= shortcut) --
   # #complete falls back to the journey's planned distance/steps in that case.
   def complete_params
     params.require(:walk).permit(:actual_distance, :actual_steps)
-  end
-
-  def journey_distance_km(journey)
-    return nil unless journey.distance_meters
-
-    (journey.distance_meters / 1000.0).round(2)
   end
 
   def share_params
@@ -173,54 +143,11 @@ class WalksController < ApplicationController
 
   # The "Start walking" form carries along whatever mood the user last
   # picked in the homepage check-in (see mood_checkin_controller.js), as a
-  # plain hidden field -- not a real form the user fills in, so validate it
-  # against the known mood set rather than trusting it outright.
+  # plain hidden field -- not a real form the user fills in, so drop anything
+  # unrecognized here rather than letting it fail the Walk mood validation and
+  # block the walk from starting at all.
   def sanitized_mood_before
     mood = params.dig(:walk, :mood_before)
-    mood if ApplicationHelper::MOOD_ICONS.key?(mood)
-  end
-
-  # Centers the walks#index exploration map on the user's current location
-  # when we have one, falling back to the most recent walk's journey so the
-  # map still lands somewhere sensible for users without a stored location.
-  def exploration_map_center(walks)
-    if current_user.current_longitude && current_user.current_latitude
-      [current_user.current_longitude, current_user.current_latitude]
-    else
-      walks.first&.journey&.start_coordinates
-    end
-  end
-
-  def exploration_photo_points(walks)
-    walks.select { |walk| walk.photo.attached? }.map do |walk|
-      lng, lat = walk.photo_coordinates
-      { lng: lng, lat: lat, photo_url: url_for(walk.photo) }
-    end
-  end
-
-  def group_walks_by_date(walks)
-    today = Date.current
-    yesterday = today - 1.day
-    this_week_range = today.beginning_of_week..today.end_of_week
-    last_week_range = (today.beginning_of_week - 1.week)..(today.beginning_of_week - 1.day)
-
-    walks.group_by do |walk|
-      walk_date = walk.started_at.to_date
-
-      if walk_date == today
-        "Today"
-      elsif walk_date == yesterday
-        "Yesterday"
-      elsif this_week_range.cover?(walk_date)
-        "This week"
-      elsif last_week_range.cover?(walk_date)
-        "Last week"
-      else
-        # Falls back to a month name for anything older — this single line
-        # handles all of history without ever needing a new elsif branch,
-        # no matter how far back a walk happened.
-        walk_date.strftime("%B %Y") # e.g. "July 2026"
-      end
-    end
+    mood if Walk::MOODS.include?(mood)
   end
 end

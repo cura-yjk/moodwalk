@@ -25,10 +25,36 @@ class Journey < ApplicationRecord
     limit ? scope.limit(limit) : scope
   end
 
+  # The newest shared photo, read off the walks association rather than
+  # queried. community_photos applies a join/order/limit, which forces a fresh
+  # query per journey and so silently defeats an eager load -- this is the form
+  # to use anywhere a list of journeys has already preloaded its walks (see
+  # CommunityRoutesController#index).
+  def latest_community_photo
+    walks.select { |walk| walk.shared? && walk.photo.attached? }
+         .max_by { |walk| walk.completed_at || walk.shared_at }
+         &.photo
+  end
+
+  # Both of these columns are nullable, and every card in the app renders them
+  # -- so the nil handling lives here once rather than in each view.
+  def duration_minutes
+    estimated_duration_seconds && (estimated_duration_seconds / 60.0).round
+  end
+
+  def distance_km
+    distance_meters && (distance_meters / 1000.0).round(1)
+  end
+
+  # Ranges are half-open so 1500 doesn't match two branches, and an unknown
+  # distance returns nil rather than falling through to "Hard" -- a journey we
+  # can't measure isn't the hardest one, it's simply unlabelled.
   def length_label
+    return nil if distance_meters.nil?
+
     case distance_meters
-    when 0..1500 then "Easy"
-    when 1500..4000 then "Medium"
+    when 0...1500 then "Easy"
+    when 1500...4000 then "Medium"
     else "Hard"
     end
   end
@@ -49,7 +75,10 @@ class Journey < ApplicationRecord
     others = Journey.where.not(id: id)
     others = others.where(estimated_duration_seconds: ..estimated_duration_seconds) if estimated_duration_seconds
 
-    others.where(theme_key: theme_key).sample || others.sample
+    # .sample isn't a relation method -- it would load every matching journey
+    # into memory just to discard all but one. Let the database pick.
+    random = ->(scope) { scope.order(Arel.sql("RANDOM()")).first }
+    random.call(others.where(theme_key: theme_key)) || random.call(others)
   end
 
   def saved_by?(user)
@@ -57,21 +86,34 @@ class Journey < ApplicationRecord
   end
 
   # Neighborhood/district label for the card UI (e.g. "Meguro"). Set at
-  # creation time by JourneyGenerator for new journeys; backfilled lazily
-  # and cached here for journeys created before that column existed.
+  # creation time by JourneyGenerator.
+  #
+  # This used to reverse-geocode lazily on read for journeys predating the
+  # column, which meant a blocking Mapbox round trip plus an UPDATE per card
+  # while rendering a list of them. Backfill instead:
+  #   bin/rails journeys:backfill_location_names
+  # Anything still missing falls back to the generic label rather than going
+  # to the network mid-render.
+  FALLBACK_LOCATION_NAME = "Nearby"
+
   def location_name
-    super || begin
-      name = MapboxGeocoder.reverse(start_point.y, start_point.x)
-      update_column(:location_name, name) if name
-      name
-    end
+    super.presence || FALLBACK_LOCATION_NAME
   end
 
-  # find routes within `radius_meters` of a point, closest first
+  # find routes within `radius_meters` of a point, closest first.
+  #
+  # The ORDER BY is bound through sanitize_sql_array rather than interpolated:
+  # Arel.sql marks a string as trusted and switches off Rails' own injection
+  # guard, so anything reaching it has to be sanitized here instead. Callers
+  # currently pass float columns, but this is a public scope -- one caller
+  # handing it params[:lat] shouldn't be all it takes.
   scope :near, lambda { |lat, lng, radius_meters = 3000|
-    point = RGeo::Geographic.spherical_factory(srid: 4326).point(lng, lat)
+    distance_order = sanitize_sql_array(
+      ["start_point <-> ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography", lng.to_f, lat.to_f]
+    )
+
     where("ST_DWithin(start_point, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)", lng, lat, radius_meters)
-      .order(Arel.sql("start_point <-> ST_SetSRID(ST_MakePoint(#{lng}, #{lat}), 4326)::geography"))
+      .order(Arel.sql(distance_order))
   }
 
   PLACE_IMAGES = {
@@ -105,25 +147,11 @@ class Journey < ApplicationRecord
 
   # decodes `encoded_polyline` (Google/Mapbox encoded polyline, precision 5) into
   # [lng, lat] pairs, ready to drop into a GeoJSON LineString for Mapbox GL.
-  # rubocop:disable Metrics/MethodLength
+  # Memoized: decoding walks the string character by character, and loop? alone
+  # asks for it twice.
   def route_coordinates
-    coordinates = []
-    index = 0
-    lat = 0
-    lng = 0
-
-    while index < encoded_polyline.length
-      delta, index = decode_polyline_value(encoded_polyline, index)
-      lat += delta
-      delta, index = decode_polyline_value(encoded_polyline, index)
-      lng += delta
-
-      coordinates << [lng / 1e5, lat / 1e5]
-    end
-
-    coordinates
+    @route_coordinates ||= PolylineDecoder.decode(encoded_polyline)
   end
-  # rubocop:enable Metrics/MethodLength
 
   def start_coordinates
     [start_point.x, start_point.y]
@@ -134,8 +162,9 @@ class Journey < ApplicationRecord
   # since round_trip isn't persisted -- a small tolerance absorbs Mapbox's start/end snapping
   # to the nearest walkable path (a few meters), well under the length of any real one-way leg.
   def loop?
-    start_lng, start_lat = route_coordinates.first
-    end_lng, end_lat = route_coordinates.last
+    coords = route_coordinates
+    start_lng, start_lat = coords.first
+    end_lng, end_lat = coords.last
     (start_lng - end_lng).abs < 0.0005 && (start_lat - end_lat).abs < 0.0005
   end
 
@@ -195,31 +224,9 @@ class Journey < ApplicationRecord
     matched.presence || ["Walk"]
   end
 
-  # decodes one zigzag-encoded varint starting at `index`, returning [value, next_index]
-  # rubocop:disable Metrics/MethodLength
-  def decode_polyline_value(encoded, index)
-    shift = 0
-    result = 0
-    loop do
-      byte = encoded[index].ord - 63
-      index += 1
-      result |= (byte & 0x1f) << shift
-      shift += 5
-      break if byte < 0x20
-    end
-
-    value = result.nobits?(1) ? (result >> 1) : ~(result >> 1)
-    [value, index]
-  end
-
-  # rubocop:enable Metrics/MethodLength
+  # `from`/`to` are [lng, lat] pairs, the shape route_coordinates yields.
   def bearing(from, to)
-    lat1 = from[1] * Math::PI / 180
-    lat2 = to[1] * Math::PI / 180
-    dlng = (to[0] - from[0]) * Math::PI / 180
-    y = Math.sin(dlng) * Math.cos(lat2)
-    x = (Math.cos(lat1) * Math.sin(lat2)) - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(dlng))
-    ((Math.atan2(y, x) * 180 / Math::PI) + 360) % 360
+    GeoDistance.bearing(from[1], from[0], to[1], to[0])
   end
 
   def angle_delta(bearing_in, bearing_out)

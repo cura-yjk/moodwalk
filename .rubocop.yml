@@ -1,3 +1,5 @@
+inherit_from: .rubocop_todo.yml
+
 AllCops:
   NewCops: enable
   Exclude:
@@ -9,6 +11,10 @@ AllCops:
     - 'support/**/*'
     - 'tmp/**/*'
     - 'test/**/*'
+    # CI installs gems here (actions/setup-ruby bundler-cache), and without
+    # this rubocop lints every gem in the bundle. Invisible locally, where
+    # gems live outside the project.
+    - 'vendor/**/*'
 
 Style/ConditionalAssignment:
   Enabled: false

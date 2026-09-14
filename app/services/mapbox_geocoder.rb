@@ -8,12 +8,16 @@ class MapboxGeocoder
   def self.reverse(latitude, longitude)
     features = fetch_features(latitude, longitude)
     clean_name(features) || features.first&.dig("properties", "place_formatted")
-  rescue StandardError
+  rescue StandardError => e
+    # A missing label is cosmetic (callers fall back to "Nearby"), so this
+    # stays non-fatal -- but log it, or a timing out/misconfigured geocoder
+    # looks identical to a point that genuinely has no name.
+    Rails.logger.warn("MapboxGeocoder.reverse failed: #{e.class}: #{e.message}")
     nil
   end
 
   def self.fetch_features(latitude, longitude)
-    response = Faraday.get(REVERSE_GEOCODE_URL) do |req|
+    response = ExternalApi.connection.get(REVERSE_GEOCODE_URL) do |req|
       req.params["longitude"] = longitude
       req.params["latitude"] = latitude
       req.params["language"] = "en"
@@ -21,7 +25,7 @@ class MapboxGeocoder
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
 
-    JSON.parse(response.body)["features"].to_a
+    ExternalApi.parse_json(response, service: "Mapbox Geocoding")["features"].to_a
   end
   private_class_method :fetch_features
 

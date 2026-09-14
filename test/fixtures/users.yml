@@ -1,0 +1,16 @@
+# Password is "password123" for both; sign in with
+#   sign_in users(:walker)  (Devise::Test::IntegrationHelpers)
+walker:
+  name: Walker One
+  email: walker@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  current_latitude: 35.68
+  current_longitude: 139.77
+  current_location_name: Meguro
+
+# A second signed-in user, for checking that one user's records aren't
+# reachable from another's session.
+other:
+  name: Walker Two
+  email: other@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>

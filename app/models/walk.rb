@@ -1,7 +1,17 @@
 class Walk < ApplicationRecord
   # Average meters per step -- converts a walked distance into a rough step
-  # count. Kept in sync with STEP_LENGTH_METERS in walking_controller.js.
+  # count. The single source of truth for this: JourneyGenerator uses it for a
+  # journey's *planned* steps and finalize_actual_path! for the *actual* ones,
+  # so the two must divide by the same number or every walk reports a step
+  # delta it didn't really have. Mirrored (deliberately) as STEP_LENGTH_METERS
+  # in walking_controller.js, which counts steps live during the walk.
   STEP_LENGTH_METERS = 0.76
+
+  # The moods a walk can be tagged with, before and after. Lives here rather
+  # than in ApplicationHelper so the model can validate against it and the
+  # controller doesn't have to reach into a view helper's constant -- the
+  # helper's icon map keys off this list (see ApplicationHelper::MOOD_ICONS).
+  MOODS = %w[Stressed Neutral Calm Good Energised].freeze
 
   belongs_to :user
   belongs_to :journey
@@ -13,6 +23,13 @@ class Walk < ApplicationRecord
 
   validates :rating, inclusion: { in: 1..5 }, allow_nil: true
 
+  # Both moods arrive from hidden fields set by JS rather than from a form the
+  # user fills in, so they're validated rather than trusted. Without this an
+  # arbitrary mood_after persists and then raises in the views that render its
+  # icon, locking the user out of their own walk list.
+  validates :mood_before, :mood_after, inclusion: { in: MOODS }, allow_nil: true
+
+  scope :completed, -> { where.not(completed_at: nil) }
   scope :shared, -> { where.not(shared_at: nil) }
   scope :with_photo, -> { joins(:photo_attachment) }
   scope :recent_with_photo, -> { shared.with_photo.order(completed_at: :desc) }
@@ -46,18 +63,23 @@ class Walk < ApplicationRecord
 
   # Called when the walk ends (WalksController#complete). Collapses the raw GPS
   # breadcrumbs into a single geography(LineString) on actual_path and fills in
-  # the real distance/step totals. With fewer than 2 usable points (location
-  # denied, desktop browser, very short walk) it falls back to the journey's
-  # estimates so the completion screen still has numbers to show.
-  def finalize_actual_path!
+  # the real distance/step totals.
+  #
+  # The server-derived totals win when we have a real tracked line -- they're
+  # measured off the recorded path rather than accumulated client-side. With
+  # fewer than 2 usable points (location denied, desktop browser, very short
+  # walk) there's nothing to measure, so it falls back to whatever the client
+  # counted, and finally to the journey's own estimates, so the completion
+  # screen always has numbers to show.
+  def finalize_actual_path!(fallback_distance_km: nil, fallback_steps: nil)
     line = tracked_line_string
     meters = line&.length # spherical factory reports length in meters
 
     update!(
       completed_at: Time.current,
       actual_path: line,
-      actual_distance: meters ? (meters / 1000.0).round(2) : estimated_distance_km,
-      actual_steps: meters ? (meters / STEP_LENGTH_METERS).round : journey.estimated_steps
+      actual_distance: meters ? (meters / 1000.0).round(2) : (fallback_distance_km || estimated_distance_km),
+      actual_steps: meters ? (meters / STEP_LENGTH_METERS).round : (fallback_steps || journey.estimated_steps)
     )
   end
 
@@ -88,14 +110,17 @@ class Walk < ApplicationRecord
   # Lifetime totals shown atop walks#index (km walked / hours outside /
   # walks). Scoped to completed walks, since only those carry a real
   # actual_distance/actual_steps/completed_at.
+  #
+  # Aggregated in SQL: this used to load every walk the user had ever taken
+  # into memory and sum in Ruby, which grows without bound as they walk more.
   def self.lifetime_stats(walks)
-    completed = walks.select(&:completed_at)
-    total_minutes = completed.sum { |walk| walk.duration_in_minutes || 0 }
+    completed = walks.completed
+    seconds_outside = completed.sum("EXTRACT(EPOCH FROM (completed_at - started_at))").to_f
 
     {
-      distance_km: completed.sum { |walk| walk.actual_distance || 0 }.round,
-      hours_outside: (total_minutes / 60.0).round,
-      walks_count: completed.size
+      distance_km: completed.sum(:actual_distance).to_f.round,
+      hours_outside: (seconds_outside / 3600.0).round,
+      walks_count: completed.count
     }
   end
 end
