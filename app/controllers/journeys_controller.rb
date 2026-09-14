@@ -17,9 +17,7 @@ class JourneysController < ApplicationController
       redirect_to new_journey_walk_path(fallback_journey)
     else
       result.journey.save
-      # The journey already carries a readable fallback description; this
-      # swaps in the LLM-written one without making the user wait for it.
-      JourneyDescriptionJob.perform_later(result.journey, result.waypoints) if result.journey.persisted?
+      enqueue_description(result) if result.journey.persisted?
       redirect_to new_journey_walk_path(result.journey)
     end
   end
@@ -92,6 +90,21 @@ class JourneysController < ApplicationController
 
   def located?
     current_user.current_latitude && current_user.current_longitude
+  end
+
+  # Swaps in the LLM-written description without making the user wait for it.
+  #
+  # Never fatal. The journey is already saved and already carries a readable
+  # fallback description, so a queue that is unavailable costs a nicer sentence
+  # -- not the walk. Taking the LLM off the request was pointless if the
+  # *enqueue* could still fail the request, which is exactly what happened in
+  # production when Solid Queue's tables turned out to be missing.
+  def enqueue_description(result)
+    JourneyDescriptionJob.perform_later(result.journey, result.waypoints)
+  rescue StandardError => e
+    Rails.logger.error(
+      "Could not enqueue JourneyDescriptionJob for journey #{result.journey.id}: #{e.class}: #{e.message}"
+    )
   end
 
   # PoiFinder/PoiSelector/RouteDescriber/JourneyGenerator can each fail
