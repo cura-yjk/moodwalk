@@ -27,6 +27,28 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
     assert journey.description.present?, "a journey must never be saved without a description"
   end
 
+  # Production regression: Solid Queue's tables were missing, so perform_later
+  # raised and every route generation 500'd -- even though the journey was
+  # already saved with a usable fallback description.
+  test "a queue failure does not fail route generation" do
+    # Stands in for Solid Queue's tables being absent, which is what raised here.
+    JourneyDescriptionJob.define_singleton_method(:perform_later) do |*|
+      raise ActiveRecord::StatementInvalid, 'relation "solid_queue_jobs" does not exist'
+    end
+
+    begin
+      assert_difference -> { Journey.count }, 1 do
+        post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+      end
+    ensure
+      JourneyDescriptionJob.singleton_class.send(:remove_method, :perform_later)
+    end
+
+    assert_response :redirect
+    assert Journey.order(:created_at).last.description.present?,
+           "the journey keeps its fallback description"
+  end
+
   test "an unknown theme is refused" do
     post journeys_path, params: { theme_key: "definitely-not-a-theme" }
 
