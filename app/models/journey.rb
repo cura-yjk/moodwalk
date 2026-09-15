@@ -88,6 +88,17 @@ class Journey < ApplicationRecord
     estimated_steps || "—"
   end
 
+  # What the community cards currently show. Invented, and labelled as such --
+  # see PlaceholderStats for why, and for how to switch to the real figures
+  # above.
+  def placeholder_walker_count
+    PlaceholderStats.walker_count(id)
+  end
+
+  def placeholder_rating
+    PlaceholderStats.rating(id)
+  end
+
   def rating_display
     rating || "—"
   end

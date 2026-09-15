@@ -116,9 +116,25 @@ class JourneyTest < ActiveSupport::TestCase
     assert_operator journeys(:meguro_loop).highlights.size, :<=, 3
   end
 
-  # These used to be 40 + (id % 120) and 3.8 + ((id % 5) * 0.2) -- numbers
-  # derived from the primary key and rendered on the card as though they had
-  # been counted and rated.
+  # The cards show invented numbers again for now -- see PlaceholderStats --
+  # because only one walk in the database carries a rating. The real figures
+  # below still exist, are still tested, and are two view lines away.
+  test "the placeholder stats a card shows are stable for a given route" do
+    journey = journeys(:meguro_loop)
+
+    assert_equal journey.placeholder_walker_count, journey.placeholder_walker_count
+    assert_equal journey.placeholder_rating, journey.placeholder_rating
+  end
+
+  test "the placeholder rating looks like a rating" do
+    Journey.find_each do |journey|
+      assert_includes 1.0..5.0, journey.placeholder_rating
+    end
+  end
+
+  # These are what the cards will show once there is enough real data. Kept
+  # working and tested while the placeholders are on screen, so switching over
+  # is a view change and nothing else.
 
   test "counts the people who actually finished the walk" do
     journey = journeys(:meguro_loop)
