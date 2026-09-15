@@ -20,7 +20,6 @@ module JourneyImages
     PLACEHOLDER_IMAGES.sample(count)
   end
 
-
   PLACE_IMAGES = {
     "Meguro River Loop" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWl2njWwiwoNU7VP1wL1k6xUW7WE44yFymMmwBdR02vjpWgtTzESUyZIp3coC1r7jb_vCRu1k0XXCX88oKa1_uCUXyVLxSvvICfY90bgHz34aApjX2mFxqvKx2yb15O5kk1t2Xr7=s500",
     "Nakameguro Backstreets" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWktTtpRocPqCncbWpUzH8N3kJPFThuHR7QDz0T5rJfJIrm-aJZH527tUrcfdKShNROAgdRLlTdqAchqvbpOIUxHpiN0SGtqifao75cEDtZJqJRYWY8PLvw2NqsxkEUkkOzS_uxrRA=s500",
