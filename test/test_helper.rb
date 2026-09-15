@@ -7,6 +7,11 @@ ENV["RAILS_ENV"] ||= "test"
 # it raises before any HTTP call and the WebMock stubs are never reached --
 # which made the LLM tests pass locally (where .env has a key) and fail in CI.
 # Forcing a dummy value also guarantees the suite can never spend a real one.
+# GEMINI_API_KEYS is the one LlmChat reads first, so pinning only the singular
+# left the suite running on whatever real keys .env happened to hold -- one
+# unstubbed request away from spending production quota. The failure that
+# showed it printed a live key into the test output.
+ENV["GEMINI_API_KEYS"] = "test-gemini-key-not-a-real-credential"
 ENV["GEMINI_API_KEY"] = "test-gemini-key-not-a-real-credential"
 ENV["ANTHROPIC_API_KEY"] = "test-anthropic-key-not-a-real-credential"
 ENV["OPENAI_API_KEY"] = "test-openai-key-not-a-real-credential"
