@@ -18,13 +18,11 @@
         <div class="route-card-body">
           <div class="mb-1 d-flex align-items-center mb-2">
             <i class="fa-solid fa-location-dot me-1"></i><span><%= journey.location_name %></span>
-            <% if journey.rating %>
-              <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.rating %></span>
-            <% end %>
+            <span class="route-card-rating"><i class="fa-solid fa-star"></i> <%= journey.placeholder_rating %></span>
           </div>
           <div class="route-card-meta">
             <span><i class="fa-solid fa-person-hiking"></i> <%= journey.length_label %></span>
-            <span><i class="fa-solid fa-users"></i> <%= journey.walker_count %></span>
+            <span><i class="fa-solid fa-users"></i> <%= journey.placeholder_walker_count %></span>
           </div>
           <div class="route-card-tags">
             <% journey.tags.each do |tag| %>
