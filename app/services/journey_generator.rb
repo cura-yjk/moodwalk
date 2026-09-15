@@ -102,6 +102,10 @@ class JourneyGenerator
     response = ExternalApi.connection.get("#{MAPBOX_DIRECTIONS_URL}/#{coords}") do |req|
       req.params["geometries"] = "polyline"
       req.params["overview"] = "full"
+      # Without this Mapbox estimates at its own default of 1.42 m/s, which is
+      # not the pace RouteBuilder sized the route for -- so a route built to
+      # take thirty minutes came back reporting twenty-eight.
+      req.params["walking_speed"] = Walk::WALKING_METERS_PER_SECOND
       req.params["steps"] = "true" if @theme_key # only themed routes get the dead-end check
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
