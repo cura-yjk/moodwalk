@@ -100,7 +100,7 @@ class JourneyTest < ActiveSupport::TestCase
     journey.description = "Old stone walls and a quiet lane."
 
     texts = journey.highlights.map { |h| h[:text] }
-    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Quiet"][:text]
+    assert_includes texts, JourneyHighlights::HIGHLIGHT_PHRASES["Quiet"][:text]
   end
 
   test "an unthemed journey still derives highlights from its text" do
@@ -108,8 +108,8 @@ class JourneyTest < ActiveSupport::TestCase
     journey.description = "A path by the river, under the trees."
 
     texts = journey.highlights.map { |h| h[:text] }
-    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Water"][:text]
-    assert_includes texts, Journey::HIGHLIGHT_PHRASES["Nature"][:text]
+    assert_includes texts, JourneyHighlights::HIGHLIGHT_PHRASES["Water"][:text]
+    assert_includes texts, JourneyHighlights::HIGHLIGHT_PHRASES["Nature"][:text]
   end
 
   test "highlights are capped at three" do

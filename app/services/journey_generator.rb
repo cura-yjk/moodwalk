@@ -47,9 +47,7 @@ class JourneyGenerator
     radius = @round_trip ? @target_distance / (2 * Math::PI) : @target_distance
 
     MAX_ATTEMPTS.times do |attempt|
-      waypoints = @round_trip ? build_loop_waypoints(radius) : build_oneway_waypoints(radius)
-      directions = fetch_directions(waypoints)
-
+      directions = fetch_directions(synthetic_waypoints(radius))
       return Result.new(success?: false, error: directions[:error]) if directions[:error]
 
       ratio = directions[:distance] / @target_distance
@@ -70,6 +68,10 @@ class JourneyGenerator
 
   def close_enough?(ratio, attempt)
     (ratio - 1).abs <= TOLERANCE_RATIO || attempt == MAX_ATTEMPTS - 1
+  end
+
+  def synthetic_waypoints(radius)
+    @round_trip ? build_loop_waypoints(radius) : build_oneway_waypoints(radius)
   end
 
   def build_oneway_waypoints(distance)
