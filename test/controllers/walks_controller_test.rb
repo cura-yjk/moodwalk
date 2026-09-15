@@ -123,6 +123,23 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
                   "a journey with no duration shouldn't render a duration chip"
   end
 
+  # The card used to call JourneyImages.sample, which picks at random with no
+  # journey to key off -- so a saved route showed a different photo on every
+  # render, and looked like the photos were failing to load.
+  test "a saved journey keeps the same photo across renders" do
+    journey = journeys(:meguro_loop)
+    users(:walker).saved_journeys.create!(journey: journey)
+
+    photos = 2.times.map do
+      get walks_path(filter: "saved")
+      assert_response :success
+      css_select(".community-image").first["src"]
+    end
+
+    assert_equal photos.first, photos.last, "the saved card changed photo between renders"
+    assert_equal journey.placeholder_image, photos.first, "the card is not showing this journey's photo"
+  end
+
   # #new renders the journey's duration and picks an alternate journey. The
   # alternate lookup used to load the whole journeys table via Array#sample.
   test "new renders the start-walk screen with an alternate suggestion" do

@@ -20,15 +20,6 @@ module JourneyImages
     PLACEHOLDER_IMAGES.sample(count)
   end
 
-  # One at random, with no journey to key off.
-  #
-  # Kept as-is in the move, but worth noting: walks/_saved_journey_card.html.erb
-  # is the only caller, and it means that card shows a different photo every
-  # time the page renders, while every other card shows the journey's own
-  # stable one via #for.
-  def sample
-    PLACEHOLDER_IMAGES.sample
-  end
 
   PLACE_IMAGES = {
     "Meguro River Loop" => "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWl2njWwiwoNU7VP1wL1k6xUW7WE44yFymMmwBdR02vjpWgtTzESUyZIp3coC1r7jb_vCRu1k0XXCX88oKa1_uCUXyVLxSvvICfY90bgHz34aApjX2mFxqvKx2yb15O5kk1t2Xr7=s500",
