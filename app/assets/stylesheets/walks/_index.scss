@@ -193,7 +193,25 @@
 
   backface-visibility: hidden;
 
+  // Hidden outright once the face is turned away, rather than relying on
+  // backface-visibility alone.
+  //
+  // backface-visibility only hides the element's own back. Children that make
+  // their own stacking context -- the map button at z-index 1, the floating
+  // time and the route name -- are composited separately and kept painting, so
+  // flipping to the map left the route name and the map button sitting over
+  // it. transform-style: flat does not help; Chrome still promotes them.
+  //
+  // The delay is half the 0.6s flip, so each face goes at the point where the
+  // card is edge-on and nothing is visible to switch.
+  transition: visibility 0s linear 0.3s;
+
   margin-bottom: 0;
+}
+
+.walk-card-inner.flipped .walk-card-front,
+.walk-card-inner:not(.flipped) .walk-card-back {
+  visibility: hidden;
 }
 
 .walk-card-back.walk-card {
@@ -263,12 +281,39 @@
 
   border-radius: 20px 20px 0 0;
 
+  // The photo arrives as an inline background-image (see walks/_walk_card),
+  // and an inline style beats a stylesheet -- so a gradient declared here was
+  // being replaced by the photo rather than laid over it, leaving the white
+  // time and title on whatever the photo happened to be. The overlay is a
+  // pseudo-element now, which nothing inline can overwrite.
+  position: relative;
+
   object-fit: cover;
-  background: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
+  background-color: rgba(62, 68, 65, 0.8);
   background-size: cover;
   background-position: center;
 
   position: relative;
+}
+
+.walk-thumbnail::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+
+  background: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
+
+  // The overlay is decoration; the card underneath is what people tap.
+  pointer-events: none;
+}
+
+// Above the overlay, or the gradient would wash them out instead of the photo.
+.walk-thumbnail > * {
+  position: relative;
+  z-index: 1;
 }
 
 .walk-float {
