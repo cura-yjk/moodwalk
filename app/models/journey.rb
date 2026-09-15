@@ -59,16 +59,37 @@ class Journey < ApplicationRecord
     end
   end
 
-  def placeholder_walker_count
-    40 + (id % 120)
+  # How many people have actually finished this walk.
+  #
+  # This used to be 40 + (id % 120) -- a number derived from the primary key
+  # and rendered on the card as though people had been counted. Everything
+  # here now comes from the walks table, so a route that nobody has walked
+  # says so.
+  #
+  # Counted in Ruby rather than with .count for the same reason as
+  # latest_community_photo above: CommunityRoutesController#index preloads
+  # walks, and a COUNT would go back to the database once per card.
+  def walker_count
+    walks.select { |walk| walk.completed_at.present? }.map(&:user_id).uniq.size
+  end
+
+  # The average of the ratings people left, or nil when nobody has rated it.
+  #
+  # nil rather than 0.0: an unrated route has no rating, and "0.0" beside a
+  # star reads as a bad one.
+  def rating
+    ratings = walks.filter_map(&:rating)
+    return nil if ratings.empty?
+
+    (ratings.sum / ratings.size.to_f).round(1)
   end
 
   def estimated_steps_display
     estimated_steps || "—"
   end
 
-  def placeholder_rating
-    (3.8 + ((id % 5) * 0.2)).round(1)
+  def rating_display
+    rating || "—"
   end
 
   def alternate

@@ -116,6 +116,63 @@ class JourneyTest < ActiveSupport::TestCase
     assert_operator journeys(:meguro_loop).highlights.size, :<=, 3
   end
 
+  # These used to be 40 + (id % 120) and 3.8 + ((id % 5) * 0.2) -- numbers
+  # derived from the primary key and rendered on the card as though they had
+  # been counted and rated.
+
+  test "counts the people who actually finished the walk" do
+    journey = journeys(:meguro_loop)
+
+    # Fixtures: walker completed one and has another still in progress; other
+    # completed one. Two people have finished it, not three walks.
+    assert_equal 2, journey.walker_count
+  end
+
+  test "someone walking the same route twice is still one person" do
+    journey = journeys(:meguro_loop)
+    journey.walks.create!(user: users(:walker), started_at: 2.hours.ago, completed_at: 1.hour.ago)
+
+    assert_equal 2, journey.reload.walker_count, "a repeat walk was counted as another walker"
+  end
+
+  test "a walk nobody has finished has no walkers, rather than a flattering number" do
+    assert_equal 0, journeys(:unmeasured).walker_count
+  end
+
+  test "averages the ratings people left" do
+    journey = journeys(:meguro_loop)
+    walks(:completed_walk).update!(rating: 5)
+    walks(:other_users_walk).update!(rating: 4)
+
+    assert_in_delta 4.5, journey.reload.rating, 0.001
+  end
+
+  test "an unrated walk has no rating rather than a zero" do
+    # 0.0 beside a star reads as a bad rating; no rating is not a bad rating.
+    assert_nil journeys(:meguro_loop).rating
+    assert_equal "—", journeys(:meguro_loop).rating_display
+  end
+
+  test "an in-progress walk is not counted as a finished one" do
+    journey = journeys(:unmeasured)
+    journey.walks.create!(user: users(:walker), started_at: 1.hour.ago)
+
+    assert_equal 0, journey.reload.walker_count
+  end
+
+  # CommunityRoutesController#index preloads walks and renders one card per
+  # journey; a COUNT or an AVG per card would go back to the database each time.
+  test "reads both off the preloaded walks rather than querying per card" do
+    journeys = Journey.where(id: journeys(:meguro_loop).id).includes(:walks).to_a
+
+    assert_no_queries do
+      journeys.each do |journey|
+        journey.walker_count
+        journey.rating
+      end
+    end
+  end
+
   test "saved_by? reflects whether the user bookmarked it" do
     journey = journeys(:meguro_loop)
     assert_not journey.saved_by?(users(:walker))
