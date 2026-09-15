@@ -19,7 +19,19 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   cached = Dir[File.expand_path("~/.cache/selenium/chrome/*/*/chrome")].max
   Selenium::WebDriver::Chrome.path = cached if cached && !system("which google-chrome chromium >/dev/null 2>&1")
 
-  driven_by :selenium, using: :headless_chrome, screen_size: DESKTOP
+  # Geolocation is denied rather than left to the browser.
+  #
+  # The location bar asks for a fix on every page load and PATCHes /location
+  # with whatever comes back, which then reverse-geocodes. On a CI runner that
+  # resolves to the runner's own IP -- a first run reported coordinates in
+  # Querétaro -- so the suite made an unstubbed request whose URL nobody could
+  # predict, fired late enough to land after the stubs had been torn down. With
+  # the permission denied the app takes its "we could not find you" path and
+  # uses the location already on the user, which is what the fixtures set.
+  driven_by :selenium, using: :headless_chrome, screen_size: DESKTOP do |options|
+    options.add_argument("--deny-permission-prompts")
+    options.add_argument("--use-fake-ui-for-media-stream")
+  end
 
   setup { stub_outbound_apis }
 
