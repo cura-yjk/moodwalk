@@ -46,11 +46,11 @@ class JourneyHighlightsGenerator
   private
 
   def request_llm
-    chat = LlmChat.new_chat
-                  .with_instructions(SYSTEM_PROMPT)
-                  .with_schema(HighlightsSchema)
-
-    chat.ask(user_message)
+    LlmChat.with_chat do |chat|
+      chat.with_instructions(SYSTEM_PROMPT)
+          .with_schema(HighlightsSchema)
+          .ask(user_message)
+    end
   end
 
   def user_message

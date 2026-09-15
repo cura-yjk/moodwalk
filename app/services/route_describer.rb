@@ -106,11 +106,12 @@ class RouteDescriber
   private
 
   def request_llm
-    chat = LlmChat.new_chat
-                  .with_instructions(SYSTEM_PROMPT)
-                  .with_schema(DescriptionSchema)
-
-    chat.ask(user_message).content
+    LlmChat.with_chat do |chat|
+      chat.with_instructions(SYSTEM_PROMPT)
+          .with_schema(DescriptionSchema)
+          .ask(user_message)
+          .content
+    end
   end
 
   def user_message
