@@ -49,6 +49,49 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
            "the journey keeps its fallback description"
   end
 
+  # Selection is deterministic, so before this the same doorstep, theme and
+  # duration produced the identical walk every time: a user who did not fancy
+  # what we suggested and asked again got it straight back.
+  test "asking twice from the same doorstep does not suggest the same walk twice" do
+    stub_many_places
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    routed = recorded_waypoints
+    assert_equal routed.size, routed.uniq.size,
+                 "asking again routed through the same waypoints: #{routed.first}"
+  end
+
+  test "the same seed reproduces the same walk, so variety is not randomness" do
+    stub_many_places
+
+    first = PoiSelector.new(**selector_args(variety_seed: 3)).call.waypoints
+    second = PoiSelector.new(**selector_args(variety_seed: 3)).call.waypoints
+
+    assert_equal first.map { |w| w[:id] }, second.map { |w| w[:id] }
+  end
+
+  # Production held 41 journeys across 35 distinct polylines.
+  test "a route we already have is reused rather than saved a second time" do
+    existing = journeys(:meguro_loop)
+    stub_mapbox(geometry: existing.encoded_polyline)
+
+    assert_no_difference -> { Journey.count } do
+      post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+    end
+
+    assert_redirected_to new_journey_walk_path(existing)
+  end
+
+  test "reusing a route does not pay to describe it again" do
+    stub_mapbox(geometry: journeys(:meguro_loop).encoded_polyline)
+
+    assert_no_enqueued_jobs only: JourneyDescriptionJob do
+      post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+    end
+  end
+
   test "an unknown theme is refused" do
     post journeys_path, params: { theme_key: "definitely-not-a-theme" }
 
@@ -73,19 +116,63 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
       }.to_json)
   end
 
+  def selector_args(variety_seed:)
+    pois = 8.times.map do |i|
+      point = GeoDistance.destination_point(35.68, 139.77, 250 + (i * 120), (i * 47) % 360)
+      { id: "poi-#{i}", name: "P#{i}", category: %w[park garden lake][i % 3],
+        lat: point[:lat], lng: point[:lng], distance_meters: 250 + (i * 120) }
+    end
+
+    { lat: 35.68, lng: 139.77, pois: pois, target_distance_meters: 1600,
+      round_trip: true, variety_seed: variety_seed }
+  end
+
   def place(id, lat, lng)
     { "id" => id, "displayName" => { "text" => id }, "location" => { "latitude" => lat, "longitude" => lng } }
   end
 
-  def stub_mapbox
+  # Deliberately NOT the journeys(:meguro_loop) polyline: an identical route is
+  # now reused rather than saved again, so a stub handing back the fixture's own
+  # geometry would quietly turn every "create" test into a "reuse" test.
+  GENERATED_POLYLINE = "_p~iF~ps|U_ulLnnqC".freeze
+
+  def stub_mapbox(geometry: GENERATED_POLYLINE)
+    @routed = []
+
     stub_request(:get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse})
       .to_return(status: 200, body: { "features" => [] }.to_json, headers: { "Content-Type" => "application/json" })
-    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/})
-      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
+
+    # Recorded here rather than read back off WebMock's request registry: that
+    # registry is keyed by request signature, so two identical calls collapse
+    # into one entry and a "did we route the same way twice" assertion can
+    # never fail. This keeps one entry per call, identical or not.
+    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/}).to_return do |request|
+      @routed << request.uri.path.split("/").last
+      { status: 200, headers: { "Content-Type" => "application/json" }, body: {
         "code" => "Ok",
         "routes" => [{ "distance" => 1600.0, "duration" => 1200.0,
-                       "geometry" => "_p~iF~ps|U_ulLnnqC_mqNvxq`@", "legs" => [{ "steps" => [] }] }]
-      }.to_json)
+                       "geometry" => geometry, "legs" => [{ "steps" => [] }] }]
+      }.to_json }
+    end
+  end
+
+  # Enough spread-out candidates that PoiSelector has a real shortlist to pick
+  # from; the two-POI default leaves it only one combination and nothing to vary.
+  def stub_many_places
+    remove_request_stub(@places_stub) if @places_stub
+    places = 8.times.map do |i|
+      point = GeoDistance.destination_point(35.68, 139.77, 250 + (i * 120), (i * 47) % 360)
+      place("poi-#{i}", point[:lat], point[:lng])
+    end
+
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "places" => places }.to_json)
+  end
+
+  # The coordinate list Mapbox was asked to route through, one entry per call.
+  def recorded_waypoints
+    @routed
   end
 
   # Highlights used to be generated inside this request, so the first view of a

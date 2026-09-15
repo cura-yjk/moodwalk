@@ -42,6 +42,12 @@ Style/FrozenStringLiteralComment:
   Enabled: false
 Layout/LineLength:
   Max: 120
+# The cop exists because a long positional list is unreadable at the call site
+# and easy to pass in the wrong order. Keyword arguments have neither problem:
+# every one is named where it is passed. Counting them meant a service could
+# not take one more clearly-named option without an entry in the todo file.
+Metrics/ParameterLists:
+  CountKeywordArgs: false
 Style/EmptyMethod:
   Enabled: false
 Bundler/OrderedGems:

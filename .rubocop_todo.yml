@@ -32,9 +32,3 @@ Metrics/ClassLength:
 Metrics/MethodLength:
   Exclude:
     - 'app/services/journey_generator.rb'
-
-# Offense count: 1
-# Configuration parameters: Max, CountKeywordArgs, MaxOptionalParameters.
-Metrics/ParameterLists:
-  Exclude:
-    - 'app/services/journey_generator.rb'
