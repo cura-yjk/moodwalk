@@ -7,6 +7,19 @@ class Walk < ApplicationRecord
   # in walking_controller.js, which counts steps live during the walk.
   STEP_LENGTH_METERS = 0.76
 
+  # Average walking pace. The single source of truth for this, for the same
+  # reason: RouteBuilder turns the duration someone picked into a target
+  # distance with it, and JourneyGenerator hands it to Mapbox as the speed to
+  # estimate that route's duration at. They have to agree, or the walk we
+  # planned for thirty minutes comes back described as twenty-eight -- which is
+  # what happened, because Mapbox's own default is 1.42 m/s and nothing here
+  # ever told it otherwise.
+  WALKING_METERS_PER_SECOND = 80 / 60.0
+
+  def self.walking_meters_per_minute
+    WALKING_METERS_PER_SECOND * 60
+  end
+
   # The moods a walk can be tagged with, before and after. Lives here rather
   # than in ApplicationHelper so the model can validate against it and the
   # controller doesn't have to reach into a view helper's constant -- the

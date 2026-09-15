@@ -15,9 +15,11 @@ class RouteBuilder
   # winning attempt only, after the retry loop has settled (see #call).
   Result = Struct.new(:success?, :journey, :waypoints, :error, keyword_init: true)
 
-  # Average adult walking speed, used to translate a chosen duration into a
-  # target route distance (and, below, a POI search radius) to aim for.
-  WALKING_METERS_PER_MINUTE = 80
+  # Translates a chosen duration into a target route distance (and, below, a
+  # POI search radius) to aim for. Walk owns the pace so that the number we
+  # plan with and the number Mapbox estimates the finished route at are the
+  # same one -- see Walk::WALKING_METERS_PER_SECOND.
+  WALKING_METERS_PER_MINUTE = Walk.walking_meters_per_minute
 
   # When a duration is given, the real-waypoint route JourneyGenerator comes
   # back with won't exactly hit the target distance (fixed POIs, not a
@@ -77,10 +79,12 @@ class RouteBuilder
     radius = @target_distance / 2.0
     best = nil
 
-    MAX_ATTEMPTS.times do |attempt|
+    # attempt_number, not attempt: the method below is called inside this block
+    # and a bare `attempt` would resolve to the counter instead.
+    MAX_ATTEMPTS.times do |attempt_number|
       result = attempt(radius)
       best = pick_best(best, result)
-      return best if attempt == MAX_ATTEMPTS - 1 || on_target?(result)
+      return best if attempt_number == MAX_ATTEMPTS - 1 || on_target?(result)
 
       radius = next_radius(result, radius)
     end

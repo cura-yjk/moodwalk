@@ -48,7 +48,30 @@ class JourneyGeneratorTest < ActiveSupport::TestCase
     assert result.success?, result.error
   end
 
-  private
+  # The duration shown on a route's card is Mapbox's estimate, and Mapbox
+  # estimates at its own default pace unless told otherwise -- which is not the
+  # pace RouteBuilder sized the route for. A route planned to take thirty
+  # minutes came back describing itself as twenty-eight.
+  test "asks Mapbox to estimate at the pace the route was planned for" do
+    stub_directions(legs: [{ "steps" => [] }], distance: 2_400.0, duration: 1_800.0)
+
+    JourneyGenerator.new(lat: 35.68, lng: 139.77, target_distance_meters: 2_400, round_trip: true).call
+
+    assert_requested :get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/} do |request|
+      request.uri.query_values["walking_speed"].to_f == Walk::WALKING_METERS_PER_SECOND
+    end
+  end
+
+  test "the pace that sizes a route is the pace that measures it" do
+    # One constant, two users: RouteBuilder multiplies minutes by it to get a
+    # target distance, and Mapbox divides a distance by it to get minutes back.
+    # If they ever drift, every duration in the app is quietly wrong.
+    minutes = 30
+    target = minutes * RouteBuilder::WALKING_METERS_PER_MINUTE
+
+    assert_in_delta minutes * 60, target / Walk::WALKING_METERS_PER_SECOND, 0.001
+  end
+
 
   def build_generator
     JourneyGenerator.new(
