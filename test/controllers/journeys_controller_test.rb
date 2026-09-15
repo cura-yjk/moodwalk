@@ -16,7 +16,7 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
       post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
     end
 
-    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_not_requested :post, llm_url
     assert_response :redirect
   end
 
@@ -56,6 +56,12 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # Follows LlmChat, so switching provider does not silently leave these stubs
+  # pointing at an endpoint nothing calls.
+  def llm_url
+    %r{\Ahttps://generativelanguage\.googleapis\.com/.*#{Regexp.escape(LlmChat::MODEL)}:generateContent}
+  end
 
   def stub_google_places
     stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)

@@ -78,7 +78,7 @@ class RouteBuilderTest < ActiveSupport::TestCase
 
   test "still returns a route when the LLM is unavailable" do
     stub_happy_geo_apis
-    stub_openai_failure
+    stub_llm_failure
 
     result = build_toward(duration_minutes: 30)
 
@@ -89,7 +89,7 @@ class RouteBuilderTest < ActiveSupport::TestCase
 
   test "the fallback description follows the tone rules the prompt sets" do
     stub_happy_geo_apis
-    stub_openai_failure
+    stub_llm_failure
 
     description = build_toward(duration_minutes: 30).journey.description
 
@@ -104,12 +104,12 @@ class RouteBuilderTest < ActiveSupport::TestCase
   # in afterwards (see test/jobs/journey_description_job_test.rb).
   test "never calls the LLM during generation, even when it is available" do
     stub_happy_geo_apis
-    stub_openai_success("Water on one side, trees on the other.")
+    stub_llm_success("Water on one side, trees on the other.")
 
     result = build_toward(duration_minutes: 30)
 
     assert result.success?
-    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_not_requested :post, llm_url
     assert_equal RouteDescriber.fallback_for(theme_key: :calm, waypoints: result.waypoints),
                  result.journey.description
   end
@@ -118,7 +118,7 @@ class RouteBuilderTest < ActiveSupport::TestCase
   # attempt, with all but one description thrown away.
   test "no LLM call however many attempts the retry loop takes" do
     stub_happy_geo_apis(distance: 100_000) # nowhere near target -> forces every retry
-    stub_openai_success("A quiet stretch.")
+    stub_llm_success("A quiet stretch.")
 
     result = build_toward(duration_minutes: 30)
 
@@ -126,7 +126,7 @@ class RouteBuilderTest < ActiveSupport::TestCase
     # Guard against this passing trivially: prove the retry loop really ran.
     assert_requested :get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/},
                      times: RouteBuilder::MAX_ATTEMPTS
-    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_not_requested :post, llm_url
   end
 
   # Each category is fetched on its own thread now; they must all still arrive.
@@ -144,15 +144,21 @@ class RouteBuilderTest < ActiveSupport::TestCase
 
   test "a route-building failure still fails, and never reaches the LLM" do
     stub_nearby_search_empty
-    stub_openai_success("unused")
+    stub_llm_success("unused")
 
     result = build_toward(duration_minutes: 30)
 
     assert_not result.success?
-    assert_not_requested :post, "https://api.openai.com/v1/chat/completions"
+    assert_not_requested :post, llm_url
   end
 
   private
+
+  # Follows LlmChat, so switching provider does not silently leave these stubs
+  # pointing at an endpoint nothing calls.
+  def llm_url
+    %r{\Ahttps://generativelanguage\.googleapis\.com/.*#{Regexp.escape(LlmChat::MODEL)}:generateContent}
+  end
 
   def poi(id:, category:, distance_meters:, bearing:)
     lat = @builder.instance_variable_get(:@lat)
@@ -203,17 +209,17 @@ class RouteBuilderTest < ActiveSupport::TestCase
       .to_return(status: 200, body: { "places" => [] }.to_json, headers: { "Content-Type" => "application/json" })
   end
 
-  def stub_openai_failure
-    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+  def stub_llm_failure
+    stub_request(:post, llm_url)
       .to_return(status: 429, headers: { "Content-Type" => "application/json" }, body: {
         "error" => { "message" => "You have no credits remaining.", "code" => "credit_balance_exhausted" }
       }.to_json)
   end
 
-  def stub_openai_success(description)
-    stub_request(:post, "https://api.openai.com/v1/chat/completions")
+  def stub_llm_success(description)
+    stub_request(:post, llm_url)
       .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
-        "choices" => [{ "message" => { "content" => { description: description }.to_json } }]
+        "candidates" => [{ "content" => { "parts" => [{ "text" => { description: description }.to_json }] } }]
       }.to_json)
   end
 
