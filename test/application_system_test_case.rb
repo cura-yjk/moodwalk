@@ -64,10 +64,14 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # a broken feature rather than a lost click.
   def press(locator, via_dom: false)
     element = locator.is_a?(Capybara::Node::Element) ? locator : find_button_or_link(locator)
+    page.execute_script("arguments[0].scrollIntoView({block: 'center'})", element)
     via_dom ? page.execute_script("arguments[0].click()", element) : element.click
-  rescue Selenium::WebDriver::Error::StaleElementReferenceError
+  rescue Selenium::WebDriver::Error::StaleElementReferenceError,
+         Selenium::WebDriver::Error::UnknownError
     retry unless locator.is_a?(Capybara::Node::Element)
     raise
+  rescue Selenium::WebDriver::Error::ElementClickInterceptedError
+    page.execute_script("arguments[0].click()", element)
   end
 
   # The same retry, for a click whose proof is an element rather than text.
@@ -91,11 +95,24 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Re-finds the element each time: an element handle held across a failed
   # click can go stale when the page settles underneath it, and a stale handle
   # reads as a broken feature rather than a lost click.
+  #
+  # Scrolls first, because the sheet is taller than a CI runner's viewport and
+  # its lower controls sit under the fixed navbar until they are scrolled to --
+  # which Selenium reports as a click intercepted at a coordinate, not as
+  # anything to do with the button.
   def attempt_click(selector, via_dom: false)
     element = find(selector, wait: 5)
+    page.execute_script("arguments[0].scrollIntoView({block: 'center'})", element)
     via_dom ? page.execute_script("arguments[0].click()", element) : element.click
-  rescue Selenium::WebDriver::Error::StaleElementReferenceError
+  rescue Selenium::WebDriver::Error::StaleElementReferenceError,
+         Selenium::WebDriver::Error::UnknownError
+    # "Node with given id does not belong to the document" arrives as
+    # UnknownError and means the same thing: the page moved on, look again.
     retry
+  rescue Selenium::WebDriver::Error::ElementClickInterceptedError
+    # Something is over it right now. The caller checks whether the click
+    # landed and will come back through here for the DOM attempt.
+    page.execute_script("arguments[0].click()", find(selector, wait: 5))
   end
 
   def find_button_or_link(locator)
