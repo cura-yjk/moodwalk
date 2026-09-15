@@ -3,10 +3,12 @@ ENV["RAILS_ENV"] ||= "test"
 # Pinned before the app boots, because config/initializers/ruby_llm.rb reads it
 # at load time and dotenv will not overwrite an already-set variable.
 #
-# RubyLLM refuses to build a request without a key, so with no key configured
+# RubyLLM refuses to build a request without a key for the configured provider, so with no key configured
 # it raises before any HTTP call and the WebMock stubs are never reached --
 # which made the LLM tests pass locally (where .env has a key) and fail in CI.
 # Forcing a dummy value also guarantees the suite can never spend a real one.
+ENV["GEMINI_API_KEY"] = "test-gemini-key-not-a-real-credential"
+ENV["ANTHROPIC_API_KEY"] = "test-anthropic-key-not-a-real-credential"
 ENV["OPENAI_API_KEY"] = "test-openai-key-not-a-real-credential"
 
 require_relative "../config/environment"

@@ -24,7 +24,7 @@ Inside `.env`, set these variables. For any API keys, see group Slack channel.
 MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
 GOOGLE_PLACES_API_KEY=your_google_places_api_key
 CLOUDINARY_URL=your_own_cloudinary_url_key
-OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
 ```
 
 ### DB Setup

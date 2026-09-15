@@ -122,7 +122,7 @@ class WalksController < ApplicationController
   # forever after (see #share_quote), so caching a stand-in would freeze it in
   # place and this walk would never get a real quote once the LLM is reachable
   # again. The provider's error stays in the log rather than going to the
-  # browser, which used to hand the client raw OpenAI messages.
+  # browser, which used to hand the client raw provider messages.
   def fallback_quote_for(walk, error)
     Rails.logger.warn("ShareQuoteGenerator unavailable (#{error}) - using fallback")
     ShareQuoteGenerator.fallback_for(mood_before: walk.mood_before, mood_after: params[:mood_after])

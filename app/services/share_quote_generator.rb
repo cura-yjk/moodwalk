@@ -65,7 +65,7 @@ class ShareQuoteGenerator
   private
 
   def request_llm
-    chat = RubyLLM.chat
+    chat = LlmChat.new_chat
                   .with_instructions(SYSTEM_PROMPT)
                   .with_schema(QuoteSchema)
 

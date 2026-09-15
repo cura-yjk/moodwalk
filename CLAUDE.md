@@ -139,7 +139,10 @@ Node/webpack/yarn build step). Forms use `simple_form`. Stimulus controllers liv
 **LLM usage**: the `ruby_llm` / `ruby_llm-schema` gems are wired into `RouteDescriber`
 (`app/services/route_describer.rb`), which writes each route's description using
 `RubyLLM.chat.with_schema(...)`. It's the only LLM call in the app — don't assume broader LLM
-integration exists beyond it. Requires `OPENAI_API_KEY` (see `config/initializers/ruby_llm.rb`).
+integration exists beyond it. Requires `ANTHROPIC_API_KEY` (see
+`config/initializers/ruby_llm.rb`). Which model writes the prose lives in one place,
+`LlmChat` (`app/services/llm_chat.rb`) -- the services call `LlmChat.new_chat`, never
+`RubyLLM.chat` directly, so switching model or provider is a one-file change.
 
 ## Notes
 
