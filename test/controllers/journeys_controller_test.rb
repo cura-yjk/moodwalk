@@ -87,4 +87,49 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
                        "geometry" => "_p~iF~ps|U_ulLnnqC_mqNvxq`@", "legs" => [{ "steps" => [] }] }]
       }.to_json)
   end
+
+  # Highlights used to be generated inside this request, so the first view of a
+  # journey held it open on a live LLM call while the list on screen stayed
+  # empty. Twenty journeys in production have never been viewed.
+  test "highlights answer immediately and queue the written ones" do
+    journey = journeys(:meguro_loop)
+    journey.update!(highlights_text: nil)
+
+    assert_enqueued_with(job: JourneyHighlightsJob) do
+      get highlights_journey_path(journey), headers: { "Accept" => "application/json" }
+    end
+
+    assert_response :success
+    assert_not_requested :post, llm_url
+    body = JSON.parse(response.body)
+    assert body["pending"], "expected the page to be told the written ones are coming"
+    assert_equal journey.highlights.map(&:stringify_keys), body["highlights"]
+  end
+
+  test "highlights that are already written are served as they are" do
+    journey = journeys(:meguro_loop)
+    journey.update!(highlights_text: [{ "icon" => "🌸", "text" => "Cherry trees the whole way" }])
+
+    assert_no_enqueued_jobs(only: JourneyHighlightsJob) do
+      get highlights_journey_path(journey), headers: { "Accept" => "application/json" }
+    end
+
+    body = JSON.parse(response.body)
+    assert_not body["pending"]
+    assert_equal "Cherry trees the whole way", body["highlights"].first["text"]
+  end
+
+  # The page checks back while it waits, and each check must not queue more
+  # work -- otherwise waiting for one set of highlights orders six more.
+  test "checking back does not queue another generation" do
+    journey = journeys(:meguro_loop)
+    journey.update!(highlights_text: nil)
+
+    assert_no_enqueued_jobs(only: JourneyHighlightsJob) do
+      get highlights_journey_path(journey, poll: 1), headers: { "Accept" => "application/json" }
+    end
+
+    assert JSON.parse(response.body)["pending"]
+  end
+
 end

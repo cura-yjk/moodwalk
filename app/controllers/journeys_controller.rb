@@ -34,18 +34,25 @@ class JourneysController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
+  # Answers straight away, with the best highlights available right now.
+  #
+  # This used to generate them inline, so the first view of a journey held the
+  # request open on a live LLM call -- about twelve seconds, with an empty list
+  # on screen for all of it. Twenty of the journeys in production have never
+  # been viewed, so twenty people would have waited.
+  #
+  # Now the fallback goes out immediately and the real ones are written in the
+  # background. `pending` tells the page whether to look again.
   def highlights
     @journey = Journey.find(params[:id])
-    return render json: { highlights: @journey.highlights_text } if @journey.highlights_text.present?
 
-    result = JourneyHighlightsGenerator.new(journey: @journey).call
+    return render json: { highlights: @journey.highlights_text, pending: false } if @journey.highlights_text.present?
 
-    if result.success?
-      @journey.update(highlights_text: result.highlights)
-      render json: { highlights: result.highlights }
-    else
-      render json: { highlights: @journey.highlights }
-    end
+    # Polling must not queue more work: without this, a page checking every few
+    # seconds would enqueue a generation every few seconds.
+    JourneyHighlightsJob.perform_later(@journey) if params[:poll].blank?
+
+    render json: { highlights: @journey.highlights, pending: true }
   end
 
   private
