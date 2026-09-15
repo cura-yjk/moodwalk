@@ -178,7 +178,75 @@ class PoiSelectorTest < ActiveSupport::TestCase
                     "capping the pool must not collapse it onto a single category"
   end
 
+  # --- variety -----------------------------------------------------------
+  #
+  # Scoring is deterministic, which is what makes a route reproducible -- and
+  # also what made the same doorstep hand back the same walk forever.
+
+  test "with no seed, still returns the single best-scoring combination" do
+    pois = spread_pois
+
+    unseeded = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1_600).call
+    seeded_to_the_top = PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1_600, variety_seed: 0
+    ).call
+
+    assert_equal ids(seeded_to_the_top), ids(unseeded)
+  end
+
+  test "a different seed offers a different walk" do
+    walks = (0..3).map { |seed| ids(select_with(seed: seed)) }
+
+    assert_operator walks.uniq.size, :>, 1, "every seed produced the same waypoints: #{walks.first}"
+  end
+
+  test "consecutive seeds never repeat within the length of the shortlist" do
+    # What a user tapping "not this one" experiences: each tap must offer
+    # something they have not just turned down.
+    walks = (0...PoiSelector::VARIETY_POOL_SIZE).map { |seed| ids(select_with(seed: seed)) }
+
+    assert_equal walks.size, walks.uniq.size, "a seed repeated an earlier walk: #{walks}"
+  end
+
+  test "the same seed always reproduces the same walk" do
+    assert_equal ids(select_with(seed: 3)), ids(select_with(seed: 3))
+  end
+
+  test "seeds wrap around the shortlist instead of falling off the end" do
+    # The controller counts upward for the length of a session and never resets,
+    # so the seed is routinely larger than the shortlist.
+    assert_equal ids(select_with(seed: 1)), ids(select_with(seed: 1 + PoiSelector::VARIETY_POOL_SIZE))
+    assert_predicate select_with(seed: 10_001), :success?
+  end
+
+  test "variety never reaches outside the shortlist the scoring approved" do
+    shortlist = (0...PoiSelector::VARIETY_POOL_SIZE).map { |seed| ids(select_with(seed: seed)) }
+    reached = (0..40).map { |seed| ids(select_with(seed: seed)) }.uniq
+
+    assert_equal [], reached - shortlist, "a seed produced a combination outside the top few"
+  end
+
   private
+
+  def select_with(seed:)
+    PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: spread_pois, target_distance_meters: 1_600, variety_seed: seed
+    ).call
+  end
+
+  def ids(result)
+    result.waypoints.map { |waypoint| waypoint[:id] }
+  end
+
+  # Enough candidates, spread around the compass and across categories, that
+  # the scoring has a real shortlist rather than one viable combination.
+  def spread_pois
+    9.times.map do |i|
+      poi(id: "poi-#{i}", category: %w[park garden lake][i % 3],
+          distance_meters: 220 + (i * 60), bearing: (i * 41) % 360)
+    end
+  end
+
 
   def clustered_and_spread_pois
     [
@@ -188,6 +256,9 @@ class PoiSelectorTest < ActiveSupport::TestCase
     ]
   end
 
+  # bearing takes either one of the three named directions the tests above read
+  # better with, or a compass angle when what matters is being spread around
+  # the circle rather than being in a particular direction.
   def poi(id:, category:, distance_meters:, bearing:)
     lat, lng = case bearing
                when :north
@@ -196,6 +267,9 @@ class PoiSelectorTest < ActiveSupport::TestCase
                  [START_LAT - (distance_meters / METERS_PER_DEGREE_LAT), START_LNG]
                when :east
                  [START_LAT, START_LNG + (distance_meters / METERS_PER_DEGREE_LNG)]
+               when Numeric
+                 point = GeoDistance.destination_point(START_LAT, START_LNG, distance_meters, bearing)
+                 [point[:lat], point[:lng]]
                end
 
     { id: id, name: id, category: category, lat: lat, lng: lng, distance_meters: distance_meters }

@@ -13,6 +13,15 @@ class PoiSelector
   # to imply back when themes had at most 4 categories.
   MAX_POOL = 12
 
+  # How many of the best-scoring combinations count as good enough to offer.
+  #
+  # Scoring is deterministic, so without this the same doorstep, theme and
+  # duration produce the same waypoints forever -- a user who does not fancy
+  # the walk we suggested and asks again gets the identical one back. Five is
+  # enough to have somewhere else to go and few enough that every option is
+  # still one the scoring actually liked.
+  VARIETY_POOL_SIZE = 5
+
   # Combinations whose distance-fit differs by less than this fraction of the
   # target are treated as equally good on distance, so diversity can break
   # the tie between them - without this, two combos would need to land at
@@ -25,12 +34,13 @@ class PoiSelector
   # (clustered in one direction), instead of just coin-flipping the two.
   Result = Struct.new(:success?, :waypoints, :spread, :error, keyword_init: true)
 
-  def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true)
+  def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true, variety_seed: nil)
     @lat = lat.to_f
     @lng = lng.to_f
     @pois = Array(pois)
     @target_distance_meters = target_distance_meters
     @round_trip = round_trip
+    @variety_seed = variety_seed
   end
 
   def call
@@ -39,11 +49,26 @@ class PoiSelector
     candidates = evaluate_combinations
     return empty_result("Could not find a suitable set of waypoints") if candidates.empty?
 
-    best = candidates.max_by { |candidate| score(candidate) }
+    best = pick(candidates)
     Result.new(success?: true, waypoints: best[:order], spread: best[:spread], error: nil)
   end
 
   private
+
+  # The best-scoring combination, or -- when the caller offers a seed -- one of
+  # the best few.
+  #
+  # The seed is an index into that shortlist rather than a source of
+  # randomness, so a caller counting upward walks the pool one route at a time
+  # and never repeats until it has offered every option, and the same seed
+  # always reproduces the same walk (which is what makes this testable, and
+  # what lets a route be regenerated from what produced it).
+  def pick(candidates)
+    ranked = candidates.max_by(VARIETY_POOL_SIZE) { |candidate| score(candidate) }
+    return ranked.first unless @variety_seed
+
+    ranked[@variety_seed % ranked.size]
+  end
 
   # Cap the pool before the combination search below, which is O(pool^4) and
   # so needs a bound that doesn't move when themes grow. Capping per category

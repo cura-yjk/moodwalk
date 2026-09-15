@@ -35,12 +35,17 @@ class RouteBuilder
   # Not everyone wants to walk back the way they came anyway.
   ROUND_TRIP_SPREAD_THRESHOLD_DEGREES = 90
 
-  def initialize(lat:, lng:, theme_key:, duration_minutes: nil)
+  # variety_seed rides through to PoiSelector, which uses it to index into its
+  # shortlist of good combinations rather than always returning the single
+  # best one -- see PoiSelector::VARIETY_POOL_SIZE. Nil keeps the old
+  # behaviour, which is what seeding and the retry tests below rely on.
+  def initialize(lat:, lng:, theme_key:, duration_minutes: nil, variety_seed: nil)
     @lat = lat.to_f
     @lng = lng.to_f
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
     @target_distance = duration_minutes.to_f * WALKING_METERS_PER_MINUTE if duration_minutes.present?
+    @variety_seed = variety_seed
   end
 
   def call
@@ -162,7 +167,8 @@ class RouteBuilder
 
   def poi_selector(pois, round_trip:)
     PoiSelector.new(
-      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance, round_trip: round_trip
+      lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance,
+      round_trip: round_trip, variety_seed: @variety_seed
     )
   end
 

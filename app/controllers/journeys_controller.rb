@@ -16,9 +16,7 @@ class JourneysController < ApplicationController
     if result.error
       redirect_to new_journey_walk_path(fallback_journey)
     else
-      result.journey.save
-      enqueue_description(result) if result.journey.persisted?
-      redirect_to new_journey_walk_path(result.journey)
+      redirect_to new_journey_walk_path(persist(result))
     end
   end
 
@@ -56,6 +54,33 @@ class JourneysController < ApplicationController
   end
 
   private
+
+  # Saves the generated route, unless we already have it.
+  #
+  # Selection is deterministic for a given set of candidates, so the same
+  # doorstep can produce a route that already exists -- another user's, or
+  # this user's, from before. Production reached 41 journeys holding 35
+  # distinct polylines that way. An identical polyline is the same walk, so
+  # hand back the row we have: it may already carry a written description and
+  # highlights, which a fresh copy would have to generate again.
+  def persist(result)
+    existing = Journey.find_by(
+      encoded_polyline: result.journey.encoded_polyline, theme_key: result.journey.theme_key
+    )
+    return existing if existing
+
+    result.journey.save
+    enqueue_description(result) if result.journey.persisted?
+    result.journey
+  end
+
+  # Counts upward for the length of a session, so each tap of the same theme
+  # offers the next route in PoiSelector's shortlist instead of the one just
+  # turned down. Deliberately not random: two taps in a row must not be able
+  # to land on the same walk, which is the whole complaint.
+  def variety_seed
+    session[:variety_seed] = session[:variety_seed].to_i + 1
+  end
 
   # When generation fails, prefer a saved journey tagged with the same theme and (if a duration
   # was picked) within RouteBuilder's own tolerance of the target duration, falling back further
@@ -122,7 +147,8 @@ class JourneysController < ApplicationController
       lat: current_user.current_latitude,
       lng: current_user.current_longitude,
       theme_key: theme_key,
-      duration_minutes: duration_minutes
+      duration_minutes: duration_minutes,
+      variety_seed: variety_seed
     ).call
   end
 
