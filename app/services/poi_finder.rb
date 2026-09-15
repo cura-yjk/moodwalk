@@ -3,7 +3,25 @@ class PoiFinder
   FIELD_MASK = "places.id,places.displayName,places.location,places.types"
 
   DEFAULT_RADIUS_METERS = 1500 # roughly a 15-20 minute walk
-  DEFAULT_LIMIT_PER_CATEGORY = 10
+
+  # Nearby Search is billed per request, not per result, so asking for the
+  # maximum costs exactly what asking for ten did and hands PoiSelector more to
+  # choose from. 20 is the API's ceiling.
+  DEFAULT_LIMIT_PER_CATEGORY = 20
+
+  # How long a category's results stay good for.
+  #
+  # Which parks exist near a corner does not change minute to minute, and the
+  # same corner gets searched repeatedly: RouteBuilder retries at several radii
+  # within one generation, a user who turns down a walk asks again from the
+  # same doorstep, and two people setting off from the same station search the
+  # same ground. Well inside what the Places terms allow for holding results.
+  CACHE_TTL = 15.minutes
+
+  # ~110m of latitude. Two starts inside the same cell share results: the
+  # search centre shifts by less than a tenth of the smallest radius we ever
+  # use, which is not enough to change which places are nearby.
+  CACHE_LOCATION_PRECISION = 3
 
   Result = Struct.new(:success?, :pois, :error, keyword_init: true)
 
@@ -42,7 +60,29 @@ class PoiFinder
       .flat_map(&:value)
   end
 
+  # Google's own answer is what gets cached, not the POIs built from it: the
+  # cache key rounds the search centre to a cell, while distance_meters below
+  # is measured from where the walker actually is. Caching the finished POIs
+  # would hand the second walker in a cell the first one's distances.
+  #
+  # A failed request raises out of the block, so nothing is stored and the next
+  # attempt asks Google again. An empty result is stored, because a category
+  # with nothing nearby is an answer worth not paying for twice.
   def fetch_category(category)
+    places = Rails.cache.fetch(cache_key(category), expires_in: CACHE_TTL) { request_places(category) }
+
+    places.map { |place| poi_from_place(place, category) }
+  end
+
+  def cache_key(category)
+    [
+      "poi_finder", "v1", category,
+      @lat.round(CACHE_LOCATION_PRECISION), @lng.round(CACHE_LOCATION_PRECISION),
+      @radius_meters.round, @limit_per_category
+    ].join("/")
+  end
+
+  def request_places(category)
     response = ExternalApi.connection.post(NEARBY_SEARCH_URL) do |req|
       apply_headers(req)
       req.body = request_body(category).to_json
@@ -54,7 +94,7 @@ class PoiFinder
     # wrong -- catch that explicitly rather than silently returning an empty list.
     raise "Google Places error (#{category}): #{body.dig('error', 'message')}" if body["error"]
 
-    (body["places"] || []).map { |place| poi_from_place(place, category) }
+    body["places"] || []
   end
 
   def apply_headers(req)

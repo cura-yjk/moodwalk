@@ -142,6 +142,24 @@ class RouteBuilderTest < ActiveSupport::TestCase
     end
   end
 
+  # One themed generation costs one Google request per category, once per retry
+  # attempt -- measured at 24 for cheerful's eight categories. The same ground
+  # gets searched again whenever a walk is turned down and re-asked for, which
+  # is now something the app actively invites (see PoiSelector's variety pool).
+  test "asking again from the same doorstep costs nothing at Google" do
+    with_memory_cache do
+      stub_happy_geo_apis
+
+      build_toward(duration_minutes: 30)
+      first_pass = places_requested
+
+      build_toward(duration_minutes: 30)
+
+      assert_operator first_pass, :>, 0, "the first generation should have searched"
+      assert_equal first_pass, places_requested, "asking again went back to Google"
+    end
+  end
+
   test "a route-building failure still fails, and never reaches the LLM" do
     stub_nearby_search_empty
     stub_llm_success("unused")
@@ -153,6 +171,22 @@ class RouteBuilderTest < ActiveSupport::TestCase
   end
 
   private
+
+  # The test environment runs on :null_store, which forgets everything it is
+  # given -- so a caching assertion made against it would pass without a cache.
+  def with_memory_cache
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    yield
+  ensure
+    Rails.cache = original
+  end
+
+  def places_requested
+    WebMock::RequestRegistry.instance.times_executed(
+      WebMock::RequestPattern.new(:post, PoiFinder::NEARBY_SEARCH_URL)
+    )
+  end
 
   # Follows LlmChat, so switching provider does not silently leave these stubs
   # pointing at an endpoint nothing calls.
