@@ -16,6 +16,15 @@ ENV["GEMINI_API_KEY"] = "test-gemini-key-not-a-real-credential"
 ENV["ANTHROPIC_API_KEY"] = "test-anthropic-key-not-a-real-credential"
 ENV["OPENAI_API_KEY"] = "test-openai-key-not-a-real-credential"
 
+# The map credentials were never pinned, so they arrived from .env holding the
+# real ones. WebMock blocks the requests, so nothing was being spent -- but the
+# token is rendered straight into the page (see walks/new.html.erb and the other
+# map views), which puts it in the body of every controller test, and WebMock
+# prints the full URL, query string and all, whenever an unstubbed request is
+# made. Both have already put a live token on screen during this work.
+ENV["MAPBOX_ACCESS_TOKEN"] = "test-mapbox-token-not-a-real-credential"
+ENV["GOOGLE_PLACES_API_KEY"] = "test-google-places-key-not-a-real-credential"
+
 require_relative "../config/environment"
 require "rails/test_help"
 require "webmock/minitest"
