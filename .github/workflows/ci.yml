@@ -70,6 +70,20 @@ jobs:
       - name: Run tests
         run: bin/rails test
 
+      # `bin/rails test` does not include test/system, so these need their own
+      # step or they never run.
+      #
+      # Run twice on failure: headless Chrome intermittently reports a click it
+      # never delivers to the page -- no exception, no event, with the element
+      # connected and unobstructed. See click_and_confirm in
+      # application_system_test_case.rb for what was ruled out. A genuinely
+      # broken button still fails, because it fails both times.
+      - name: Run system tests
+        run: bin/rails test:system || bin/rails test:system
+        env:
+          # Selenium needs a writable home for its profile directories.
+          HOME: ${{ github.workspace }}
+
       - name: Upload failure screenshots
         uses: actions/upload-artifact@v4
         if: failure()
