@@ -29,13 +29,31 @@ from the Mapbox Directions API, and real waypoints come from the Google Places A
 
 GitHub Actions runs the same checks on push/PR (`.github/workflows/ci.yml`): a lint job
 (rubocop/brakeman/audits) and a test job against a `postgis` service container. The seed smoke test
-runs only on pushes, since it needs the real `MAPBOX_ACCESS_TOKEN` secret. Pre-existing structural
+runs only on pushes, since it needs the real `MAPBOX_ACCESS_TOKEN` secret.
+
+**`bin/ci` is not the whole pipeline.** `bin/rails test` does not include `test/system`, and the
+`Tests: System` step in `config/ci.rb` is commented out — so system tests pass CI but never run
+locally via `bin/ci`. The workflow runs them as their own step, as
+`bin/rails test:system || bin/rails test:system`: headless Chrome intermittently reports a click it
+never delivers to the page, with no exception and the element connected and unobstructed (see
+`click_and_confirm` in `test/application_system_test_case.rb` for what was ruled out). A genuinely
+broken button still fails, because it fails both times. Failure screenshots upload as an artifact. Pre-existing structural
 rubocop offenses are tracked in `.rubocop_todo.yml` — remove entries as files are refactored rather
 than adding new ones.
 
 Requires a `MAPBOX_ACCESS_TOKEN` env var (see `.env`, loaded via `dotenv-rails` in dev/test) for
 anything that generates journeys (seeding, `JourneyGenerator`). Requires a `GOOGLE_PLACES_API_KEY`
-env var for real POI-based route generation from the app (`PoiFinder`) — not used by seeding.
+env var for real POI-based route generation from the app (`PoiFinder`) — not used by seeding. The
+LLM features read `GEMINI_API_KEYS`; see **LLM usage** below.
+
+`dotenv-rails` loads `.env` in the **test** environment too, so any key the suite does not pin
+arrives holding a real credential. `test/test_helper.rb` pins each one by name and
+`test/credentials_pinned_test.rb` fails if one is missed — a new key in `.env` needs adding to both.
+Both halves of that have already gone wrong here: the suite ran on production Gemini keys because
+only the singular `GEMINI_API_KEY` was pinned while `LlmChat#keys` reads `GEMINI_API_KEYS` first,
+and `MAPBOX_ACCESS_TOKEN` went unpinned while every map view renders it into the page. That test
+asserts with bare `assert` and hand-written messages on purpose: a failing `assert_equal` would
+print the live credential into CI logs on the one run that proves it is exposed.
 
 Database is PostgreSQL with the `postgis` adapter (`activerecord-postgis-adapter` /
 `rgeo`) — do not swap in a plain `pg` adapter or plain lat/lng columns for geospatial data.
@@ -50,7 +68,10 @@ either a loop or one-way, anchored at a `start_point` (PostGIS `geography` point
 `Journey` (`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
 
 **Route generation, real POI-based (`RouteBuilder` -> `PoiFinder` -> `PoiSelector` ->
-`RouteDescriber` -> `JourneyGenerator`)**: `RouteBuilder` is the theme-picker entry point.
+`JourneyGenerator` -> `RouteDescriber`)**: `RouteBuilder` is the theme-picker entry point.
+Note the order: describing runs **last**, deliberately. Mapbox rejects candidate routes often
+enough that describing before routing would pay for `MAX_ATTEMPTS` descriptions and throw all but
+one away.
 `PoiFinder` asks Google Places API (New) Nearby Search for real nearby places by category (one
 call per category in the theme's `categories` list, see `config/initializers/themes.rb` — the
 category slugs there are Google's published "Table A" place types, not Mapbox's). `PoiSelector` is
@@ -64,9 +85,11 @@ the angular width of the smallest compass arc containing all of a combination's 
 `PoiSelector` with `round_trip: true` first and only keeps a loop if the winning spread clears
 `ROUND_TRIP_SPREAD_THRESHOLD_DEGREES` (90°), otherwise it re-selects as one-way with the same
 candidates — waypoints clustered in one direction otherwise produce a loop that just retraces the
-same streets on the way back. `RouteDescriber` (via the `ruby_llm`/`ruby_llm-schema` gems) writes
-the route's atmospheric description for the already-chosen waypoints — it does not pick them. Each
-stage returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing
+same streets on the way back. `RouteDescriber` writes the route's atmospheric description for the
+already-chosen waypoints — it does not pick them, and it has **two modes**. `RouteDescriber.fallback_for`
+is plain Ruby and runs inside the request, so every journey is saved with a description and none is
+ever blank; the LLM version (via `ruby_llm`/`ruby_llm-schema`) runs afterwards in
+`JourneyDescriptionJob` and replaces that text. Each stage returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing
 that stage's error. When a target duration is given, `RouteBuilder` widens/rescales its POI search
 radius and retries (its own `MAX_ATTEMPTS`/`TOLERANCE_RATIO`), same idea as `JourneyGenerator`'s
 own retry below — `call_toward_target` tracks the best successful attempt across retries (`pick_best`)
@@ -83,7 +106,7 @@ the distance ratio and retries, up to `MAX_ATTEMPTS`. For themed routes, a u-tur
 response is treated as an invalid dead-end *unless* it's near one of the real waypoints (a spur
 down a dead-end path to reach a POI is expected to u-turn there). Returns a `Result` struct
 (`success?`, `journey`, `error`) rather than raising — callers must check `success?` before using
-`journey`. These are synchronous HTTP calls (via Faraday); there's no background job for them yet.
+`journey`. The Mapbox and Google Places calls are synchronous (via Faraday), inside the request.
 `MapboxGeocoder` and `LocationsController` also call Mapbox separately, for reverse/forward
 geocoding — Mapbox isn't only used by `JourneyGenerator`.
 
@@ -100,13 +123,32 @@ guidance on a waypoint already passed. Has a dev-mode walk simulator
 (`?simulate=<speed multiplier>` on a walk's show page, gated by `Rails.env.development?`) that
 fakes movement along the route, useful for testing guidance without physically walking it.
 
-**Shared helpers**: `GeoDistance` (`app/services/geo_distance.rb`) owns the great-circle math —
+**Background jobs (`app/jobs`)**: the two LLM calls that used to sit inside a request now run
+off it, on Solid Queue in production. Both follow the same pattern — a plain-Ruby fallback is
+written synchronously so there is always something true on screen, and the job replaces it with
+better text when the model answers. `JourneyDescriptionJob` was moved out because the LLM was two
+thirds of a route's build time (~3s of ~4.5s, measured); `JourneyHighlightsJob` because opening a
+journey fired an XHR that sat on a ~12-second call with the list on screen empty
+(`JourneyHighlights` is its plain-Ruby counterpart, derived from the route's categories). Both
+`discard_on ActiveJob::DeserializationError` — the journey can be gone by the time they run. Both
+are enqueued from `JourneysController`.
+
+**Shared helpers**: `RouteGeometry` (`app/services/route_geometry.rb`) owns a route's shape — the
+decoded polyline, the loop check and the turn list — and `Journey` delegates all three to it; it
+needs nothing from the record but the polyline, and the decode is memoized because `loop?` alone
+asks for it twice. `GeoDistance` (`app/services/geo_distance.rb`) owns the great-circle math —
 `haversine`, `bearing`, `destination_point` — and `PolylineDecoder` owns encoded-polyline decoding;
 use these rather than re-deriving the formulas (they were previously duplicated across `Journey`,
 `PoiSelector` and `JourneyGenerator`). `ExternalApi` (`app/services/external_api.rb`) builds the
 Faraday connection for every third-party call, so they all carry timeouts — route new HTTP calls
-through it. `Walk::STEP_LENGTH_METERS` is the one step-length constant (mirrored in
-`walking_controller.js`); planned and actual step counts must divide by the same number.
+through it. `Walk` owns **two** single-source-of-truth pace constants, and both exist because the app
+disagreed with itself without them. `STEP_LENGTH_METERS` (0.76) is mirrored deliberately in
+`walking_controller.js`; planned and actual step counts must divide by the same number or every
+walk reports a step delta it did not have. `WALKING_METERS_PER_SECOND` (80/60) is read by
+`RouteBuilder` — via `Walk.walking_meters_per_minute` — to turn a picked duration into a target
+distance, and passed to Mapbox by `JourneyGenerator` as the `walking_speed` param so its duration
+estimate uses the same pace. Mapbox's own default is 1.42 m/s, which is why a walk planned for
+thirty minutes used to come back described as twenty-eight.
 
 **Geospatial queries**: `Journey.near(lat, lng, radius_meters)` (`app/models/journey.rb`) does the
 PostGIS proximity query (`ST_DWithin` + distance ordering) — build lat/lng-radius searches on this
@@ -155,11 +197,23 @@ at; don't infer the provider from them.
   `db/migrate/20260831110924_drop_pending_journeys.rb`) have both been removed.
 - `bin/ci`'s seed-replant step means `db/seeds.rb` must stay runnable (and idempotent) against a
   real Mapbox token in CI.
+- **A journey's card imagery is a hard-coded URL table.** `JourneyImages` holds thirteen
+  hand-copied Google-hosted photo URLs — lifted out of `Journey` because it was a sixth of the model
+  by RuboCop's count, not because the approach is right. Nothing here requests these properly, so
+  they carry none of the attribution Google Places Photos requires. Replacing them (Places Photos
+  with attribution, or a Mapbox static image of the route itself) is its own piece of work.
+- **The walker counts and star ratings on community route cards are invented.** `PlaceholderStats`
+  derives them from the primary key so a given route always shows the same numbers. `Journey#walker_count`
+  and `#rating` — the real figures — still exist and are still tested, but only one walk in the
+  database carries a rating, so the real numbers leave almost every card blank. This is temporary
+  by design: switching over is two views (`community_routes/index` and `show`) and then deleting the
+  file. Treat it as a known temporary, not as architecture, and don't report those numbers as real
+  anywhere outside the app.
 - `test/fixtures` has `users`/`journeys`/`walks` fixtures (the `journeys` one writes its PostGIS
-  `start_point` as EWKT). Coverage: `test/services` for `PoiFinder`, `PoiSelector`, `RouteBuilder`,
-  `JourneyGenerator`; `test/models` for `Journey`, `Walk`, `User`, `SavedJourney`;
-  `test/controllers` for `WalksController` and `CommunityRoutesController`. `webmock` stubs all
-  outbound HTTP — a test that unexpectedly hits the network fails loudly, which is what keeps
-  `Journey#location_name` honest about not geocoding on read. Still uncovered: `RouteDescriber`,
-  `MapboxGeocoder`, `ShareQuoteGenerator`, `JourneyHighlightsGenerator`, `PagesController`,
-  `LocationsController`, and all JS.
+  `start_point` as EWKT). `webmock` stubs all outbound HTTP — a test that unexpectedly hits the
+  network fails loudly, which is what keeps `Journey#location_name` honest about not geocoding on
+  read. Coverage is now broad: every service has a test, as do the jobs, all models, and every
+  controller except `PagesController`; `test/system/getting_a_walk_test.rb` drives a real browser
+  through generating and walking a route. **`PagesController` is the only uncovered class** — keep
+  that sentence true rather than letting this list rot into a lie again, and remember system tests
+  need `bin/rails test:system` (see the `bin/ci` note above).
