@@ -24,8 +24,10 @@ Inside `.env`, set these variables. For any API keys, see group Slack channel.
 MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
 GOOGLE_PLACES_API_KEY=your_google_places_api_key
 CLOUDINARY_URL=your_own_cloudinary_url_key
-ANTHROPIC_API_KEY=your_anthropic_api_key
+GEMINI_API_KEYS=your_gemini_api_key
 ```
+`GEMINI_API_KEYS` takes a comma-separated list — route descriptions fall through to the next key
+when one runs out of quota. A single key is fine. `GEMINI_API_KEY` (singular) is read as a fallback.
 
 ### DB Setup
 This app uses PostgreSQL with the PostGIS extension (needed for location/map data) — make sure PostGIS is installed before running this.
