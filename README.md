@@ -1,10 +1,36 @@
 # 🌿 Moodwalk
 
-Moodwalk suggests short walking routes near wherever you are based on how you're feeling, then lets you log your mood and a reflection once you're done.
+Most navigation answers "how do I get to X". A walk you take to clear your head has no X.
+
+Moodwalk invents the route instead. Tell it how you want to feel and how long you have, and it
+builds a walk near you through real nearby places — a loop or a one-way trip, whichever the places
+actually support — then guides you along it turn by turn and remembers how it went.
 
 _DROP SCREENSHOT HERE_
 <br>
 App home: https://moodwalk-ec6251edd332.herokuapp.com/
+
+## What it does
+
+**Before the walk**
+- Pick a theme and a duration; Moodwalk finds real places nearby that fit and routes a walk through
+  2–4 of them along actual streets
+- Loop or one-way is decided by where the places are, not by a coin flip — waypoints clustered in
+  one direction would make a "loop" that just retraces itself, so those become one-way trips
+- Each route gets a name, a written description and a list of highlights
+- Browse **community routes** other people have walked and shared, or save one for later
+
+**During the walk**
+- Turn-by-turn guidance from the route's own steps, driven by the phone's GPS
+- Breadcrumbs are recorded as you go, so the path you actually took can be drawn against the one
+  that was suggested
+- A live step count
+
+**After the walk**
+- Log your mood before and after, write a reflection, rate the walk
+- Attach a photo, pinned to where it was taken
+- Share the walk to the community feed, with a generated quote to go with it
+- Every walk is kept in your history with its distance, duration and step count
 
 ## Getting Started
 ### Setup
@@ -51,6 +77,9 @@ rails s
 - [Bootstrap](https://getbootstrap.com/) — Styling
 - [Mapbox](https://www.mapbox.com/) — Maps, walking directions, geocoding
 - [Google Places API](https://developers.google.com/maps/documentation/places/web-service) — Finding real nearby places for each route
+- [RubyLLM](https://rubyllm.com/) + [Gemini](https://ai.google.dev/) — Route descriptions, highlights and share quotes
+- [Solid Queue](https://github.com/rails/solid_queue) — Running those LLM calls off the request
+- [Cloudinary](https://cloudinary.com/) — Active Storage backend for walk photos
 
 ## Acknowledgements
 
