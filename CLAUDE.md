@@ -136,13 +136,16 @@ Sprockets asset pipeline (`sassc-rails`) + Hotwire (Turbo + Stimulus) + importma
 Node/webpack/yarn build step). Forms use `simple_form`. Stimulus controllers live in
 `app/javascript/controllers/`.
 
-**LLM usage**: the `ruby_llm` / `ruby_llm-schema` gems are wired into `RouteDescriber`
-(`app/services/route_describer.rb`), which writes each route's description using
-`RubyLLM.chat.with_schema(...)`. It's the only LLM call in the app — don't assume broader LLM
-integration exists beyond it. Requires `ANTHROPIC_API_KEY` (see
-`config/initializers/ruby_llm.rb`). Which model writes the prose lives in one place,
-`LlmChat` (`app/services/llm_chat.rb`) -- the services call `LlmChat.new_chat`, never
-`RubyLLM.chat` directly, so switching model or provider is a one-file change.
+**LLM usage**: the `ruby_llm` / `ruby_llm-schema` gems back three prose generators —
+`RouteDescriber` (`app/services/route_describer.rb`, each route's description),
+`JourneyHighlightsGenerator` and `ShareQuoteGenerator`. All three follow the same shape:
+`LlmChat.with_chat { |chat| chat.with_instructions(...).with_schema(...).ask(...) }`. They never
+call `RubyLLM.chat` directly, so model and provider are a one-file change in `LlmChat`
+(`app/services/llm_chat.rb`), which pins `gemini-3.5-flash` on `:gemini`. Credentials come from
+`GEMINI_API_KEYS` — a comma-separated list `LlmChat.keys` falls through when a key hits its quota,
+with singular `GEMINI_API_KEY` as a fallback. The `anthropic_api_key` / `openai_api_key` lines in
+`config/initializers/ruby_llm.rb` are spare credentials for providers the app is **not** pointed
+at; don't infer the provider from them.
 
 ## Notes
 
