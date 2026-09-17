@@ -6,9 +6,25 @@ Moodwalk invents the route instead. Tell it how you want to feel and how long yo
 builds a walk near you through real nearby places — a loop or a one-way trip, whichever the places
 actually support — then guides you along it turn by turn and remembers how it went.
 
-_DROP SCREENSHOT HERE_
-<br>
+![A nine-minute Moodwalk route through Meguro, the turn-by-turn guidance that ran while it was walked, and the memory card kept afterwards.](docs/screenshots/hero.jpg)
+
 App home: https://moodwalk-ec6251edd332.herokuapp.com/
+
+## One walk, end to end
+
+Seven screens in order, photographed on a phone rather than staged in a browser. One walk in
+Meguro, Tokyo: the route the app built that afternoon, the guidance that ran while it was walked,
+and the mood and photo logged at the end of it.
+
+| | | | |
+|:-:|:-:|:-:|:-:|
+| <img src="docs/screenshots/1-feel.jpg" alt="Home screen offering the feelings Calm, Refresh, Cheerful, Recharge and Surprise me." width="200"> | <img src="docs/screenshots/2-duration.jpg" alt="A sheet asking how long you have, with 10 minutes chosen." width="200"> | <img src="docs/screenshots/3-route.jpg" alt="The generated route: a nine-minute one-way walk of about 966 steps." width="200"> | <img src="docs/screenshots/4-walking.jpg" alt="The in-walk screen: a large arrow and the instruction Keep going straight." width="200"> |
+| **1. Pick a feeling** <br> Decides which Google Places categories get searched near you. | **2. Say how long** <br> Becomes a target distance at the same pace handed to Mapbox. | **3. Get a route** <br> Nine minutes, one way, through Meguroku Center Park. | **4. Walk it** <br> Turn-by-turn from the route's own steps, with GPS breadcrumbs posted as you go. |
+
+| | | |
+|:-:|:-:|:-:|
+| <img src="docs/screenshots/5-finish.jpg" alt="The walk-complete screen: a photo taken during the walk above 1,070 steps, 11 minutes and 0.81 km." width="200"> | <img src="docs/screenshots/6-reflect.jpg" alt="The reflection screen, with the suggested route drawn against the one actually walked." width="200"> | <img src="docs/screenshots/7-memory.jpg" alt="The memory card: mood before and after, and a line written from the reflection." width="200"> |
+| **5. Finish** <br> Distance, duration and steps read off the breadcrumb trail, not off the plan. | **6. Reflect** <br> The route walked, drawn against the route suggested. | **7. Keep it** <br> Mood before and after, and a line written from what you wrote. |
 
 ## What it does
 
