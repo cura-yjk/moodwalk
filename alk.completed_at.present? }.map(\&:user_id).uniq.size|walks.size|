@@ -1,2 +1,0 @@
-    walk|walk| walk.shared? && walk.photo.attached? }
-    walk|walk| walk.completed_at.present? }.map(&:user_id).uniq.size
