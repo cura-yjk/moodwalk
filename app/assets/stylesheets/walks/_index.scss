@@ -259,11 +259,9 @@
 
   border-radius: 20px 20px 0 0;
 
-  // No tint over the photo, by choice -- the card shows the picture as it is.
-  //
-  // position: relative is still needed: .walk-float and the title inside are
-  // absolutely positioned against this box. The background-color is only ever
-  // seen before the photo loads, or if it fails to.
+  // position: relative anchors both the scrim below and the absolutely
+  // positioned time and title inside. The background-color is only ever seen
+  // before the photo loads, or if it fails to.
   position: relative;
 
   object-fit: cover;
@@ -272,10 +270,31 @@
   background-position: center;
 }
 
+// The same bottom-only scrim the community and saved cards use, rather than
+// the full-height tint this card used to carry -- see $photo-scrim.
+.walk-thumbnail::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  border-radius: inherit;
+
+  background: $photo-scrim;
+
+  // Decoration; the card underneath is what people tap.
+  pointer-events: none;
+}
+
 .walk-float {
   position: absolute;
   top: 12px;
   left: 8px;
+
+  // Above the scrim, like .route-card-title already is -- otherwise the time
+  // is painted under it, since both are positioned and the pseudo-element
+  // comes last.
+  z-index: 2;
 
   padding: 4px 16px;
 

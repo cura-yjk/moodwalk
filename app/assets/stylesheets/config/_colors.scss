@@ -21,3 +21,13 @@ $mood-theme-colors: (
   recharge: (bg: #dfe9df, accent: #4a6b4a),
   surprise_me: (bg: #ececec, accent: #555555)
 );
+
+// Bottom-only darkening laid over a card's photo so a white title stays
+// legible on it, whatever the picture happens to be. Transparent for the top
+// 55% -- the photo is the point, and a tint across the whole thing buries it.
+//
+// Shared by every card that puts text on a photo: community route cards and
+// saved route cards (.route-card-photo, pages/_community_routes.scss) and walk
+// history cards (.walk-thumbnail, walks/_index.scss). One definition, so they
+// cannot drift apart the way the old full-height tint did.
+$photo-scrim: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
