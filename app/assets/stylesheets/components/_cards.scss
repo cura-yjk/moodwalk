@@ -34,15 +34,6 @@
   transition: 0.7s ease;
 }
 
-.card-image::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-
-  background-image: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
-}
-
 .card-photo {
   position: absolute;
   inset: 0;
