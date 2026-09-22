@@ -155,12 +155,7 @@ class RouteBuilder
   def apply_fallback_text(result)
     journey = result.journey
     journey.description = RouteDescriber.fallback_for(theme_key: @theme_key, waypoints: result.waypoints)
-    journey.name = JourneyTitle.new(
-      location_name: journey.location_name,
-      waypoints: result.waypoints,
-      round_trip: @round_trip,
-      theme_key: @theme_key
-    ).call
+    journey.name = JourneyTitle.for(journey: journey, waypoints: result.waypoints, round_trip: @round_trip)
   end
 
   # Try a loop first; only keep it if the real candidates actually spread out

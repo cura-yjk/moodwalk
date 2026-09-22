@@ -31,6 +31,16 @@ class JourneyTitle
   ONE_WAY = "Walk".freeze
   UNNAMED = "Walk".freeze
 
+  # Reads what it needs off the record, so callers do not have to unpack it.
+  def self.for(journey:, waypoints:, round_trip:)
+    new(
+      location_name: journey.location_name,
+      waypoints: waypoints,
+      round_trip: round_trip,
+      theme_key: journey.theme_key
+    ).call
+  end
+
   def initialize(location_name:, waypoints:, round_trip:, theme_key: nil)
     @location_name = location_name
     @waypoints = Array(waypoints)
