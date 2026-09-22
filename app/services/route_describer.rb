@@ -97,20 +97,24 @@ class RouteDescriber
   def call
     return empty_result("No waypoints to describe") if @waypoints.empty?
 
-    parsed = request_llm
-    Result.new(success?: true, description: parsed["description"], error: nil)
+    fields = request_llm
+    Result.new(success?: true, description: fields["description"], error: nil)
   rescue StandardError => e
     empty_result(e.message)
   end
 
   private
 
+  # RubyLLM 2.0 moved structured output to Message#parsed; #content is now the
+  # raw JSON string. Reading a key off that string returns the key back --
+  # "{\"quote\":\"...\"}"["quote"] is "quote" -- so this failed quietly rather
+  # than raising, handing back the field name as the answer.
   def request_llm
     LlmChat.with_chat do |chat|
       chat.with_instructions(SYSTEM_PROMPT)
           .with_schema(DescriptionSchema)
           .ask(user_message)
-          .content
+          .parsed
     end
   end
 

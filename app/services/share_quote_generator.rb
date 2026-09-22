@@ -56,14 +56,18 @@ class ShareQuoteGenerator
   end
 
   def call
-    parsed = request_llm
-    Result.new(success?: true, quote: parsed.content["quote"])
+    response = request_llm
+    Result.new(success?: true, quote: response.parsed["quote"])
   rescue StandardError => e
     Result.new(success?: false, error: e.message)
   end
 
   private
 
+  # RubyLLM 2.0 moved structured output to Message#parsed; #content is now the
+  # raw JSON string. Reading a key off that string returns the key back --
+  # "{\"quote\":\"...\"}"["quote"] is "quote" -- so this failed quietly rather
+  # than raising, handing back the field name as the answer.
   def request_llm
     LlmChat.with_chat do |chat|
       chat.with_instructions(SYSTEM_PROMPT)
