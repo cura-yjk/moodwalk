@@ -9,6 +9,23 @@ require "test_helper"
 #
 # These cover the flows where a dead button costs the most: getting a walk,
 # starting it, and the controls on a walk in progress.
+# Chrome reports a node that was replaced underneath it as UnknownError --
+# "Node with given id does not belong to the document" -- rather than as
+# StaleElementReferenceError, and Capybara only retries the latter. So a node
+# Turbo swapped out mid-navigation ends the test instead of being looked up
+# again, which is a flake, not a failure: CI errored on five of twelve tests in
+# one run and three in the next, in different tests each time, including a
+# layout test that never clicks anything.
+#
+# Retrying costs nothing when the error is genuine: Capybara re-runs until the
+# wait expires and then raises it anyway, so a real problem still fails, just a
+# few seconds later.
+Capybara::Selenium::Driver.prepend(Module.new do
+  def invalid_element_errors
+    super + [::Selenium::WebDriver::Error::UnknownError]
+  end
+end)
+
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   DESKTOP = [1280, 800].freeze
   PHONE = [390, 844].freeze
