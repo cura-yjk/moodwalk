@@ -52,7 +52,7 @@ class RouteBuilder
 
   def call
     result = @target_distance ? call_toward_target : attempt
-    apply_fallback_description(result) if result&.success?
+    apply_fallback_text(result) if result&.success?
     result
   rescue ArgumentError => e
     failure(e.message)
@@ -149,8 +149,18 @@ class RouteBuilder
   # downstream needs its output. JourneyDescriptionJob replaces this text with
   # the real description once the journey is saved -- see
   # JourneysController#create.
-  def apply_fallback_description(result)
-    result.journey.description = RouteDescriber.fallback_for(theme_key: @theme_key, waypoints: result.waypoints)
+  # Both written here rather than at generation time, because both need the
+  # waypoints the selector chose -- and the name also needs the neighbourhood,
+  # which JourneyGenerator geocodes while building the record.
+  def apply_fallback_text(result)
+    journey = result.journey
+    journey.description = RouteDescriber.fallback_for(theme_key: @theme_key, waypoints: result.waypoints)
+    journey.name = JourneyTitle.new(
+      location_name: journey.location_name,
+      waypoints: result.waypoints,
+      round_trip: @round_trip,
+      theme_key: @theme_key
+    ).call
   end
 
   # Try a loop first; only keep it if the real candidates actually spread out
@@ -182,6 +192,8 @@ class RouteBuilder
       lng: @lng,
       waypoints: waypoints,
       theme_key: @theme_key,
+      # Replaced by apply_fallback_text once the record exists and its
+      # neighbourhood has been resolved; JourneyGenerator needs a name here.
       name: @theme[:label],
       round_trip: @round_trip
     ).call

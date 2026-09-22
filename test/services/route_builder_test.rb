@@ -160,6 +160,19 @@ class RouteBuilderTest < ActiveSupport::TestCase
     end
   end
 
+  # The generated route used to be called after its theme, so every calm walk
+  # in the app was called "Calm".
+  test "a built route is named after itself, not after its theme" do
+    stub_happy_geo_apis
+
+    result = build_toward(duration_minutes: 30)
+
+    assert result.success?
+    assert_not_equal THEMES[:calm][:label], result.journey.name,
+                     "the route is still named after its theme"
+    assert_match(/Loop|Walk/, result.journey.name)
+  end
+
   test "a route-building failure still fails, and never reaches the LLM" do
     stub_nearby_search_empty
     stub_llm_success("unused")
