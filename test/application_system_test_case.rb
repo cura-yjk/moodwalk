@@ -86,9 +86,12 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # ...and for a click whose proof is having gone somewhere.
   def click_to(selector, path:, wait: 5)
     attempt_click(selector)
-    return if page.has_current_path?(path, wait: wait)
+    attempt_click(selector, via_dom: true) unless page.has_current_path?(path, wait: wait)
 
-    attempt_click(selector, via_dom: true)
+    # Asserted on every path through, not only after a retry. Returning early
+    # on success left the test with no assertions at all -- minitest says so
+    # ("Test is missing assertions"), and a test that records nothing is a test
+    # that cannot fail.
     assert_current_path path, wait: wait
   end
 
