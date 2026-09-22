@@ -66,14 +66,16 @@
 }
 
 // Darkens the lower part of the photo so the white title overlay stays
-// legible regardless of the underlying image.
+// legible regardless of the underlying image. Also covers the saved route
+// cards, which wrap their photo in the same element.
 .route-card-photo::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
 
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  background: $photo-scrim;
+  pointer-events: none;
 }
 
 .route-card-duration {

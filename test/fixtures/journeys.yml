@@ -21,3 +21,26 @@ unmeasured:
   encoded_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
   start_point: "SRID=4326;POINT(139.70 35.66)"
   recommendable: false
+
+# Unthemed and recommendable, so they are what the home carousel suggests.
+# far_route sits ~8km from the others, outside Journey.near's 3km radius, which
+# is what makes the "nothing nearby" fallback testable.
+near_suggestion:
+  name: Riverside Stroll
+  description: A calm loop tracing the river, plenty of greenery.
+  encoded_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+  start_point: "SRID=4326;POINT(139.771 35.681)"
+  distance_meters: 1800
+  estimated_duration_seconds: 1400
+  location_name: Meguro
+  recommendable: true
+
+far_route:
+  name: Harbour Air
+  description: Open water and a long view.
+  encoded_polyline: "_p~iF~ps|U_ulLnnqC_mqNvxq`@"
+  start_point: "SRID=4326;POINT(139.86 35.63)"
+  distance_meters: 2200
+  estimated_duration_seconds: 1600
+  location_name: Odaiba
+  recommendable: true

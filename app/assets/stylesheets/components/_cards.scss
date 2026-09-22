@@ -34,13 +34,21 @@
   transition: 0.7s ease;
 }
 
+// Sits between .card-photo (z-index 0) and .card-info (z-index 2), so the
+// route name and description stay above it.
+//
+// Lighter than the original, which ran to rgba(62, 68, 65, 0.8) -- 80% opaque
+// dark across the lower half, enough to bury the photo it was laid over. These
+// stops keep the green cast and enough darkening for the near-white text
+// (.card-image sets #faf8f1 with only a soft shadow) while leaving the picture
+// readable as a picture.
 .card-image::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
 
-  background-image: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
+  background-image: linear-gradient(rgba(120, 196, 129, 0.18), rgba(62, 68, 65, 0.45));
 }
 
 .card-photo {
@@ -172,8 +180,6 @@
   object-fit: cover;
 
   position: relative;
-
-  background: linear-gradient(rgba(115, 238, 220, 0.34), rgba(115, 194, 190, 0.8));
 }
 
 .mood-tag {

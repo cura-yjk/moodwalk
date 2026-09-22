@@ -123,6 +123,50 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
                   "a journey with no duration shouldn't render a duration chip"
   end
 
+  # The card had two branches and only the photo-less one carried the time and
+  # the route name -- so attaching a photo to a walk silently stripped both off
+  # its card, and a history of photographed walks showed neither.
+  test "a walk with a photo of its own still shows its route name and time" do
+    walk = walks(:completed_walk)
+    walk.photo.attach(
+      io: Rails.root.join("test/fixtures/files/walk_photo.png").open,
+      filename: "walk_photo.png", content_type: "image/png"
+    )
+
+    get walks_path
+
+    assert_response :success
+    # Asserted on that walk's own card. The signed-in user has more than one,
+    # and only this one carries a photo -- a plain ".route-card-title" search
+    # finds the other card's and passes while this one renders empty.
+    assert_select card_for(walk) + " .route-card-title", text: walk.journey.name
+    assert_select card_for(walk) + " .walk-time"
+  end
+
+  test "a walk with no photo of its own shows them too" do
+    walk = walks(:in_progress_walk)
+    assert_not walk.photo.attached?
+
+    get walks_path
+
+    assert_select card_for(walk) + " .route-card-title", text: walk.journey.name
+    assert_select card_for(walk) + " .walk-time"
+  end
+
+  test "every walk on the page keeps its name and its time" do
+    walks(:completed_walk).photo.attach(
+      io: Rails.root.join("test/fixtures/files/walk_photo.png").open,
+      filename: "walk_photo.png", content_type: "image/png"
+    )
+
+    get walks_path
+
+    cards = css_select(".walk-card-flip").size
+    assert_operator cards, :>, 1, "needs more than one card for this to mean anything"
+    assert_select ".walk-thumbnail .route-card-title", count: cards
+    assert_select ".walk-thumbnail .walk-time", count: cards
+  end
+
   # The card used to call JourneyImages.sample, which picks at random with no
   # journey to key off -- so a saved route showed a different photo on every
   # render, and looked like the photos were failing to load.
@@ -197,6 +241,11 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # A walk's own card, addressed by the memory URL it carries.
+  def card_for(walk)
+    %([data-walk-card-memory-url-value="#{memory_walk_path(walk)}"])
+  end
 
   # Follows LlmChat, so switching provider does not silently leave these stubs
   # pointing at an endpoint nothing calls.

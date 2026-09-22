@@ -259,45 +259,42 @@
 
   border-radius: 20px 20px 0 0;
 
-  // The photo arrives as an inline background-image (see walks/_walk_card),
-  // and an inline style beats a stylesheet -- so a gradient declared here was
-  // being replaced by the photo rather than laid over it, leaving the white
-  // time and title on whatever the photo happened to be. The overlay is a
-  // pseudo-element now, which nothing inline can overwrite.
+  // position: relative anchors both the scrim below and the absolutely
+  // positioned time and title inside. The background-color is only ever seen
+  // before the photo loads, or if it fails to.
   position: relative;
 
   object-fit: cover;
   background-color: rgba(62, 68, 65, 0.8);
   background-size: cover;
   background-position: center;
-
-  position: relative;
 }
 
+// The same bottom-only scrim the community and saved cards use, rather than
+// the full-height tint this card used to carry -- see $photo-scrim.
 .walk-thumbnail::after {
   content: "";
-
   position: absolute;
   inset: 0;
+  z-index: 1;
 
   border-radius: inherit;
 
-  background: linear-gradient(rgba(120, 196, 129, 0.34), rgba(62, 68, 65, 0.8));
+  background: $photo-scrim;
 
-  // The overlay is decoration; the card underneath is what people tap.
+  // Decoration; the card underneath is what people tap.
   pointer-events: none;
-}
-
-// Above the overlay, or the gradient would wash them out instead of the photo.
-.walk-thumbnail > * {
-  position: relative;
-  z-index: 1;
 }
 
 .walk-float {
   position: absolute;
   top: 12px;
   left: 8px;
+
+  // Above the scrim, like .route-card-title already is -- otherwise the time
+  // is painted under it, since both are positioned and the pseudo-element
+  // comes last.
+  z-index: 2;
 
   padding: 4px 16px;
 
