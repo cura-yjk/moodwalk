@@ -103,13 +103,26 @@ class Journey < ApplicationRecord
     rating || "—"
   end
 
+  # How far from this walk's start an alternate may start: about a
+  # four-minute walk, the same reach ReusableWalk allows.
+  ALTERNATE_START_WITHIN_METERS = 300
+
+  # A saved walk to offer instead of this one - starting near where this one
+  # does, and within RouteBuilder's tolerance of its length. It used to pick
+  # from the whole database, so the alternate could start 1.65km off
+  # (measured) or in another city, and be any walk no longer - a 7-minute one
+  # offered in place of a 21-minute walk.
   def alternate
-    others = Journey.where.not(id: id)
-    others = others.where(estimated_duration_seconds: ..estimated_duration_seconds) if estimated_duration_seconds
+    others = Journey.near(start_point.y, start_point.x, ALTERNATE_START_WITHIN_METERS).where.not(id: id)
+    if estimated_duration_seconds
+      others = others.where(estimated_duration_seconds: ReusableWalk.seconds_for(estimated_duration_seconds / 60.0))
+    end
 
     # .sample isn't a relation method -- it would load every matching journey
-    # into memory just to discard all but one. Let the database pick.
-    random = ->(scope) { scope.order(Arel.sql("RANDOM()")).first }
+    # into memory just to discard all but one. Let the database pick. reorder,
+    # not order: Journey.near already sorts nearest first, and appending
+    # RANDOM() after that would always hand back the closest walk.
+    random = ->(scope) { scope.reorder(Arel.sql("RANDOM()")).first }
     random.call(others.where(theme_key: theme_key)) || random.call(others)
   end
 
@@ -157,9 +170,10 @@ class Journey < ApplicationRecord
   end
 
   # The route's shape: its decoded coordinates, whether it comes back to where
-  # it started, and where it turns. Owned by RouteGeometry, which needs nothing
-  # from the record but the polyline and the start point.
-  delegate :route_coordinates, :loop?, :turn_waypoints, to: :geometry
+  # it started, where it turns, and how much of it re-walks itself. Owned by
+  # RouteGeometry, which needs nothing from the record but the polyline and
+  # the start point.
+  delegate :route_coordinates, :loop?, :turn_waypoints, :overlap_ratio, to: :geometry
 
   def start_coordinates
     [start_point.x, start_point.y]

@@ -7,7 +7,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   # generated `allow_browser versions: :modern` demands webp, web push and
   # badges -- none of which this app uses. Someone could not open the app at all.
   test "an older browser is let in rather than turned away" do
-    get root_path, headers: { "HTTP_USER_AGENT" => OLD_SAFARI }
+    get new_user_session_path, headers: { "HTTP_USER_AGENT" => OLD_SAFARI }
 
     assert_response :success
   end
@@ -20,10 +20,20 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "the home page is public" do
+  # Signed out, the home page used to render an empty screen - everything on
+  # it is for a signed-in walker, and nothing said how to become one.
+  test "a signed-out visitor is sent to the login form" do
     get root_path
 
-    assert_response :success
+    assert_redirected_to new_user_session_path
+  end
+
+  # Devise's own redirect would greet a first visit with "You need to sign in
+  # or sign up before continuing." - a warning, for opening the app.
+  test "without a warning for having opened the app" do
+    get root_path
+
+    assert_nil flash[:alert]
   end
 
   # --- the suggestion carousel -------------------------------------------
@@ -96,12 +106,6 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     # on a shelf of community ideas.
     assert_not_includes suggested_names, journeys(:meguro_loop).name
     assert_not_includes suggested_names, journeys(:unmeasured).name
-  end
-
-  test "a signed-out visitor is offered nothing rather than someone else's ideas" do
-    get root_path
-
-    assert_empty suggested_names
   end
 
   private

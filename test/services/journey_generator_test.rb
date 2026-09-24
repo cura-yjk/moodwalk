@@ -1,6 +1,7 @@
 require "test_helper"
 
 class JourneyGeneratorTest < ActiveSupport::TestCase
+  DIRECTIONS = %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/}
   START_LAT = 35.68
   START_LNG = 139.77
   WAYPOINT = { lat: 35.685, lng: 139.775 }.freeze
@@ -72,6 +73,46 @@ class JourneyGeneratorTest < ActiveSupport::TestCase
     assert_in_delta minutes * 60, target / Walk::WALKING_METERS_PER_SECOND, 0.001
   end
 
+
+  # --- when Mapbox can't be reached -----------------------------------------
+  #
+  # These used to raise straight out of the request as a 500 page. Now they
+  # come back as a failure marked unavailable, which RouteBuilder and
+  # JourneysController tell apart from "no route between these points".
+
+  test "a Mapbox error page is unavailable, not a route that can't be walked" do
+    stub_request(:get, DIRECTIONS).to_return(status: 503, body: "<html>Service Unavailable</html>")
+
+    result = build_generator.call
+
+    assert_not result.success?
+    assert result.unavailable
+  end
+
+  test "a timeout is unavailable" do
+    stub_request(:get, DIRECTIONS).to_timeout
+
+    assert build_generator.call.unavailable
+  end
+
+  test "a refused token or a rate limit is unavailable" do
+    [401, 403, 429].each do |status|
+      stub_request(:get, DIRECTIONS).to_return(status: status, headers: { "Content-Type" => "application/json" },
+                                               body: { "message" => "Too Many Requests" }.to_json)
+
+      assert build_generator.call.unavailable, "HTTP #{status}"
+    end
+  end
+
+  test "no route between the points is an ordinary failure, not unavailable" do
+    stub_request(:get, DIRECTIONS).to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                                             body: { "code" => "NoRoute", "message" => "No route found" }.to_json)
+
+    result = build_generator.call
+
+    assert_not result.success?
+    assert_not result.unavailable
+  end
 
   def build_generator
     JourneyGenerator.new(

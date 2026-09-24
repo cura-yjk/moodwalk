@@ -196,4 +196,96 @@ class JourneyTest < ActiveSupport::TestCase
     journey.saved_journeys.create!(user: users(:walker))
     assert journey.reload.saved_by?(users(:walker))
   end
+
+  # ShortlistRouter asks a route for its overlap to accept it, to rank it and
+  # again to report it. Measured more than once per route, a long route's
+  # build went from ~50ms to ~750ms, and a browser test's walk timed out.
+  test "measures how much of the route re-walks itself once, however often asked" do
+    journey = Journey.new(encoded_polyline: journeys(:meguro_loop).encoded_polyline)
+    measured = 0
+    original = RouteOverlap.method(:ratio)
+    RouteOverlap.define_singleton_method(:ratio) do |coordinates|
+      measured += 1
+      original.call(coordinates)
+    end
+
+    3.times { journey.overlap_ratio }
+
+    assert_equal 1, measured
+  ensure
+    RouteOverlap.define_singleton_method(:ratio, original)
+  end
+
+
+  # --- alternate ----------------------------------------------------------
+  #
+  # "Choose alternate journey" offers a saved walk instead of this one. It used
+  # to pick from the whole database, so the alternate could start 1.65km off
+  # (measured) or in another city - a walk the user couldn't start from where
+  # they are. It has to start near where this one does.
+
+  test "an alternate starts near where this walk starts" do
+    nearby = saved_walk(theme_key: "calm", lng: 139.7705, lat: 35.6805) # ~70m away
+    saved_walk(theme_key: "calm", lng: 139.86, lat: 35.63)             # ~9km away
+
+    assert_equal nearby, journeys(:meguro_loop).alternate
+  end
+
+  test "no alternate when every other walk starts far away" do
+    journeys(:near_suggestion).destroy!
+    saved_walk(theme_key: "calm", lng: 139.86, lat: 35.63)
+
+    assert_nil journeys(:meguro_loop).alternate
+  end
+
+  test "another theme will do, but still only nearby" do
+    saved_walk(theme_key: "calm", lng: 139.86, lat: 35.63)
+
+    assert_equal journeys(:near_suggestion), journeys(:meguro_loop).alternate # unthemed, ~140m away
+  end
+
+  # meguro_loop is 25 minutes (1500s); RouteBuilder's 25% tolerance makes that
+  # 1125-1875s. The alternate used to be any walk no longer, down to a
+  # 7-minute one offered in place of a 21-minute walk (measured).
+  test "not a walk much shorter than this one" do
+    journeys(:near_suggestion).destroy!
+    saved_walk(theme_key: "calm", lng: 139.7705, lat: 35.6805, seconds: 1100)
+
+    assert_nil journeys(:meguro_loop).alternate
+  end
+
+  test "a walk a little longer will do" do
+    longer = saved_walk(theme_key: "calm", lng: 139.7705, lat: 35.6805, seconds: 1850)
+
+    assert_equal longer, journeys(:meguro_loop).alternate
+  end
+
+  test "not a walk much longer either" do
+    journeys(:near_suggestion).destroy!
+    saved_walk(theme_key: "calm", lng: 139.7705, lat: 35.6805, seconds: 1900)
+
+    assert_nil journeys(:meguro_loop).alternate
+  end
+
+  test "picks at random among the nearby walks, not always the closest" do
+    closest = saved_walk(theme_key: "calm", lng: 139.7702, lat: 35.6802)
+    further = saved_walk(theme_key: "calm", lng: 139.7720, lat: 35.6815)
+
+    # uncached: the query cache would answer the same RANDOM() query with its
+    # first result every time. Each tap in the app is its own request.
+    picks = Journey.uncached { Array.new(30) { journeys(:meguro_loop).alternate }.uniq }
+
+    assert_equal [closest, further].map(&:id).sort, picks.map(&:id).sort
+  end
+
+
+  private
+
+  # 1200s by default: within 25% of meguro_loop's 1500s, so only where it
+  # starts is being tested unless a test says otherwise.
+  def saved_walk(theme_key:, lng:, lat:, seconds: 1200)
+    Journey.create!(name: "Walk", theme_key: theme_key, encoded_polyline: journeys(:meguro_loop).encoded_polyline,
+                    start_point: "SRID=4326;POINT(#{lng} #{lat})", estimated_duration_seconds: seconds)
+  end
+
 end

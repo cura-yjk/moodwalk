@@ -68,33 +68,65 @@ either a loop or one-way, anchored at a `start_point` (PostGIS `geography` point
 `Journey` (`started_at`/`completed_at`, plus post-walk `mood_after`/`reflection`/actuals).
 
 **Route generation, real POI-based (`RouteBuilder` -> `PoiFinder` -> `PoiSelector` ->
-`JourneyGenerator` -> `RouteDescriber`)**: `RouteBuilder` is the theme-picker entry point.
-Note the order: describing runs **last**, deliberately. Mapbox rejects candidate routes often
-enough that describing before routing would pay for `MAX_ATTEMPTS` descriptions and throw all but
-one away.
-`PoiFinder` asks Google Places API (New) Nearby Search for real nearby places by category (one
+`ShortlistRouter` -> `JourneyGenerator` -> `RouteDescriber`)**: `RouteBuilder` is the theme-picker
+entry point. Note the order: describing runs **last**, deliberately. More than one route is routed
+per build, so describing before routing would pay for descriptions of routes that are thrown away.
+`PoiFinder` asks Google Places API (New) Nearby Search for real nearby places by **primary** type
+(`includedPrimaryTypes` — `includedTypes` matched any tag, and returned a bar as a hiking area) (one
 call per category in the theme's `categories` list, see `config/initializers/themes.rb` — the
 category slugs there are Google's published "Table A" place types, not Mapbox's). `PoiSelector` is
-plain Ruby (no HTTP/LLM call) that picks 2-4 of those candidates as waypoints. Scoring priority
+plain Ruby (no HTTP/LLM call) that picks 2-4 of those candidates as waypoints, and returns the rest
+of its shortlist as `alternatives`. It plans lengths as straight-line tour × `DETOUR_FACTOR` (1.4,
+measured on real Mapbox routes at 1.22-1.61) — on straight lines alone, walks came back ~40% longer
+than the duration picked. Scoring priority
 when a target distance exists: distance-fit first (grouped into coarse bands via
 `DISTANCE_BAND_RATIO` — a category-diverse combination is not allowed to override the duration the
-user actually picked), then bearing spread, then category diversity, then exact distance as a
-final tiebreak; with no target, spread leads, then diversity, then compactness. "Bearing spread" is
-the angular width of the smallest compass arc containing all of a combination's waypoints (0-180°)
-— `RouteBuilder` uses it to decide loop vs. one-way per request (not a coin flip): it tries
-`PoiSelector` with `round_trip: true` first and only keeps a loop if the winning spread clears
-`ROUND_TRIP_SPREAD_THRESHOLD_DEGREES` (90°), otherwise it re-selects as one-way with the same
-candidates — waypoints clustered in one direction otherwise produce a loop that just retraces the
-same streets on the way back. `RouteDescriber` writes the route's atmospheric description for the
+user actually picked), then loop roundness, then category diversity, then exact distance as a
+final tiebreak; with no target, roundness leads, then diversity, then compactness. "Roundness" is
+the isoperimetric quotient (4πA/P², 0-1) of the polygon start → waypoints → start, in visiting
+order: 0 for any loop that walks back the way it came *or* back through the start between
+waypoints. It replaced "bearing spread", which rewarded waypoints on opposite sides of the start
+most of all — the route between them runs back through the start, and real routes built that way
+re-walked up to 40% of their length. A loop combination below `MIN_LOOP_ROUNDNESS` (0.3) isn't
+offered as a loop at all — ranked by distance first, one used to beat a round loop further down
+the shortlist. `RouteDescriber` writes the route's atmospheric description for the
 already-chosen waypoints — it does not pick them, and it has **two modes**. `RouteDescriber.fallback_for`
 is plain Ruby and runs inside the request, so every journey is saved with a description and none is
 ever blank; the LLM version (via `ruby_llm`/`ruby_llm-schema`) runs afterwards in
 `JourneyDescriptionJob` and replaces that text. Each stage returns its own `Result` struct and `RouteBuilder` stops at the first that fails, surfacing
-that stage's error. When a target duration is given, `RouteBuilder` widens/rescales its POI search
-radius and retries (its own `MAX_ATTEMPTS`/`TOLERANCE_RATIO`), same idea as `JourneyGenerator`'s
-own retry below — `call_toward_target` tracks the best successful attempt across retries (`pick_best`)
-rather than trusting whichever attempt ran last, since a later radius rescale can shrink candidate
-density back below viable and would otherwise silently discard an earlier working route.
+that stage's error.
+
+**Choosing between routes (`ShortlistRouter`, `RouteOverlap`)**: whether a route is the right
+length and whether it retraces its own streets only show in the route Mapbox returns — a spur in and
+out of a park never appears in the waypoint plan. So `ShortlistRouter` routes the selector's pick,
+then its alternatives, and accepts the first whose **Mapbox duration** (the minutes the app shows,
+which allow for crossings — measured at 68-77 m/min against the 80 planned with) is within
+`RouteBuilder::TOLERANCE_RATIO` (25%) of the time picked and that re-walks no more than
+`MAX_OVERLAP_RATIO` (10%) of itself, up to `MAX_ROUTINGS` (3) Mapbox calls; if none passes, the
+right length wins over less retracing, then the closest length. Loop vs. one-way is decided per
+request, not a coin flip, and **after** routing: `RouteBuilder` routes the loop shortlist first (if
+the places make a loop worth walking) and, only if its choice fails either check, the one-way
+shortlist too, keeping whichever ranks better — whether a loop retraces itself only shows once
+Mapbox has routed it. `RouteOverlap` measures
+the retracing (`Journey#overlap_ratio`): the share of the route lying within a street's width of
+ground walked more than 30m earlier. With a duration, `RouteBuilder` searches once, as far as a
+one-way walk of that length can reach (target ÷ `DETOUR_FACTOR`), and **never wider**: measured
+across three areas, every route built from a wider search came back 30-60 minutes long for a
+20-minute request. Only "no rush" (no duration) widens a failed pass, doubling the radius up to
+`MAX_ATTEMPTS`; across all passes a build makes at most `MAX_ROUTINGS_PER_BUILD` (6) Mapbox calls.
+`JourneysController` refuses any duration the picker doesn't offer (`DURATION_CHOICES`) before
+searching — 0 used to mean a zero radius and a division by zero. When no route can be built, `JourneysController#fallback_journey` reuses a saved
+route via `ReusableWalk` (same theme and time, starting within 300m, passing the retrace check), or
+else sends the user home with an honest notice — it no longer swaps in another theme or the newest
+route anywhere. If Google or Mapbox couldn't be reached (`RouteBuilder::Result#unavailable`), the
+notice says so instead of claiming nothing is nearby; the wording lives in `NoWalkNotice`. The notice names only themes `ThemeSuggestions` has **checked from that spot**: a
+reusable saved walk (free) or, failing that, `PoiFinder#enough_nearby?` — one grouped Places request
+for the whole theme, at the same reach `RouteBuilder` searches (`WalkReach.search_radius`) — stopping
+at two themes. `RouteBuilder` used to search again
+at a rescaled radius whenever the length was off, too: a full set of category calls
+per retry (~14 Places calls a route, measured), and it rarely fixed the length, since the selector
+aimed at the same target from much the same places. The start is reverse-geocoded once per build
+and handed to `JourneyGenerator` as `location_name:`, not once per route routed.
 
 **Route generation, synthetic loop (`app/services/journey_generator.rb`)**: `JourneyGenerator`
 talks to Mapbox Directions. Given real waypoints (from `PoiSelector`) it just routes through them;
@@ -105,8 +137,10 @@ distance is outside `TOLERANCE_RATIO` (15%) of the target, it rescales the radiu
 the distance ratio and retries, up to `MAX_ATTEMPTS`. For themed routes, a u-turn maneuver in the
 response is treated as an invalid dead-end *unless* it's near one of the real waypoints (a spur
 down a dead-end path to reach a POI is expected to u-turn there). Returns a `Result` struct
-(`success?`, `journey`, `error`) rather than raising — callers must check `success?` before using
-`journey`. The Mapbox and Google Places calls are synchronous (via Faraday), inside the request.
+(`success?`, `journey`, `error`, `unavailable`) rather than raising — callers must check `success?`
+before using `journey`. `unavailable` marks Mapbox itself failing (timeouts, refused connections,
+5xx, 401/403/429) as opposed to no walkable route; these used to raise out of the request as a 500.
+`RouteBuilder` stops calling Mapbox after the first one and doesn't widen its search. The Mapbox and Google Places calls are synchronous (via Faraday), inside the request.
 `MapboxGeocoder` and `LocationsController` also call Mapbox separately, for reverse/forward
 geocoding — Mapbox isn't only used by `JourneyGenerator`.
 
@@ -166,7 +200,8 @@ journeys are otherwise reached as a nested resource under a walk's creation flow
 `Walk.find` in `share_quote` was a cross-user read/write hole, and
 `test/controllers/walks_controller_test.rb` now guards it. `ApplicationController` requires
 authentication (Devise `authenticate_user!`) on every action by default; controllers that need to be
-public must explicitly `skip_before_action :authenticate_user!` (see `PagesController#home`).
+public must explicitly `skip_before_action :authenticate_user!`. `PagesController#home` skips it only
+to send signed-out visitors to the login form without Devise's "You need to sign in" warning.
 
 **Auth**: Devise (`database_authenticatable, registerable, recoverable, rememberable, validatable`)
 on `User`. Sign-up/account-update permit an extra `name` param via
@@ -212,8 +247,10 @@ at; don't infer the provider from them.
 - `test/fixtures` has `users`/`journeys`/`walks` fixtures (the `journeys` one writes its PostGIS
   `start_point` as EWKT). `webmock` stubs all outbound HTTP — a test that unexpectedly hits the
   network fails loudly, which is what keeps `Journey#location_name` honest about not geocoding on
-  read. Coverage is now broad: every service has a test, as do the jobs, all models, and every
-  controller except `PagesController`; `test/system/getting_a_walk_test.rb` drives a real browser
-  through generating and walking a route. **`PagesController` is the only uncovered class** — keep
-  that sentence true rather than letting this list rot into a lie again, and remember system tests
-  need `bin/rails test:system` (see the `bin/ci` note above).
+  read. Coverage is broad: every controller has a test file (`PagesController` since #184), as do
+  the jobs and most models and services; `test/system/getting_a_walk_test.rb` drives a real browser
+  through generating and walking a route. **Without a test file of their own:** the services
+  `RouteGeometry`, `JourneyHighlights`, `JourneyImages` and `PlaceholderStats`, the model
+  `WalkTrackPoint`, and the helpers — some are exercised through other classes' tests. Keep that list
+  true rather than letting it rot into a lie again, and remember system tests need
+  `bin/rails test:system` (see the `bin/ci` note above).

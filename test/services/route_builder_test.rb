@@ -1,132 +1,216 @@
 require "test_helper"
 
 class RouteBuilderTest < ActiveSupport::TestCase
-  # pick_best is what actually fixes the bug: a later, worse retry attempt
-  # (e.g. a radius rescale that shrinks candidate density below viable)
-  # must never overwrite an earlier attempt that succeeded. Tested directly
-  # since exercising it through #call would require stubbing PoiFinder,
-  # PoiSelector, RouteDescriber, and JourneyGenerator's HTTP/LLM calls all at
-  # once for what is really just a small piece of decision logic.
-  FakeResult = Struct.new(:success?, :journey, :error, keyword_init: true)
-  FakeJourney = Struct.new(:distance_meters)
+  MAPBOX_DIRECTIONS = %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/}
+  MAPBOX_REVERSE_GEOCODE = %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse}
+  FakeJourney = Struct.new(:estimated_duration_seconds, :overlap_ratio)
 
   setup do
     @builder = RouteBuilder.new(lat: 35.68, lng: 139.77, theme_key: :calm, duration_minutes: 30)
   end
 
-  test "keeps an earlier success instead of a later failure" do
-    success = FakeResult.new(success?: true, journey: FakeJourney.new(2400))
-    failure = FakeResult.new(success?: false, error: "Could not find a suitable set of waypoints")
+  # Loop vs. one-way is decided from the real candidates, not a coin flip -
+  # exercised with real POI data through the real selector, with only Mapbox
+  # stubbed, since the whole point is that the decision follows from real
+  # geometry.
+  test "routes a loop when real candidates let it go round the start" do
+    routed = route_with(north_and(:east)) { 0.0 }
 
-    assert_equal success, @builder.send(:pick_best, success, failure)
-  end
-
-  test "replaces a failure with a later success" do
-    failure = FakeResult.new(success?: false, error: "no candidates")
-    success = FakeResult.new(success?: true, journey: FakeJourney.new(2400))
-
-    assert_equal success, @builder.send(:pick_best, failure, success)
-  end
-
-  test "between two successes, keeps whichever is closer to the target distance" do
-    target = @builder.instance_variable_get(:@target_distance)
-    closer = FakeResult.new(success?: true, journey: FakeJourney.new(target + 50))
-    farther = FakeResult.new(success?: true, journey: FakeJourney.new(target + 5000))
-
-    assert_equal closer, @builder.send(:pick_best, farther, closer)
-    assert_equal closer, @builder.send(:pick_best, closer, farther)
-  end
-
-  test "with no current best yet, takes whatever the first attempt was" do
-    failure = FakeResult.new(success?: false, error: "no candidates")
-    assert_equal failure, @builder.send(:pick_best, nil, failure)
-  end
-
-  # select_waypoints decides loop vs. one-way from the real candidates (via
-  # PoiSelector's actual spread scoring) instead of a coin flip - exercised
-  # directly with real POI data rather than mocking PoiSelector, since the
-  # whole point is that the decision follows from real spread math.
-  test "chooses a loop when real candidates spread out enough" do
-    pois = [
-      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
-      poi(id: "south", category: "park", distance_meters: 450, bearing: :south)
-    ]
-
-    selection = @builder.send(:select_waypoints, pois)
-
-    assert selection.success?
+    assert routed[:calls].first[:round_trip]
     assert @builder.instance_variable_get(:@round_trip)
   end
 
-  test "falls back to one-way when real candidates cluster in one direction" do
+  test "routes one-way when the only loop would double back through the start" do
+    routed = route_with(north_and(:south)) { 0.0 }
+
+    assert_not routed[:calls].first[:round_trip]
+  end
+
+  test "routes one-way when real candidates cluster in one direction" do
     pois = [
       poi(id: "north-near", category: "park", distance_meters: 400, bearing: :north),
       poi(id: "north-far", category: "park", distance_meters: 450, bearing: :north)
     ]
 
-    selection = @builder.send(:select_waypoints, pois)
+    routed = route_with(pois) { 0.0 }
 
-    assert selection.success?
-    assert_not @builder.instance_variable_get(:@round_trip)
+    assert_not routed[:calls].first[:round_trip]
   end
 
-  # --- LLM off the critical path -------------------------------------------
+  # Whether a loop retraces itself only shows once Mapbox has routed it. From
+  # a real doorstep every loop option re-walked 24-27% of itself, while a
+  # one-way walk from the same places re-walked 3% - and the loop was kept,
+  # because the shape was settled before anything was routed.
+  test "routes the one-way options when every loop option is retraced" do
+    routed = route_with { |round_trip| round_trip ? 0.3 : 0.02 }
+
+    assert_equal [true] * ShortlistRouter::MAX_ROUTINGS, routed[:calls].first(3).pluck(:round_trip)
+    assert_not routed[:calls].last[:round_trip]
+    assert_in_delta 0.02, routed[:result].journey.overlap_ratio
+    assert_not @builder.instance_variable_get(:@round_trip), "the title must say one-way too"
+  end
+
+  test "doesn't route one-way options when a loop passes" do
+    routed = route_with { |round_trip| round_trip ? 0.02 : 0.0 }
+
+    assert(routed[:calls].all? { |call| call[:round_trip] })
+  end
+
+  test "keeps the retraced loop when the one-way options are worse" do
+    routed = route_with { |round_trip| round_trip ? 0.2 : 0.4 }
+
+    assert_in_delta 0.2, routed[:result].journey.overlap_ratio
+    assert @builder.instance_variable_get(:@round_trip)
+  end
+
+  # --- re-walked streets ---------------------------------------------------
   #
-  # RouteDescriber used to run mid-pipeline and abort the build on failure, so
-  # an OpenAI outage took down route generation even with Google and Mapbox
-  # both healthy. These exercise #call end-to-end with the HTTP layer stubbed.
+  # Whether a route re-walks its own streets only shows in the route Mapbox
+  # returns - a spur in and out of a park, say - never in the waypoint plan.
+  # So build_from routes the selector's next-best waypoints when the first
+  # route re-walks too much, from the places already fetched. The rules for
+  # choosing between routes are LeastRewalkedRoute's, tested there; this
+  # checks the selector's alternatives actually reach it.
 
-  test "still returns a route when the LLM is unavailable" do
-    stub_happy_geo_apis
-    stub_llm_failure
+  test "routes the next-best waypoints when the first route re-walks too much" do
+    overlaps = [0.3, 0.05]
+    routed = route_with { overlaps.shift || 0.0 }
 
-    result = build_toward(duration_minutes: 30)
-
-    assert result.success?, "an LLM outage must not fail a route: #{result.error}"
-    assert result.journey.present?
-    assert result.journey.description.present?, "expected a fallback description"
+    assert_equal 2, routed[:calls].size
+    assert_in_delta 0.05, routed[:result].journey.overlap_ratio
+    assert_equal routed[:calls].last[:waypoints], routed[:result].waypoints
   end
 
-  test "the fallback description follows the tone rules the prompt sets" do
-    stub_happy_geo_apis
-    stub_llm_failure
-
-    description = build_toward(duration_minutes: 30).journey.description
-
-    assert_no_match(/!/, description, "no exclamation points")
-    # The prompt forbids naming places; the POIs here are named "north"/"south".
-    assert_no_match(/north|south/i, description, "must not name specific places")
-    assert_operator description.split(/[.!?]/).reject(&:blank?).size, :<=, 2, "1-2 sentences"
-  end
-
-  # The LLM is no longer called during generation at all -- it was two thirds
-  # of a route's build time. JourneyDescriptionJob swaps the real description
-  # in afterwards (see test/jobs/journey_description_job_test.rb).
-  test "never calls the LLM during generation, even when it is available" do
-    stub_happy_geo_apis
-    stub_llm_success("Water on one side, trees on the other.")
-
-    result = build_toward(duration_minutes: 30)
-
-    assert result.success?
-    assert_not_requested :post, llm_url
-    assert_equal RouteDescriber.fallback_for(theme_key: :calm, waypoints: result.waypoints),
-                 result.journey.description
-  end
-
-  # The retry loop is where the LLM used to be called repeatedly -- once per
-  # attempt, with all but one description thrown away.
-  test "no LLM call however many attempts the retry loop takes" do
-    stub_happy_geo_apis(distance: 100_000) # nowhere near target -> forces every retry
+  # Routing more than one option is where the LLM used to be called
+  # repeatedly -- once per attempt, with all but one description thrown away.
+  test "no LLM call however many routes it tries" do
+    stub_happy_geo_apis(distance: 100_000) # nowhere near target -> every option gets routed
     stub_llm_success("A quiet stretch.")
 
     result = build_toward(duration_minutes: 30)
 
     assert result.success?
-    # Guard against this passing trivially: prove the retry loop really ran.
-    assert_requested :get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/},
-                     times: RouteBuilder::MAX_ATTEMPTS
+    # Guard against this passing trivially: prove more than one route was tried.
+    assert_requested :get, MAPBOX_DIRECTIONS, at_least_times: 2
     assert_not_requested :post, llm_url
+  end
+
+  # --- cost per generation -------------------------------------------------
+  #
+  # A route the wrong length used to send the whole search back to Google at a
+  # rescaled radius - a full set of category searches per retry, measured at
+  # about 14 per route - and the rescale couldn't fix the length anyway, since
+  # the selector aimed at the same target from much the same places.
+
+  test "a route the wrong length is re-picked from the places already found" do
+    stub_happy_geo_apis(distance: 100_000)
+
+    build_toward(duration_minutes: 30)
+
+    assert_requested :post, PoiFinder::NEARBY_SEARCH_URL, times: THEMES[:calm][:categories].size
+    assert_requested :get, MAPBOX_DIRECTIONS, times: ShortlistRouter::MAX_ROUTINGS
+  end
+
+  # Measured across three areas: every walk that searched wider for a set
+  # duration came back 30-60 minutes long for a 20-minute request, built
+  # through places 1-2.5km away. A walk of that length can't reach them, and
+  # saying so beats selling a 46-minute walk as a 20-minute one.
+  test "with a duration, doesn't search beyond what a walk that long can reach" do
+    stub_nearby_search_empty
+
+    build_toward(duration_minutes: 30)
+
+    assert_requested :post, PoiFinder::NEARBY_SEARCH_URL, times: THEMES[:calm][:categories].size
+  end
+
+  test "with no rush, searches wider when there are too few places to build a route" do
+    stub_nearby_search_empty
+
+    RouteBuilder.new(lat: 35.68, lng: 139.77, theme_key: :calm).call
+
+    assert_requested :post, PoiFinder::NEARBY_SEARCH_URL,
+                     times: THEMES[:calm][:categories].size * RouteBuilder::MAX_ATTEMPTS
+  end
+
+  # A one-way walk can end as far out as the whole target distance allows,
+  # straight-line - searching only half the target out (the loop's reach)
+  # left a 10-minute walk nothing but parks 200-330m away, which made every
+  # two-stop route far too long.
+  test "searches as far out as a one-way walk of the target length can reach" do
+    stub_happy_geo_apis
+
+    build_toward(duration_minutes: 10)
+
+    reach = 10 * RouteBuilder::WALKING_METERS_PER_MINUTE / PoiSelector::DETOUR_FACTOR
+    assert_requested(:post, PoiFinder::NEARBY_SEARCH_URL, at_least_times: 1) do |request|
+      JSON.parse(request.body).dig("locationRestriction", "circle", "radius").round == reach.round
+    end
+  end
+
+  # A route on target by distance can still read long in minutes, and the
+  # minutes are what the walker sees.
+  test "a route the right distance but the wrong time is re-picked" do
+    stub_happy_geo_apis(distance: 2400.0, duration: 45 * 60)
+
+    build_toward(duration_minutes: 30)
+
+    assert_requested :get, MAPBOX_DIRECTIONS, at_least_times: 2
+  end
+
+  # JourneysController tells "nothing nearby" apart from "couldn't look":
+  # only the first is worth suggesting a longer walk for.
+  test "a failed search for places is reported as unavailable, not as nothing nearby" do
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL).to_return(status: 503, body: "<html>down</html>")
+
+    result = build_toward(duration_minutes: 30)
+
+    assert_not result.success?
+    assert result.unavailable
+  end
+
+  # Once Mapbox is down, asking it again only adds failing calls, and a wider
+  # search for places couldn't be routed either.
+  test "a Mapbox outage is reported as unavailable, after one call" do
+    stub_happy_geo_apis
+    stub_request(:get, MAPBOX_DIRECTIONS).to_return(status: 503, body: "<html>down</html>")
+
+    result = RouteBuilder.new(lat: 35.68, lng: 139.77, theme_key: :calm).call
+
+    assert_not result.success?
+    assert result.unavailable
+    assert_requested :get, MAPBOX_DIRECTIONS, times: 1
+    assert_requested :post, PoiFinder::NEARBY_SEARCH_URL, times: THEMES[:calm][:categories].size
+  end
+
+  test "an empty search is nothing nearby, not unavailable" do
+    stub_nearby_search_empty
+
+    assert_not build_toward(duration_minutes: 30).unavailable
+  end
+
+  # With no duration a failed pass searches wider, and every pass could route
+  # both shapes' shortlists: up to 18 Mapbox calls for one tap, all failing.
+  test "a build that keeps failing stops asking Mapbox after MAX_ROUTINGS_PER_BUILD" do
+    stub_happy_geo_apis
+    stub_request(:get, MAPBOX_DIRECTIONS)
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "code" => "NoRoute", "message" => "No route found" }.to_json)
+
+    result = RouteBuilder.new(lat: 35.68, lng: 139.77, theme_key: :calm).call
+
+    assert_not result.success?
+    assert_requested :get, MAPBOX_DIRECTIONS, times: RouteBuilder::MAX_ROUTINGS_PER_BUILD
+  end
+
+  # The start never moves between the routes tried, so neither does its
+  # neighbourhood.
+  test "looks up the neighbourhood once however many routes it tries" do
+    stub_happy_geo_apis(distance: 100_000)
+
+    result = build_toward(duration_minutes: 30)
+
+    assert_requested :get, MAPBOX_REVERSE_GEOCODE, times: 1
+    assert_equal "Meguro", result.journey.location_name
   end
 
   # Each category is fetched on its own thread now; they must all still arrive.
@@ -138,7 +222,7 @@ class RouteBuilderTest < ActiveSupport::TestCase
     assert result.success?
     THEMES[:calm][:categories].each do |category|
       assert_requested :post, PoiFinder::NEARBY_SEARCH_URL,
-                       body: hash_including("includedTypes" => [category]), at_least_times: 1
+                       body: hash_including("includedPrimaryTypes" => [category]), at_least_times: 1
     end
   end
 
@@ -218,9 +302,47 @@ class RouteBuilderTest < ActiveSupport::TestCase
                          [lat + (distance_meters / meters_per_degree_lat), lng]
                        when :south
                          [lat - (distance_meters / meters_per_degree_lat), lng]
+                       when :east
+                         [lat, lng + (distance_meters / meters_per_degree_lng)]
                        end
 
     { id: id, name: id, category: category, lat: poi_lat, lng: poi_lng, distance_meters: distance_meters }
+  end
+
+  # Runs build_from on real POIs through the real selector, with each Mapbox
+  # routing answered by the block: given the shape being routed, it returns
+  # how much of the route re-walks itself, or :rejected for a route Mapbox
+  # turns down. Every route comes back exactly the length asked for. Returns
+  # the result and each routing's waypoints and shape.
+  def route_with(pois = shortlist_pois, &overlap_for)
+    calls = []
+    seconds = 30 * 60
+    @builder.define_singleton_method(:generate_journey) do |waypoints, round_trip:|
+      calls << { waypoints: waypoints, round_trip: round_trip }
+      overlap = overlap_for.call(round_trip)
+      next JourneyGenerator::Result.new(success?: false, error: "route backtracks on itself (dead end / u-turn)") if overlap == :rejected
+
+      JourneyGenerator::Result.new(success?: true, journey: FakeJourney.new(seconds, overlap))
+    end
+
+    { result: @builder.send(:build_from, pois), calls: calls }
+  end
+
+  def north_and(other)
+    [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: other.to_s, category: "park", distance_meters: 450, bearing: other)
+    ]
+  end
+
+  # Enough candidates for the selector to have a full shortlist of options.
+  def shortlist_pois
+    [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "east", category: "park", distance_meters: 450, bearing: :east),
+      poi(id: "north-far", category: "garden", distance_meters: 800, bearing: :north),
+      poi(id: "east-far", category: "garden", distance_meters: 900, bearing: :east)
+    ]
   end
 
   def build_toward(duration_minutes:)
@@ -228,10 +350,10 @@ class RouteBuilderTest < ActiveSupport::TestCase
   end
 
   # Two POIs spread north/south so PoiSelector yields a viable loop.
-  def stub_happy_geo_apis(distance: 2400.0)
+  def stub_happy_geo_apis(distance: 2400.0, duration: distance / 1.33)
     THEMES[:calm][:categories].each do |category|
       stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
-        .with(body: hash_including("includedTypes" => [category]))
+        .with(body: hash_including("includedPrimaryTypes" => [category]))
         .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
           "places" => [
             google_place(id: "#{category}-north", name: "north", lat: 35.6836, lng: 139.77),
@@ -240,14 +362,15 @@ class RouteBuilderTest < ActiveSupport::TestCase
         }.to_json)
     end
 
-    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse})
-      .to_return(status: 200, body: { "features" => [] }.to_json, headers: { "Content-Type" => "application/json" })
+    stub_request(:get, MAPBOX_REVERSE_GEOCODE)
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "features" => [{ "properties" => { "name" => "Meguro" } }] }.to_json)
 
-    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/})
+    stub_request(:get, MAPBOX_DIRECTIONS)
       .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: {
         "code" => "Ok",
-        "routes" => [{ "distance" => distance, "duration" => distance / 1.33,
-                       "geometry" => "encodedpolyline", "legs" => [{ "steps" => [] }] }]
+        "routes" => [{ "distance" => distance, "duration" => duration,
+                       "geometry" => "_p~iF~ps|U_ulLnnqC_mqNvxq`@", "legs" => [{ "steps" => [] }] }]
       }.to_json)
   end
 

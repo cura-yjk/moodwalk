@@ -52,4 +52,16 @@ module GeoDistance
     { lat: phi2 * 180 / Math::PI, lng: lambda2 * 180 / Math::PI }
   end
   # rubocop:enable Metrics/MethodLength
+
+  # Metres [east, north] of an origin, on a flat projection - plenty at the
+  # scale of a walk. For measuring area and nearness, which great-circle
+  # distances alone can't do: PoiSelector's loop roundness and RouteOverlap's
+  # grid.
+  def local_offset(origin_lat, origin_lng, lat, lng)
+    meters_per_degree = EARTH_RADIUS_METERS * Math::PI / 180
+    east = (lng - origin_lng) * meters_per_degree * Math.cos(origin_lat * Math::PI / 180)
+    north = (lat - origin_lat) * meters_per_degree
+
+    [east, north]
+  end
 end

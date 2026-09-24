@@ -44,7 +44,7 @@
       <%= f.hidden_field :duration_minutes, data: { duration_picker_target: "durationInput" } %>
 
       <div class="duration-options">
-        <% [10, 20, 30].each do |minutes| %>
+        <% JourneysController::DURATION_CHOICES.each do |minutes| %>
           <button type="button" class="duration-option" data-duration-picker-target="option"
             data-action="duration-picker#selectDuration" data-duration-picker-minutes-param="<%= minutes %>">
             <span class="duration-option-value"><%= minutes %></span>

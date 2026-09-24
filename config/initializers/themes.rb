@@ -2,7 +2,7 @@
 # against the live docs at
 #   https://developers.google.com/maps/documentation/places/web-service/place-types
 # Before adding a new one, check it's actually listed there for use with
-# includedTypes - not every plausible-sounding type exists (e.g. there's no
+# includedPrimaryTypes (PoiFinder matches on a place's primary type) - not every plausible-sounding type exists (e.g. there's no
 # generic "waterfront" type; the closest real options were used instead, and
 # anything with no reasonable match was left out rather than forced onto an
 # unrelated type).
@@ -11,9 +11,13 @@
 # more commercial categories like amusement_park, casino, night_club,
 # video_arcade, shopping_mall, department_store - they clash with the app's
 # quiet, non-commercial, sensory tone (see RouteDescriber's system prompt).
+#
+# spots names the theme's places in plain words, for the message shown when
+# none are within reach ("No nature spots within a 20-minute walk...").
 THEMES = {
   calm: {
     label: "Calm",
+    spots: "quiet green spots",
     subtitle: "Quiet your mind, one step at a time",
     icon: "fa-solid fa-cloud",
     # Added city_park/garden/nature_preserve/lake alongside the original
@@ -31,6 +35,7 @@ THEMES = {
   },
   refresh: {
     label: "Refresh",
+    spots: "scenic spots",
     subtitle: "Energize your body and mind",
     icon: "fa-solid fa-droplet",
     # Added observation_deck/mountain_peak/marina - teammate, worth a look:
@@ -45,6 +50,7 @@ THEMES = {
   },
   cheerful: {
     label: "Cheerful",
+    spots: "cafés or markets",
     subtitle: "Find a little delight nearby",
     icon: "fa-solid fa-sun",
     # Added market/cafe/ice_cream_shop/dessert_shop - teammate, your call:
@@ -59,6 +65,7 @@ THEMES = {
   },
   recharge: {
     label: "Recharge",
+    spots: "nature spots",
     subtitle: "Slow down and restore",
     icon: "fa-solid fa-leaf",
     # Added nature_preserve/wildlife_refuge/woods/picnic_ground - teammate,

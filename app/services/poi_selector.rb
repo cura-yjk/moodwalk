@@ -28,11 +28,30 @@ class PoiSelector
   # the exact same distance (to the meter) before diversity ever mattered.
   DISTANCE_BAND_RATIO = 0.15
 
-  # spread is the winning combo's bearing_spread (0-180, see below) - exposed
-  # so RouteBuilder can decide whether a loop actually makes sense here
-  # (spread out) or a one-way trip would suit the real candidates better
-  # (clustered in one direction), instead of just coin-flipping the two.
-  Result = Struct.new(:success?, :waypoints, :spread, :error, keyword_init: true)
+  # How much longer a walk on real streets is than the straight-line tour
+  # between its waypoints. Measured on real Mapbox routes around Meguro at
+  # 1.22-1.61, averaging about 1.4. Planning on the straight line alone
+  # handed back walks around 40% longer than the time the user picked.
+  DETOUR_FACTOR = 1.4
+
+  # A loop is only worth walking if it goes round something (see #roundness,
+  # 0-1) - below this, it walks back along the way it came or back through
+  # the start. For two waypoints equally far out, 0.3 allows anything between
+  # about 15 and 135 degrees apart: narrower retraces the outbound leg, wider
+  # passes back by the start between them. Such combinations aren't offered
+  # as loops at all: ranked by distance first, one used to beat a round loop
+  # further down the shortlist, and no loop got walked.
+  MIN_LOOP_ROUNDNESS = 0.3
+
+  # roundness is the winning combo's loop shape (0-1, see #roundness) -
+  # exposed so RouteBuilder can decide whether a loop actually makes sense
+  # here or a one-way trip would suit the real candidates better, instead of
+  # just coin-flipping the two.
+  #
+  # alternatives are the rest of the shortlist, next best first, as ordered
+  # waypoints: what RouteBuilder routes instead when the winner's real route
+  # turns out to re-walk its own streets, without asking Google again.
+  Result = Struct.new(:success?, :waypoints, :roundness, :alternatives, :error, keyword_init: true)
 
   def initialize(lat:, lng:, pois:, target_distance_meters: nil, round_trip: true, variety_seed: nil)
     @lat = lat.to_f
@@ -47,27 +66,33 @@ class PoiSelector
     return empty_result("No nearby places found") if @pois.empty?
 
     candidates = evaluate_combinations
+    candidates.select! { |candidate| candidate[:roundness] >= MIN_LOOP_ROUNDNESS } if @round_trip
     return empty_result("Could not find a suitable set of waypoints") if candidates.empty?
 
-    best = pick(candidates)
-    Result.new(success?: true, waypoints: best[:order], spread: best[:spread], error: nil)
+    best, *rest = shortlist(candidates)
+    Result.new(
+      success?: true, waypoints: best[:order], roundness: best[:roundness],
+      alternatives: rest.map { |candidate| candidate[:order] }, error: nil
+    )
   end
 
   private
 
-  # The best-scoring combination, or -- when the caller offers a seed -- one of
-  # the best few.
+  # The best few combinations: the pick first -- the best-scoring one or,
+  # when the caller offers a seed, one of the others -- then the rest best
+  # first. The rest are what RouteBuilder routes when the pick fails, so they
+  # must not be rotated: a rotation put the single best option last, beyond
+  # the routes ShortlistRouter tries.
   #
   # The seed is an index into that shortlist rather than a source of
   # randomness, so a caller counting upward walks the pool one route at a time
   # and never repeats until it has offered every option, and the same seed
   # always reproduces the same walk (which is what makes this testable, and
   # what lets a route be regenerated from what produced it).
-  def pick(candidates)
+  def shortlist(candidates)
     ranked = candidates.max_by(VARIETY_POOL_SIZE) { |candidate| score(candidate) }
-    return ranked.first unless @variety_seed
-
-    ranked[@variety_seed % ranked.size]
+    pick = ranked[@variety_seed.to_i % ranked.size]
+    [pick, *(ranked - [pick])]
   end
 
   # Cap the pool before the combination search below, which is O(pool^4) and
@@ -107,8 +132,10 @@ class PoiSelector
   end
 
   def ideal_waypoint_radius_meters
-    @ideal_waypoint_radius_meters ||=
-      @round_trip ? @target_distance_meters / (2 * Math::PI) : @target_distance_meters / 2.0
+    @ideal_waypoint_radius_meters ||= begin
+      straight_line = @target_distance_meters / DETOUR_FACTOR
+      @round_trip ? straight_line / (2 * Math::PI) : straight_line / 2.0
+    end
   end
 
   def evaluate_combinations
@@ -121,13 +148,13 @@ class PoiSelector
   end
 
   def evaluate_combo(combo)
-    order, distance = best_order(combo)
+    order, straight_line = best_order(combo)
 
     {
       order: order,
-      distance: distance,
+      distance: straight_line * DETOUR_FACTOR,
       diversity: combo.map { |poi| poi[:category] }.uniq.size,
-      spread: @round_trip ? bearing_spread(combo) : 0
+      roundness: @round_trip ? roundness(order, straight_line) : 0
     }
   end
 
@@ -135,20 +162,19 @@ class PoiSelector
   # touching more categories is nicer, but not if it means ignoring the
   # duration the user actually picked. Distance-fit is grouped into coarse
   # bands (see DISTANCE_BAND_RATIO) rather than compared exactly, so spread
-  # and diversity still get to decide between options that are similarly
-  # close. With no target to honor, there's nothing distance should
-  # override, so spread and diversity lead and compactness is a tiebreaker.
+  # and loop shape and diversity still get to decide between options that
+  # are similarly close. With no target to honor, there's nothing distance
+  # should override, so shape and diversity lead and compactness is a
+  # tiebreaker.
   #
-  # Spread ranks above diversity: a loop whose waypoints all sit in the same
-  # direction from the start retraces nearly the same streets on the way
-  # back (looks like a one-way trip with a small detour in it), regardless
-  # of how many different categories it touches - so a well-spread-out loop
-  # wins over a merely more-diverse one that clusters in one direction.
+  # Shape ranks above diversity: a loop that walks back the way it came is
+  # re-walked street for street, regardless of how many different
+  # categories it touches.
   def score(candidate)
     if @target_distance_meters
-      [-distance_band(candidate), candidate[:spread], candidate[:diversity], -distance_off(candidate)]
+      [-distance_band(candidate), candidate[:roundness], candidate[:diversity], -distance_off(candidate)]
     else
-      [candidate[:spread], candidate[:diversity], -candidate[:distance]]
+      [candidate[:roundness], candidate[:diversity], -candidate[:distance]]
     end
   end
 
@@ -160,23 +186,28 @@ class PoiSelector
     (distance_off(candidate) / (@target_distance_meters * DISTANCE_BAND_RATIO)).round
   end
 
-  # How evenly a combo's waypoints are spread around the compass from the
-  # start, as the largest gap between consecutive bearings (sorted, with
-  # wraparound) subtracted from a full circle - so two waypoints in the same
-  # direction score near 0 (one big empty arc on the other side), while two
-  # diametrically opposite waypoints score the maximum, 180. Order-independent,
-  # so it's computed once per combo rather than per permutation like tour_distance.
-  def bearing_spread(combo)
-    return 0 if combo.size < 2
+  # How much ground a loop actually walks around, as the isoperimetric
+  # quotient of the polygon start -> waypoints -> start: 4 * pi * area /
+  # perimeter^2. 1.0 is a circle, about 0.6 an equilateral triangle, and 0
+  # any shape that encloses nothing - which is exactly what a loop that walks
+  # back the way it came looks like.
+  #
+  # This replaced bearing spread, which only asked whether the waypoints sat
+  # in different directions from the start. That rewarded two waypoints on
+  # opposite sides of it most of all, and the route between them runs back
+  # through the start: out, back, out again and back, measured at up to 40%
+  # of a route re-walked. Roundness scores that shape 0, and still scores the
+  # out-and-back that spread was there to prevent 0 too.
+  #
+  # Measured on the visiting order, not the bare combo, because the order is
+  # what the walker follows; best_order has already chosen it.
+  def roundness(order, perimeter)
+    return 0 if perimeter.zero?
 
-    bearings = combo.map { |poi| bearing_from_start(poi) }.sort
-    gaps = bearings.each_cons(2).map { |a, b| b - a }
-    gaps << (360 - bearings.last + bearings.first)
-    360 - gaps.max
-  end
+    points = [[0.0, 0.0]] + order.map { |poi| GeoDistance.local_offset(@lat, @lng, poi[:lat], poi[:lng]) }
+    doubled_area = points.zip(points.rotate).sum { |(x1, y1), (x2, y2)| (x1 * y2) - (x2 * y1) }
 
-  def bearing_from_start(poi)
-    GeoDistance.bearing(@lat, @lng, poi[:lat], poi[:lng])
+    4 * Math::PI * (doubled_area.abs / 2) / (perimeter**2)
   end
 
   # Brute-force the visiting order that minimizes total tour distance. At most

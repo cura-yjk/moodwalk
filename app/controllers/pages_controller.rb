@@ -1,10 +1,16 @@
 class PagesController < ApplicationController
+  # Skipped only so a signed-out visitor goes to the login form without
+  # Devise's "You need to sign in or sign up before continuing." - a warning,
+  # for opening the app. Everything on the home page is for a signed-in
+  # walker; signed out, it used to render an empty screen.
   skip_before_action :authenticate_user!, only: [:home]
 
   SUGGESTION_COUNT = 3
 
   def home
-    @journeys = user_signed_in? ? suggested_journeys : []
+    return redirect_to new_user_session_path unless user_signed_in?
+
+    @journeys = suggested_journeys
   end
 
   private

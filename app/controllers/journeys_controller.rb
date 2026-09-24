@@ -8,16 +8,24 @@
 class JourneysController < ApplicationController
   before_action :authenticate_user!
 
+  # The durations the theme picker offers (pages/_theme_picker), longest last
+  # - the "nothing nearby" message only suggests a longer walk if there is one.
+  DURATION_CHOICES = [10, 20, 30].freeze
+
   def create
     return redirect_to root_path, alert: "Pick a theme to get started." unless THEMES.key?(theme_key)
     return redirect_to root_path, alert: "We need your location to find a walk nearby." unless located?
+    return redirect_to root_path, alert: "Pick how long you have to get started." unless offered_duration?
 
     result = generate_journey
-    if result.error
-      redirect_to new_journey_walk_path(fallback_journey)
-    else
-      redirect_to new_journey_walk_path(persist(result))
-    end
+    return redirect_to new_journey_walk_path(persist(result)) if result.success?
+
+    # A saved walk only needs the database, so it's offered even when Google
+    # can't be reached.
+    fallback = fallback_journey
+    return redirect_to new_journey_walk_path(fallback) if fallback
+
+    redirect_to root_path, notice: result.unavailable ? NoWalkNotice::UNAVAILABLE : no_walk_notice.nothing_nearby
   end
 
   # Toggles the saved state: creates the SavedJourney if it doesn't exist yet,
@@ -82,29 +90,19 @@ class JourneysController < ApplicationController
     session[:variety_seed] = session[:variety_seed].to_i + 1
   end
 
-  # When generation fails, prefer a saved journey tagged with the same theme and (if a duration
-  # was picked) within RouteBuilder's own tolerance of the target duration, falling back further
-  # to any saved journey, then any journey at all.
+  # When no route can be built, a saved one that answers the same request -
+  # see ReusableWalk. It used to reach 3km for a start, consider only
+  # curated routes, and then settle for any theme or the newest route in the
+  # database: a silent swap for something the user didn't ask for, possibly in
+  # another city. Nil now means there's no such walk, and the user is told so.
   def fallback_journey
-    themed = Journey.near(current_user.current_latitude, current_user.current_longitude)
-                    .where(recommendable: true, theme_key: theme_key.to_s)
-
-    if duration_minutes.present?
-      themed = themed.where(estimated_duration_seconds: duration_range)
-    else
-      themed = themed.order(estimated_duration_seconds: :desc)
-    end
-
-    themed.first ||
-      Journey.near(current_user.current_latitude, current_user.current_longitude).find_by(recommendable: true) ||
-      Journey.last
+    ReusableWalk.find(current_user.current_latitude, current_user.current_longitude,
+                      theme_key: theme_key, duration_minutes: duration_minutes)
   end
 
-  def duration_range
-    target_seconds = duration_minutes * 60
-    lower = (target_seconds * (1 - RouteBuilder::TOLERANCE_RATIO)).round
-    upper = (target_seconds * (1 + RouteBuilder::TOLERANCE_RATIO)).round
-    lower..upper
+  def no_walk_notice
+    NoWalkNotice.new(theme_key: theme_key, duration_minutes: duration_minutes,
+                     lat: current_user.current_latitude, lng: current_user.current_longitude)
   end
 
   # Only ever comes from the homepage's duration sheet (a hidden field set
@@ -156,5 +154,12 @@ class JourneysController < ApplicationController
   # rush", so RouteBuilder falls back to its default search radius.
   def duration_minutes
     Integer(params[:duration_minutes], exception: false)
+  end
+
+  # Blank is "No rush". Anything else must be a duration the picker offers:
+  # 0 or less used to reach RouteBuilder as a zero search radius and a
+  # division by zero, and fail silently behind a "0-minute walk" banner.
+  def offered_duration?
+    params[:duration_minutes].blank? || DURATION_CHOICES.include?(duration_minutes)
   end
 end
