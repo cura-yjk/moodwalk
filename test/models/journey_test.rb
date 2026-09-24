@@ -196,4 +196,23 @@ class JourneyTest < ActiveSupport::TestCase
     journey.saved_journeys.create!(user: users(:walker))
     assert journey.reload.saved_by?(users(:walker))
   end
+
+  # ShortlistRouter asks a route for its overlap to accept it, to rank it and
+  # again to report it. Measured more than once per route, a long route's
+  # build went from ~50ms to ~750ms, and a browser test's walk timed out.
+  test "measures how much of the route re-walks itself once, however often asked" do
+    journey = Journey.new(encoded_polyline: journeys(:meguro_loop).encoded_polyline)
+    measured = 0
+    original = RouteOverlap.method(:ratio)
+    RouteOverlap.define_singleton_method(:ratio) do |coordinates|
+      measured += 1
+      original.call(coordinates)
+    end
+
+    3.times { journey.overlap_ratio }
+
+    assert_equal 1, measured
+  ensure
+    RouteOverlap.define_singleton_method(:ratio, original)
+  end
 end

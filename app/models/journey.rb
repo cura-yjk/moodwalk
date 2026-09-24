@@ -157,9 +157,10 @@ class Journey < ApplicationRecord
   end
 
   # The route's shape: its decoded coordinates, whether it comes back to where
-  # it started, and where it turns. Owned by RouteGeometry, which needs nothing
-  # from the record but the polyline and the start point.
-  delegate :route_coordinates, :loop?, :turn_waypoints, to: :geometry
+  # it started, where it turns, and how much of it re-walks itself. Owned by
+  # RouteGeometry, which needs nothing from the record but the polyline and
+  # the start point.
+  delegate :route_coordinates, :loop?, :turn_waypoints, :overlap_ratio, to: :geometry
 
   def start_coordinates
     [start_point.x, start_point.y]

@@ -35,15 +35,37 @@ class PoiSelectorTest < ActiveSupport::TestCase
     pois = close_pair + far_options
 
     # near-1+near-2 is closest to the start (~683m tour); pairing either far
-    # waypoint with a near one yields ~1600m - target that to make "closest
-    # to start" the wrong answer.
-    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1600).call
+    # waypoint with a near one yields ~1600m in straight lines, ~2240m once
+    # walked (see DETOUR_FACTOR) - target that to make "closest to start" the
+    # wrong answer.
+    target = 1600 * PoiSelector::DETOUR_FACTOR
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: target).call
 
     assert result.success?
     selected_ids = result.waypoints.map { |wp| wp[:id] }
     refute_equal ["near-1", "near-2"].sort, selected_ids.sort,
                  "expected a combination whose tour distance matches the target, not the one nearest the start"
     assert(selected_ids.include?("far-north") || selected_ids.include?("far-east"))
+  end
+
+  # Streets are never straight lines: measured on real routes, the walk came
+  # out 1.2-1.6 times the straight-line tour. Planning on the straight line
+  # handed back walks about 40% longer than the time the user picked.
+  test "plans on the distance actually walked, not the straight line" do
+    pois = [
+      poi(id: "north-mid", category: "park", distance_meters: 300, bearing: :north),
+      poi(id: "east-mid", category: "park", distance_meters: 300, bearing: :east),
+      poi(id: "north-far", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "east-far", category: "park", distance_meters: 400, bearing: :east)
+    ]
+
+    # The far pair's straight-line loop is ~1366m, right on target; the mid
+    # pair's is ~1024m, which is ~1434m once walked on real streets.
+    result = PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: pois, target_distance_meters: 1400, round_trip: true
+    ).call
+
+    assert_equal %w[east-mid north-mid], result.waypoints.map { |wp| wp[:id] }.sort
   end
 
   test "prefers hitting the target distance over touching more categories" do
@@ -70,24 +92,71 @@ class PoiSelectorTest < ActiveSupport::TestCase
   end
 
   # Same category throughout (diversity ties at 1 everywhere) and only 3
-  # candidates (under CANDIDATES_PER_CATEGORY's cap of 3) - isolating spread
-  # and distance as the only factors deciding between them.
-  test "for a loop, prefers waypoints spread around the compass over a merely more compact cluster" do
-    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: clustered_and_spread_pois, round_trip: true).call
+  # candidates (under CANDIDATES_PER_CATEGORY's cap of 3) - isolating loop
+  # shape and distance as the only factors deciding between them.
+  test "for a loop, prefers going round the start over an out-and-back" do
+    pois = [
+      poi(id: "north-near", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "north-far", category: "park", distance_meters: 450, bearing: :north),
+      poi(id: "east", category: "park", distance_meters: 450, bearing: :east)
+    ]
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: true).call
 
     assert result.success?
     selected_ids = result.waypoints.map { |wp| wp[:id] }.sort
-    assert_equal ["north-near", "south"], selected_ids,
-                 "expected the diametrically-opposite pair over the closer-together (if more compact) cluster"
+    assert_not_equal ["north-far", "north-near"], selected_ids,
+                     "two waypoints due north of the start make a loop that walks back the way it came"
   end
 
-  test "spread doesn't matter for a one-way trip - picks the more compact option" do
+  # Measured on real routes: a loop through waypoints on opposite sides of the
+  # start walks out to one, back through the start, out to the other and back
+  # again - a cloverleaf, the most re-walked shape of all. Bearing spread used
+  # to score this pair highest of any.
+  test "for a loop, does not pair waypoints on opposite sides of the start" do
+    pois = [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "south", category: "park", distance_meters: 450, bearing: :south),
+      poi(id: "east", category: "park", distance_meters: 420, bearing: :east)
+    ]
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: true).call
+
+    assert result.success?
+    assert_includes result.waypoints.map { |wp| wp[:id] }, "east",
+                    "north + south alone passes back through the start between them"
+  end
+
+  test "a loop that doubles back through the start isn't offered as a loop" do
+    pois = [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "south", category: "park", distance_meters: 400, bearing: :south)
+    ]
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: true).call
+
+    assert_not result.success?, "north + south walks out, back through the start, and out again"
+  end
+
+  test "a loop that goes round the start scores its roundness" do
+    pois = [
+      poi(id: "north", category: "park", distance_meters: 400, bearing: :north),
+      poi(id: "east", category: "park", distance_meters: 400, bearing: :east)
+    ]
+
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: pois, round_trip: true).call
+
+    # A right isosceles triangle: 4 * pi * (400^2 / 2) / (800 + 400 * sqrt(2))^2.
+    assert_in_delta 0.539, result.roundness, 0.01
+  end
+
+  test "loop shape doesn't matter for a one-way trip - picks the more compact option" do
     result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: clustered_and_spread_pois, round_trip: false).call
 
     assert result.success?
     selected_ids = result.waypoints.map { |wp| wp[:id] }.sort
     assert_equal ["north-far", "north-near"], selected_ids,
-                 "with no return leg, compass spread isn't meaningful - the shorter option should win"
+                 "with no return leg, loop shape isn't meaningful - the shorter option should win"
   end
 
   test "falls back to a valid combination when only one category has candidates" do
@@ -138,7 +207,9 @@ class PoiSelectorTest < ActiveSupport::TestCase
       [
         poi(id: "#{category}-near", category: category, distance_meters: 150, bearing: :north),
         poi(id: "#{category}-near-2", category: category, distance_meters: 200, bearing: :east),
-        poi(id: "#{category}-far", category: category, distance_meters: 1400, bearing: i.even? ? :north : :south)
+        # Round the compass, so a long loop through far places can go round
+        # the start rather than back through it.
+        poi(id: "#{category}-far", category: category, distance_meters: 1400, bearing: i * 45)
       ]
     end
 
@@ -217,6 +288,31 @@ class PoiSelectorTest < ActiveSupport::TestCase
     # so the seed is routinely larger than the shortlist.
     assert_equal ids(select_with(seed: 1)), ids(select_with(seed: 1 + PoiSelector::VARIETY_POOL_SIZE))
     assert_predicate select_with(seed: 10_001), :success?
+  end
+
+  # RouteBuilder routes these when the pick turns out to re-walk its own
+  # streets, which only Mapbox's route can show - so no more Google calls.
+  test "offers the rest of the shortlist as alternatives, best first" do
+    result = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: spread_pois, target_distance_meters: 1_600).call
+    next_best = PoiSelector.new(
+      lat: START_LAT, lng: START_LNG, pois: spread_pois, target_distance_meters: 1_600, variety_seed: 1
+    ).call
+
+    assert_equal PoiSelector::VARIETY_POOL_SIZE - 1, result.alternatives.size
+    assert_not_includes result.alternatives, result.waypoints
+    assert_equal ids(next_best), result.alternatives.first.map { |waypoint| waypoint[:id] }
+  end
+
+  # The seed is for variety in the pick. The alternatives are what gets
+  # routed when the pick fails, so they must be the best of the rest - a
+  # rotation put the single best option last, where the router never reached
+  # it.
+  test "alternatives after a seeded pick are the rest of the shortlist, best first" do
+    best_first = PoiSelector.new(lat: START_LAT, lng: START_LNG, pois: spread_pois, target_distance_meters: 1_600).call
+    seeded = select_with(seed: 2)
+
+    expected = ([best_first.waypoints] + best_first.alternatives) - [seeded.waypoints]
+    assert_equal expected, seeded.alternatives
   end
 
   test "variety never reaches outside the shortlist the scoring approved" do

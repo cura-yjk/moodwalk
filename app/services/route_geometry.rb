@@ -27,6 +27,14 @@ class RouteGeometry
     (start_lng - end_lng).abs < 0.0005 && (start_lat - end_lat).abs < 0.0005
   end
 
+  # Share of the route (0-1) that re-walks ground it already covered - see
+  # RouteOverlap. Memoized: ShortlistRouter asks once to accept a route, once
+  # to rank it and again to report it, and measuring a long route three times
+  # over took a build from ~50ms to ~750ms.
+  def overlap_ratio
+    @overlap_ratio ||= RouteOverlap.ratio(route_coordinates)
+  end
+
   def turn_waypoints(angle_threshold: 30)
     coords = route_coordinates # each pair is [lng, lat]
     return [] if coords.size < 3

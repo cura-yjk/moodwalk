@@ -56,7 +56,7 @@ class PoiFinderTest < ActiveSupport::TestCase
       .with(
         headers: { "X-Goog-FieldMask" => PoiFinder::FIELD_MASK, "Content-Type" => "application/json" },
         body: hash_including(
-          "includedTypes" => ["park"],
+          "includedPrimaryTypes" => ["park"],
           "languageCode" => "en",
           "locationRestriction" => { "circle" => { "center" => { "latitude" => LAT, "longitude" => LNG },
                                                    "radius" => 1500 } }
@@ -67,6 +67,48 @@ class PoiFinderTest < ActiveSupport::TestCase
     result = PoiFinder.new(lat: LAT, lng: LNG, categories: ["park"]).call
 
     assert result.success?
+  end
+
+  # includedTypes matches any type a place carries, and Google tags liberally:
+  # measured in Tokyo, a bar came back as a hiking_area, a massage shop and a
+  # vehicle dispatch office as campgrounds, an association office as a
+  # marina. A place's primary type is what it actually is.
+  test "matches places on what they primarily are, not on any tag they carry" do
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .to_return(status: 200, body: {}.to_json, headers: { "Content-Type" => "application/json" })
+
+    PoiFinder.new(lat: LAT, lng: LNG, categories: ["hiking_area"]).call
+
+    assert_requested(:post, PoiFinder::NEARBY_SEARCH_URL) do |request|
+      body = JSON.parse(request.body)
+      body["includedPrimaryTypes"] == ["hiking_area"] && !body.key?("includedTypes")
+    end
+  end
+
+  # --- enough_nearby? -------------------------------------------------------
+
+  test "asks about a whole theme in one request" do
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .with(body: hash_including("includedPrimaryTypes" => %w[park garden]))
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "places" => [place_json("a"), place_json("b")] }.to_json)
+
+    assert PoiFinder.new(lat: LAT, lng: LNG, categories: %w[park garden]).enough_nearby?(2)
+    assert_requested :post, PoiFinder::NEARBY_SEARCH_URL, times: 1
+  end
+
+  test "too few places within reach is not enough" do
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "places" => [place_json("a")] }.to_json)
+
+    assert_not PoiFinder.new(lat: LAT, lng: LNG, categories: %w[park garden]).enough_nearby?(2)
+  end
+
+  test "a failed request counts as not enough rather than raising" do
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL).to_return(status: 500)
+
+    assert_not PoiFinder.new(lat: LAT, lng: LNG, categories: %w[park]).enough_nearby?(2)
   end
 
   # --- caching -----------------------------------------------------------
@@ -160,7 +202,11 @@ class PoiFinderTest < ActiveSupport::TestCase
   def stub_nearby_search(category, places: nil, body: nil)
     response_body = body || { "places" => places }.to_json
     stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
-      .with(body: hash_including("includedTypes" => [category]))
+      .with(body: hash_including("includedPrimaryTypes" => [category]))
       .to_return(status: 200, body: response_body, headers: { "Content-Type" => "application/json" })
+  end
+
+  def place_json(id)
+    { "id" => id, "displayName" => { "text" => id }, "location" => { "latitude" => LAT, "longitude" => LNG } }
   end
 end

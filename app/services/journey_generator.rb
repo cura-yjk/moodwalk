@@ -9,10 +9,23 @@ class JourneyGenerator
   # the route to the nearest road rather than the exact POI coordinate.
   WAYPOINT_PROXIMITY_TOLERANCE_METERS = 30
 
-  Result = Struct.new(:success?, :journey, :error, keyword_init: true)
+  # unavailable marks Mapbox itself failing - down, timing out, refusing the
+  # token, rate-limiting - as opposed to there being no walkable route between
+  # the points. Callers stop asking once it's down, and tell the user so.
+  Result = Struct.new(:success?, :journey, :error, :unavailable, keyword_init: true)
 
+  # Statuses that say Mapbox can't answer right now, rather than that the
+  # request can't be routed (a 200 with code NoRoute, or 422 InvalidInput).
+  UNAVAILABLE_STATUSES = [401, 403, 429].freeze
+
+  class Unavailable < StandardError; end
+
+  # location_name saves a reverse-geocode per call for a caller that routes
+  # several options from the same start (RouteBuilder); left out, the start
+  # is looked up here. nil is a real answer - a start with no name - so
+  # "left out" is its own value.
   def initialize(lat:, lng:, target_distance_meters: nil, waypoints: nil, description: nil,
-                 theme_key: nil, name: nil, round_trip: nil, base_bearing: nil)
+                 theme_key: nil, name: nil, round_trip: nil, base_bearing: nil, location_name: :look_up)
     @lat = lat.to_f
     @lng = lng.to_f
     @target_distance = target_distance_meters&.to_f
@@ -22,6 +35,7 @@ class JourneyGenerator
     @name = name
     @round_trip = round_trip.nil? ? [true, false].sample : round_trip
     @base_bearing = base_bearing
+    @location_name = location_name
   end
 
   def call
@@ -30,6 +44,10 @@ class JourneyGenerator
     else
       call_with_synthetic_loop
     end
+  rescue Unavailable, Faraday::Error => e
+    # Faraday raises on timeouts and refused connections - Mapbox not
+    # answering at all.
+    Result.new(success?: false, error: "Mapbox Directions: #{e.message}", unavailable: true)
   end
 
   private
@@ -112,6 +130,13 @@ class JourneyGenerator
       req.params["access_token"] = ENV.fetch("MAPBOX_ACCESS_TOKEN", nil)
     end
 
+    parse_directions(response)
+  end
+
+  def parse_directions(response)
+    status = response.status
+    raise Unavailable, "HTTP #{status}" if status >= 500 || UNAVAILABLE_STATUSES.include?(status)
+
     ExternalApi.parse_json(response, service: "Mapbox Directions")
   end
 
@@ -155,7 +180,7 @@ class JourneyGenerator
       description: @description,
       theme_key: @theme_key,
       name: @name,
-      location_name: MapboxGeocoder.reverse(@lat, @lng)
+      location_name: @location_name == :look_up ? MapboxGeocoder.reverse(@lat, @lng) : @location_name
     }
   end
 

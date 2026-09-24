@@ -12,8 +12,11 @@
 # See #describe!.
 class RouteBuilder
   # waypoints ride along so the description can be written once, for the
-  # winning attempt only, after the retry loop has settled (see #call).
-  Result = Struct.new(:success?, :journey, :waypoints, :error, keyword_init: true)
+  # route actually chosen, after routing has settled (see #call).
+  #
+  # unavailable marks a failure to reach Google at all, as opposed to finding
+  # nothing: JourneysController only suggests a longer walk for the second.
+  Result = Struct.new(:success?, :journey, :waypoints, :error, :unavailable, keyword_init: true)
 
   # Translates a chosen duration into a target route distance (and, below, a
   # POI search radius) to aim for. Walk owns the pace so that the number we
@@ -21,21 +24,29 @@ class RouteBuilder
   # same one -- see Walk::WALKING_METERS_PER_SECOND.
   WALKING_METERS_PER_MINUTE = Walk.walking_meters_per_minute
 
-  # When a duration is given, the real-waypoint route JourneyGenerator comes
-  # back with won't exactly hit the target distance (fixed POIs, not a
-  # rescalable synthetic loop) - so, same idea as JourneyGenerator's own
-  # synthetic-loop retry, widen/narrow the POI search radius and try again
-  # up to this many times if the actual distance is off by more than
-  # TOLERANCE_RATIO.
+  # With no duration, a pass that can't build a route at all - too few places
+  # found, or every option turned down by Mapbox - searches again this many
+  # times in all, twice as wide each time. With a duration it doesn't: the
+  # first search already reaches as far as a walk that long can, and
+  # measured across three areas, every walk built from a wider search came
+  # back 30-60 minutes long for a 20-minute request. JourneysController says
+  # so instead.
+  #
+  # A route the wrong length no longer searches again: ShortlistRouter
+  # re-picks from the places already found. Searching again used to cost a
+  # full set of Google calls per retry, and rarely fixed the length.
   MAX_ATTEMPTS = 3
+
+  # How far a route's length may stray from the duration picked, either way.
   TOLERANCE_RATIO = 0.25
 
-  # A loop only looks like an actual loop if its waypoints spread out across
-  # different directions from the start (see PoiSelector's bearing_spread,
-  # 0-180) - below this, the outbound and return legs would retrace nearly
-  # the same streets, so a one-way trip suits the real candidates better.
-  # Not everyone wants to walk back the way they came anyway.
-  ROUND_TRIP_SPREAD_THRESHOLD_DEGREES = 90
+  # Mapbox calls per build, across every pass and both shapes. Without it a
+  # "no rush" build that kept failing could make 18: three passes, each
+  # routing a loop and a one-way shortlist of three. Six is one full pass;
+  # widening mostly helps when a pass found too few places to route at all,
+  # which costs no Mapbox calls.
+  MAX_ROUTINGS_PER_BUILD = 6
+  ROUTINGS_SPENT = JourneyGenerator::Result.new(success?: false, error: "No route found nearby").freeze
 
   # variety_seed rides through to PoiSelector, which uses it to index into its
   # shortlist of good combinations rather than always returning the single
@@ -46,13 +57,15 @@ class RouteBuilder
     @lng = lng.to_f
     @theme_key = theme_key.to_sym
     @theme = THEMES.fetch(@theme_key) { raise ArgumentError, "Unknown theme: #{theme_key}" }
-    @target_distance = duration_minutes.to_f * WALKING_METERS_PER_MINUTE if duration_minutes.present?
+    @target_distance = WalkReach.target_distance(duration_minutes)
+    @target_seconds = duration_minutes.to_f * 60 if duration_minutes.present?
+    @duration_minutes = duration_minutes
     @variety_seed = variety_seed
   end
 
   def call
-    result = @target_distance ? call_toward_target : attempt
-    apply_fallback_text(result) if result&.success?
+    result = build_widening
+    apply_fallback_text(result) if result.success?
     result
   rescue ArgumentError => e
     failure(e.message)
@@ -60,85 +73,77 @@ class RouteBuilder
 
   private
 
-  # One pass of the pipeline at a given search radius. The retry loop below
-  # calls this repeatedly with a rescaled radius; with no target duration
-  # there's nothing to rescale toward, so it runs once at PoiFinder's default.
-  def attempt(radius = PoiFinder::DEFAULT_RADIUS_METERS)
-    poi_result = PoiFinder.new(lat: @lat, lng: @lng, categories: @theme[:categories], radius_meters: radius).call
-    return failure(poi_result.error) unless poi_result.success?
+  # Searches as far as a walk this long reaches (see WalkReach). Only with no
+  # duration does a failed pass widen it.
+  def build_widening
+    radius = WalkReach.search_radius(@duration_minutes)
+    result = nil
 
-    build_from(poi_result.pois)
-  end
-
-  # A loop covers roughly the round trip of its farthest waypoint, so start
-  # the search about half the target distance out, then rescale by how far
-  # off the actual route came out - exactly JourneyGenerator's own
-  # rescale-and-retry, just one level up (adjusting which real places are in
-  # play rather than a synthetic bearing/radius).
-  def call_toward_target
-    radius = @target_distance / 2.0
-    best = nil
-
-    # attempt_number, not attempt: the method below is called inside this block
-    # and a bare `attempt` would resolve to the counter instead.
-    MAX_ATTEMPTS.times do |attempt_number|
+    (@target_distance ? 1 : MAX_ATTEMPTS).times do
       result = attempt(radius)
-      best = pick_best(best, result)
-      return best if attempt_number == MAX_ATTEMPTS - 1 || on_target?(result)
+      # A wider search couldn't help while Google or Mapbox is down.
+      break if result.success? || result.unavailable
 
-      radius = next_radius(result, radius)
+      radius *= 2
     end
 
-    best
+    result
   end
 
-  # A later attempt can come back worse than an earlier one - e.g. a rescale
-  # shrinks the search radius to correct for an over-long route and, in doing
-  # so, drops candidate density below what PoiSelector needs. Never let that
-  # throw away an earlier attempt that actually worked: only replace the
-  # running best with a real improvement (a success beats a failure; between
-  # two successes, whichever lands closer to the target distance wins).
-  def pick_best(current, candidate)
-    return candidate if current.nil?
-    return current if current.success? && !candidate.success?
-    return candidate if candidate.success? && !current.success?
-    return candidate unless current.success?
+  def attempt(radius)
+    poi_result = PoiFinder.new(lat: @lat, lng: @lng, categories: @theme[:categories], radius_meters: radius).call
+    return failure(poi_result.error, unavailable: true) unless poi_result.success?
 
-    distance_off(candidate) < distance_off(current) ? candidate : current
-  end
-
-  def distance_off(result)
-    (result.journey.distance_meters - @target_distance).abs
-  end
-
-  def on_target?(result)
-    return false unless result.success?
-
-    ((result.journey.distance_meters / @target_distance) - 1).abs <= TOLERANCE_RATIO
-  end
-
-  # Too few candidates in range -> widen the net; a route that came back
-  # the wrong length -> rescale the same way JourneyGenerator's own
-  # synthetic-loop retry does.
-  def next_radius(result, radius)
-    return radius * 2 unless result.success?
-
-    radius * (@target_distance / result.journey.distance_meters)
+    build_from(poi_result.pois)
   end
 
   # Deliberately does NOT write the description. Mapbox rejects routes often
   # enough (dead ends, u-turns, unroutable waypoints) that describing first
   # meant paying for prose about routes that turned out not to exist - and
-  # this method runs once per retry attempt, so it also meant up to
-  # MAX_ATTEMPTS descriptions of which all but one were thrown away.
+  # more than one route is routed per build, so it also meant descriptions
+  # of routes that were thrown away.
+  #
+  # Loop first, if the places make one worth walking; one-way if they don't -
+  # or if every loop option turns out retraced or the wrong length once
+  # Mapbox has routed it, which the plan can't show. From a real doorstep,
+  # every loop option re-walked 24-27% of itself while a one-way walk from
+  # the same places re-walked 3%, and the loop was kept because the shape
+  # used to be settled before anything was routed. Whichever shape's route
+  # ranks better wins.
   def build_from(pois)
-    selection = select_waypoints(pois)
-    return failure(selection.error) unless selection.success?
+    tried = []
 
-    generation = generate_journey(selection.waypoints)
-    return failure(generation.error) unless generation.success?
+    [true, false].each do |round_trip|
+      routed = route_shape(pois, round_trip) or next
+      tried << [routed, round_trip]
+      break if routed.acceptable
+    end
 
-    Result.new(success?: true, journey: generation.journey, waypoints: selection.waypoints)
+    choose(tried)
+  end
+
+  # Sets @round_trip to the winner's shape, which the title is written for.
+  def choose(tried)
+    routed, @round_trip = tried.select { |result, _| result.success? }.min_by { |result, _| result.rank }
+    return failure(tried.last.first.error, unavailable: @mapbox_down.present?) unless routed
+
+    Result.new(success?: true, journey: routed.journey, waypoints: routed.waypoints)
+  end
+
+  # The selector's pick for one shape, routed first; if its real route is the
+  # wrong length, re-walks too much of itself, or Mapbox turns it down, the
+  # next-best waypoints are routed from the same places - see
+  # ShortlistRouter. Nil when these places make no loop worth walking (see
+  # PoiSelector::MIN_LOOP_ROUNDNESS), which leaves it to one-way.
+  def route_shape(pois, round_trip)
+    selection = poi_selector(pois, round_trip: round_trip).call
+    return if round_trip && !selection.success?
+    return ShortlistRouter::Result.new(success?: false, error: selection.error) unless selection.success?
+
+    options = [selection.waypoints, *selection.alternatives]
+    ShortlistRouter.new(options, target_seconds: @target_seconds, tolerance: TOLERANCE_RATIO) do |waypoints|
+      generate_journey(waypoints, round_trip: round_trip)
+    end.call
   end
 
   # Every journey leaves here with a description, written in plain Ruby.
@@ -158,22 +163,6 @@ class RouteBuilder
     journey.name = JourneyTitle.for(journey: journey, waypoints: result.waypoints, round_trip: @round_trip)
   end
 
-  # Try a loop first; only keep it if the real candidates actually spread out
-  # enough to look like one. Otherwise, this route is a one-way trip - sets
-  # @round_trip as a side effect, since generate_journey needs to build the
-  # same shape it was just selected for.
-  def select_waypoints(pois)
-    loop_selection = poi_selector(pois, round_trip: true).call
-
-    if loop_selection.success? && loop_selection.spread >= ROUND_TRIP_SPREAD_THRESHOLD_DEGREES
-      @round_trip = true
-      return loop_selection
-    end
-
-    @round_trip = false
-    poi_selector(pois, round_trip: false).call
-  end
-
   def poi_selector(pois, round_trip:)
     PoiSelector.new(
       lat: @lat, lng: @lng, pois: pois, target_distance_meters: @target_distance,
@@ -181,20 +170,35 @@ class RouteBuilder
     )
   end
 
-  def generate_journey(waypoints)
+  # Stops asking Mapbox once it's down: another call would only fail too.
+  def generate_journey(waypoints, round_trip:)
+    return ROUTINGS_SPENT if @mapbox_down || (@routings = @routings.to_i + 1) > MAX_ROUTINGS_PER_BUILD
+
+    generation = journey_generator(waypoints, round_trip).call
+    @mapbox_down ||= generation.unavailable
+    generation
+  end
+
+  def journey_generator(waypoints, round_trip)
     JourneyGenerator.new(
-      lat: @lat,
-      lng: @lng,
-      waypoints: waypoints,
-      theme_key: @theme_key,
+      lat: @lat, lng: @lng, waypoints: waypoints, theme_key: @theme_key,
       # Replaced by apply_fallback_text once the record exists and its
       # neighbourhood has been resolved; JourneyGenerator needs a name here.
       name: @theme[:label],
-      round_trip: @round_trip
-    ).call
+      round_trip: round_trip,
+      location_name: location_name
+    )
   end
 
-  def failure(error_message)
-    Result.new(success?: false, error: error_message)
+  # The start never moves between the routes tried, so neither does its
+  # neighbourhood: one lookup per build, not one per route routed.
+  def location_name
+    return @location_name if defined?(@location_name)
+
+    @location_name = MapboxGeocoder.reverse(@lat, @lng)
+  end
+
+  def failure(error_message, unavailable: false)
+    Result.new(success?: false, error: error_message, unavailable: unavailable)
   end
 end

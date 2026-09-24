@@ -126,4 +126,17 @@ class GeoDistanceTest < ActiveSupport::TestCase
     assert_in_delta 35.68, point[:lat], 1e-9
     assert_in_delta 139.77, point[:lng], 1e-9
   end
+
+  test "local_offset puts a point in metres east and north of the origin" do
+    north = GeoDistance.destination_point(35.63, 139.70, 500, 0)
+    east = GeoDistance.destination_point(35.63, 139.70, 500, 90)
+
+    north_east, north_north = GeoDistance.local_offset(35.63, 139.70, north[:lat], north[:lng])
+    east_east, east_north = GeoDistance.local_offset(35.63, 139.70, east[:lat], east[:lng])
+
+    assert_in_delta 0, north_east, 1
+    assert_in_delta 500, north_north, 1
+    assert_in_delta 500, east_east, 1
+    assert_in_delta 0, east_north, 1
+  end
 end

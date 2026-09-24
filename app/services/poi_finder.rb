@@ -40,6 +40,20 @@ class PoiFinder
     Result.new(success?: false, error: e.message, pois: [])
   end
 
+  # Whether at least `minimum` places of any of these categories are within
+  # the radius - asked in one request for all of them, where #call makes one
+  # per category. Google returns at most 20 places for the lot, so this can
+  # say whether a route is worth trying but can't stand in for the search a
+  # route is built from. A failed request counts as no.
+  def enough_nearby?(minimum)
+    key = cache_key(@categories.sort.join("+"))
+    places = Rails.cache.fetch(key, expires_in: CACHE_TTL) { request_places(@categories) }
+    places.size >= minimum
+  rescue StandardError => e
+    Rails.logger.warn("PoiFinder#enough_nearby? failed: #{e.class}: #{e.message}")
+    false
+  end
+
   private
 
   # One request per category, issued concurrently.
@@ -69,30 +83,31 @@ class PoiFinder
   # attempt asks Google again. An empty result is stored, because a category
   # with nothing nearby is an answer worth not paying for twice.
   def fetch_category(category)
-    places = Rails.cache.fetch(cache_key(category), expires_in: CACHE_TTL) { request_places(category) }
+    places = Rails.cache.fetch(cache_key(category), expires_in: CACHE_TTL) { request_places([category]) }
 
     places.map { |place| poi_from_place(place, category) }
   end
 
   def cache_key(category)
     [
-      "poi_finder", "v1", category,
+      # v2: matched on primary type. v1 entries hold places matched on any tag.
+      "poi_finder", "v2", category,
       @lat.round(CACHE_LOCATION_PRECISION), @lng.round(CACHE_LOCATION_PRECISION),
       @radius_meters.round, @limit_per_category
     ].join("/")
   end
 
-  def request_places(category)
+  def request_places(types)
     response = ExternalApi.connection.post(NEARBY_SEARCH_URL) do |req|
       apply_headers(req)
-      req.body = request_body(category).to_json
+      req.body = request_body(types).to_json
     end
 
     body = ExternalApi.parse_json(response, service: "Google Places")
 
     # Google returns an "error" object instead of "places" when something's
     # wrong -- catch that explicitly rather than silently returning an empty list.
-    raise "Google Places error (#{category}): #{body.dig('error', 'message')}" if body["error"]
+    raise "Google Places error (#{types.join(', ')}): #{body.dig('error', 'message')}" if body["error"]
 
     body["places"] || []
   end
@@ -103,9 +118,13 @@ class PoiFinder
     req.headers["X-Goog-FieldMask"] = FIELD_MASK
   end
 
-  def request_body(category)
+  # includedPrimaryTypes, not includedTypes: the latter matches any type a
+  # place is tagged with, and Google tags liberally - measured in Tokyo, a bar
+  # came back as a hiking_area and a massage shop as a campground. A place's
+  # primary type is what it actually is.
+  def request_body(types)
     {
-      includedTypes: [category],
+      includedPrimaryTypes: types,
       maxResultCount: @limit_per_category,
       languageCode: "en",
       locationRestriction: {

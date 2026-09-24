@@ -92,6 +92,185 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # --- when no route can be built -----------------------------------------
+  #
+  # The fallback used to reach up to 3km for a route, consider only curated
+  # ones, and then settle for any theme or the newest route in the database -
+  # a silent swap for something the user didn't pick, possibly in another
+  # city. Now it's a walk that answers the same request, or an honest message.
+
+  test "reuses a saved walk of the same theme and time that starts close by" do
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to new_journey_walk_path(journeys(:meguro_loop))
+  end
+
+  test "reuses generated walks too, not only curated ones" do
+    stub_nothing_nearby
+    journeys(:meguro_loop).update!(recommendable: false)
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to new_journey_walk_path(journeys(:meguro_loop))
+  end
+
+  test "doesn't reuse a walk that starts more than a few minutes away" do
+    stub_nothing_nearby
+    users(:walker).update!(current_latitude: 35.684) # ~450m north of the walk's start
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to root_path
+  end
+
+  test "doesn't reuse a walk that retraces its own streets" do
+    stub_nothing_nearby
+    out = (0..10).map { |i| [35.68 + (i * 0.0005), 139.77] }
+    journeys(:meguro_loop).update!(encoded_polyline: encode_polyline(out + out.reverse))
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to root_path
+  end
+
+  test "doesn't swap in a walk of another theme" do
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "recharge", duration_minutes: 20 }
+
+    assert_redirected_to root_path
+  end
+
+  # --- what to suggest instead ---------------------------------------------
+  #
+  # Only themes checked from this spot are named. A saved walk ready nearby
+  # proves it for free; otherwise one grouped Google search per theme shows
+  # there's enough within reach to build from.
+
+  test "names a theme that has a saved walk ready nearby, without asking Google about it" do
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "refresh", duration_minutes: 20 }
+
+    assert_equal "No scenic spots within a 20-minute walk from here. Calm has places within reach.", flash[:notice]
+    assert_not_requested :post, PoiFinder::NEARBY_SEARCH_URL,
+                         body: hash_including("includedPrimaryTypes" => THEMES[:calm][:categories])
+  end
+
+  test "names a theme with enough places within reach, and not one with too few" do
+    move_away_from_saved_walks
+    stub_nothing_nearby
+    stub_grouped_search(:cheerful, places: 2)
+    stub_grouped_search(:refresh, places: 1)
+
+    post journeys_path, params: { theme_key: "recharge", duration_minutes: 20 }
+
+    assert_equal "No nature spots within a 20-minute walk from here. Cheerful has places within reach.", flash[:notice]
+  end
+
+  test "stops looking once two themes are named" do
+    move_away_from_saved_walks
+    stub_nothing_nearby
+    stub_grouped_search(:calm, places: 3)
+    stub_grouped_search(:cheerful, places: 3)
+
+    post journeys_path, params: { theme_key: "recharge", duration_minutes: 20 }
+
+    assert_equal "No nature spots within a 20-minute walk from here. " \
+                 "Calm and Cheerful have places within reach.", flash[:notice]
+    assert_not_requested :post, PoiFinder::NEARBY_SEARCH_URL,
+                         body: hash_including("includedPrimaryTypes" => THEMES[:refresh][:categories])
+  end
+
+  test "doesn't suggest the theme that was just tried" do
+    stub_nothing_nearby
+    stub_grouped_search(:calm, places: 3)
+    journeys(:meguro_loop).update!(theme_key: "refresh")
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_no_match(/Calm/, flash[:notice])
+  end
+
+  test "when nothing else is within reach either, suggests a longer walk" do
+    move_away_from_saved_walks
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "recharge", duration_minutes: 20 }
+
+    assert_equal "No nature spots within a 20-minute walk from here. Try a longer walk, or No rush.", flash[:notice]
+  end
+
+  test "at the longest walk on offer, suggests only No rush" do
+    move_away_from_saved_walks
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "recharge", duration_minutes: JourneysController::DURATION_CHOICES.max }
+
+    assert_match(/Try No rush\.\z/, flash[:notice])
+  end
+
+  test "with no rush and nothing else nearby, says so" do
+    move_away_from_saved_walks
+    stub_nothing_nearby
+
+    post journeys_path, params: { theme_key: "refresh" }
+
+    assert_equal "No scenic spots nearby. Nothing else is close by right now either.", flash[:notice]
+  end
+
+  # --- requests the picker can't make --------------------------------------
+
+  # A duration of 0 or less used to reach RouteBuilder: a zero search radius,
+  # a division by zero in ShortlistRouter, a silent failure, and a banner
+  # about a "0-minute walk".
+  test "a duration the picker doesn't offer is refused before anything is searched" do
+    [0, -5, 45].each do |minutes|
+      post journeys_path, params: { theme_key: "calm", duration_minutes: minutes }
+
+      assert_redirected_to root_path
+      assert_equal "Pick how long you have to get started.", flash[:alert]
+    end
+    assert_not_requested :post, PoiFinder::NEARBY_SEARCH_URL
+  end
+
+  # --- when Google can't be reached ------------------------------------------
+  #
+  # An outage used to read as "nothing nearby, try a longer walk" - advice
+  # that's false, and sends the user off to try things that can't work either.
+
+  test "says so when places can't be searched, rather than that there are none" do
+    move_away_from_saved_walks
+    stub_places_outage
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to root_path
+    assert_equal "We couldn't reach our map services just now. Please try again in a moment.", flash[:notice]
+  end
+
+  test "says so when routes can't be worked out, rather than that nothing is nearby" do
+    move_away_from_saved_walks
+    stub_many_places
+    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/directions/v5/mapbox/walking/})
+      .to_return(status: 503, body: "<html>Service Unavailable</html>")
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to root_path
+    assert_equal "We couldn't reach our map services just now. Please try again in a moment.", flash[:notice]
+  end
+
+  test "still offers a saved walk nearby while places can't be searched" do
+    stub_places_outage
+
+    post journeys_path, params: { theme_key: "calm", duration_minutes: 20 }
+
+    assert_redirected_to new_journey_walk_path(journeys(:meguro_loop))
+  end
+
   test "an unknown theme is refused" do
     post journeys_path, params: { theme_key: "definitely-not-a-theme" }
 
@@ -114,6 +293,53 @@ class JourneysControllerTest < ActionDispatch::IntegrationTest
           place("south", 35.6764, 139.77)
         ]
       }.to_json)
+  end
+
+  # Well clear of every fixture's start, so no saved walk counts as nearby.
+  def move_away_from_saved_walks
+    users(:walker).update!(current_latitude: 35.70, current_longitude: 139.80)
+  end
+
+  # Answers the one-request check of a whole theme's categories. Registered
+  # after stub_nothing_nearby, so it takes precedence for this theme only.
+  def stub_grouped_search(theme_key, places:)
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .with(body: hash_including("includedPrimaryTypes" => THEMES[theme_key][:categories]))
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" },
+                 body: { "places" => Array.new(places) { |i| place("#{theme_key}-#{i}", 35.70, 139.80) } }.to_json)
+  end
+
+  # A gateway error page rather than Google's JSON, the way an outage looks.
+  def stub_places_outage
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL).to_return(status: 503, body: "<html>Service Unavailable</html>")
+  end
+
+  def stub_nothing_nearby
+    stub_request(:post, PoiFinder::NEARBY_SEARCH_URL)
+      .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: { "places" => [] }.to_json)
+  end
+
+  # Google's encoded polyline format, from [lat, lng] pairs - the inverse of
+  # PolylineDecoder, for building a route shape a test needs.
+  def encode_polyline(points)
+    previous = [0, 0]
+    points.map do |point|
+      scaled = point.map { |degrees| (degrees * 1e5).round }
+      deltas = scaled.zip(previous).map { |value, last| value - last }
+      previous = scaled
+      deltas.map { |delta| encode_polyline_value(delta) }.join
+    end.join
+  end
+
+  def encode_polyline_value(value)
+    value = value.negative? ? ~(value << 1) : value << 1
+    chunks = []
+    while value >= 0x20
+      chunks << (((value & 0x1f) | 0x20) + 63).chr
+      value >>= 5
+    end
+    chunks << (value + 63).chr
+    chunks.join
   end
 
   def selector_args(variety_seed:)
