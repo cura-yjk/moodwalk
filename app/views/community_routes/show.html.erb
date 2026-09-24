@@ -54,7 +54,7 @@
     <div class="photo-carousel my-4">
       <h2 class="route-detail-heading">Other moments from walkers</h2>
 
-      <div id="momentsCarousel" class="carousel slide route-moments-carousel">
+      <div id="momentsCarousel" class="carousel slide route-moments-carousel" data-controller="auto-carousel">
         <div class="carousel-inner">
           <% moment_photos.each_with_index do |photo, index| %>
             <div class="carousel-item <%= "active" if index.zero? %>">
