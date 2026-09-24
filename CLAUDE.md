@@ -200,7 +200,8 @@ journeys are otherwise reached as a nested resource under a walk's creation flow
 `Walk.find` in `share_quote` was a cross-user read/write hole, and
 `test/controllers/walks_controller_test.rb` now guards it. `ApplicationController` requires
 authentication (Devise `authenticate_user!`) on every action by default; controllers that need to be
-public must explicitly `skip_before_action :authenticate_user!` (see `PagesController#home`).
+public must explicitly `skip_before_action :authenticate_user!`. `PagesController#home` skips it only
+to send signed-out visitors to the login form without Devise's "You need to sign in" warning.
 
 **Auth**: Devise (`database_authenticatable, registerable, recoverable, rememberable, validatable`)
 on `User`. Sign-up/account-update permit an extra `name` param via
