@@ -12,7 +12,7 @@ App home: https://moodwalk-ec6251edd332.herokuapp.com/
 
 ## One walk, end to end
 
-Seven screens in order, photographed on a phone rather than staged in a browser. One walk in
+Seven screenshots in order, taken on a phone rather than staged in a browser. One walk in
 Meguro, Tokyo: the route the app built that afternoon, the guidance that ran while it was walked,
 and the mood and photo logged at the end of it.
 
