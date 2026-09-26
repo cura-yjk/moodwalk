@@ -126,7 +126,9 @@ at two themes. `RouteBuilder` used to search again
 at a rescaled radius whenever the length was off, too: a full set of category calls
 per retry (~14 Places calls a route, measured), and it rarely fixed the length, since the selector
 aimed at the same target from much the same places. The start is reverse-geocoded once per build
-and handed to `JourneyGenerator` as `location_name:`, not once per route routed.
+and handed to `JourneyGenerator` as `location_name:`, not once per route routed. A route is named by
+`JourneyTitle` — plain Ruby, from where it starts, what it leads with and whether it loops — not
+after its theme, which gave the whole app four route names.
 
 **Route generation, synthetic loop (`app/services/journey_generator.rb`)**: `JourneyGenerator`
 talks to Mapbox Directions. Given real waypoints (from `PoiSelector`) it just routes through them;
@@ -192,7 +194,9 @@ extend the scope.
 
 **Routing/controllers**: `JourneysController` exposes only `create` plus member `save`/`highlights`;
 journeys are otherwise reached as a nested resource under a walk's creation flow
-(`/journeys/:journey_id/walks/new|create`) — there is no journeys index/show. `CommunityRoutesController`
+(`/journeys/:journey_id/walks/new|create`) — there is no journeys index/show. `walks#new` offers
+`Journey#alternate`: a saved walk starting within 300m and within `RouteBuilder`'s 25% of the same
+length, picked at random (it used to pick from the whole database — once 1.65km away). `CommunityRoutesController`
 (`index`/`show`) is the browse surface, scoped through the `Journey.community` scope.
 `WalksController` exposes `show`, `index`, `edit`, `update` and members `complete`, `attach_photo`,
 `share`, `track`, `share_quote`, `memory`. **All walk lookups outside `create` are scoped through
