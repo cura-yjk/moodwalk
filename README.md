@@ -31,9 +31,18 @@ and the mood and photo logged at the end of it.
 **Before the walk**
 - Pick a theme and a duration; Moodwalk finds real places nearby that fit and routes a walk through
   2–4 of them along actual streets
-- Loop or one-way is decided by where the places are, not by a coin flip — waypoints clustered in
-  one direction would make a "loop" that just retraces itself, so those become one-way trips
-- Each route gets a name, a written description and a list of highlights
+- Every route is checked against the one Mapbox actually returns: it has to take within 25% of the
+  time you picked, and re-walk no more than a tenth of its own streets
+- Loop or one-way is decided by the routed result, not by a coin flip — a loop is tried first, and
+  if the places only make one that doubles back on itself, a one-way trip is tried and the better
+  of the two wins
+- Each route is named after what it actually passes and where it starts, with a written
+  description and a list of highlights
+- Not happy with it? **Choose an alternate journey**: a saved walk starting within a few minutes of
+  this one and taking about as long
+- When no walk can be built, it says so plainly: a saved walk from the same spot if one fits,
+  otherwise a notice naming only the themes it has checked have places nearby — and, if Google or
+  Mapbox is down, it says that instead of claiming nothing is there
 - Browse **community routes** other people have walked and shared, or save one for later
 
 **During the walk**
@@ -49,12 +58,11 @@ and the mood and photo logged at the end of it.
 - Every walk is kept in your history with its distance, duration and step count
 
 ## Getting Started
-### Setup
+### Prerequisites
 
-Install gems
-```
-bundle install
-```
+- Ruby 3.3.5 (see `.ruby-version`)
+- PostgreSQL with the PostGIS extension — needed for the location queries, and a plain Postgres
+  install won't do
 
 ### ENV Variables
 Create `.env` file
@@ -71,23 +79,29 @@ GEMINI_API_KEYS=your_gemini_api_key
 `GEMINI_API_KEYS` takes a comma-separated list — route descriptions fall through to the next key
 when one runs out of quota. A single key is fine. `GEMINI_API_KEY` (singular) is read as a fallback.
 
-### DB Setup
-This app uses PostgreSQL with the PostGIS extension (needed for location/map data) — make sure PostGIS is installed before running this.
+### Setup and run
 ```
-rails db:create
-rails db:migrate
-rails db:seed
+bin/setup
+```
+Installs gems, prepares the database and starts the server (`bin/setup --skip-server` to stop
+short of that; `bin/dev` starts it on its own afterwards).
+
+For some routes to browse straight away, seed the database. This calls the live Mapbox API:
+```
+bin/rails db:seed
 ```
 
-### Run a server
+### Tests
 ```
-rails s
+bin/rails test          # unit, controller, job and service tests
+bin/rails test:system   # browser tests, in headless Chrome — not included in the line above
+bin/ci                  # lint, security audits and tests, as CI runs them
 ```
-(or `bin/dev`, which this repo also has set up as a shortcut for the same thing)
+Outbound HTTP is stubbed in tests, so the suite never calls Google, Mapbox or Gemini.
 
 ## Built With
 - [Rails 8](https://guides.rubyonrails.org/) - Backend / Front-end
-- [Stimulus JS](https://stimulus.hotwired.dev/) - Front-end JS
+- [Hotwire (Turbo + Stimulus)](https://hotwired.dev/) - Front-end JS, no Node build step
 - [Heroku](https://heroku.com/) - Deployment
 - [PostgreSQL + PostGIS](https://postgis.net/) - Database
 - [Bootstrap](https://getbootstrap.com/) — Styling
