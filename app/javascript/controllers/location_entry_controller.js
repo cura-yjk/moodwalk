@@ -10,6 +10,14 @@ const DEBOUNCE_MS = 500
 const MIN_QUERY_LENGTH = 3
 const MIN_QUERY_LENGTH_NON_ASCII = 2
 
+// Naming the spot under the pin is a Mapbox call through our server. A drag
+// with momentum, or arrow-key panning, ends a move every 100-300ms - one
+// session made 71 calls in 24 seconds - and production answers slowly enough
+// that they queue. So wait until the map has been still this long.
+const SETTLE_MS = 3000
+// The label is a neighbourhood, which doesn't change over a few steps.
+const RENAME_DISTANCE_METERS = 25
+
 // Choosing where a walk starts from.
 //
 // Deliberately never commits to a guess: Mapbox answers almost any input, so
@@ -17,7 +25,13 @@ const MIN_QUERY_LENGTH_NON_ASCII = 2
 // re-detecting where you are, and the places you started from recently --
 // come first, because this is used on a phone, outdoors, one-handed.
 export default class extends Controller {
-  static targets = ["panel", "input", "results", "error", "detect"]
+  static targets = ["panel", "input", "results", "error", "detect", "adjust", "map", "adjustLabel"]
+  static values = { accessToken: String }
+
+  disconnect() {
+    clearTimeout(this.settleTimer)
+    this.map?.remove()
+  }
 
   toggle(event) {
     event.preventDefault()
@@ -102,9 +116,128 @@ export default class extends Controller {
     this.openResults()
   }
 
+  // A result is a name's centre point - a station, the middle of a district -
+  // so it opens on the map to be adjusted rather than being used as is.
   choose(event) {
     const { lat, lng, name } = event.currentTarget.dataset
-    this.commit({ latitude: Number(lat), longitude: Number(lng), name, source: "manual" })
+    this.openAdjust({ lat: Number(lat), lng: Number(lng), name })
+  }
+
+  // --- adjusting on the map ------------------------------------------------
+
+  // mapbox-gl is imported here rather than at the top: it is about a megabyte,
+  // and most visits to the home page never open this.
+  async openAdjust(place) {
+    this.clearResults()
+    this.hideError()
+    this.place = place
+    this.spotName = place.name
+    this.namedAt = { lat: place.lat, lng: place.lng }
+    this.showSpot()
+    this.adjustTarget.hidden = false
+    // On a phone the map and its buttons open below the fold, behind the
+    // bottom navigation.
+    this.adjustTarget.scrollIntoView({ block: "nearest", behavior: "smooth" })
+
+    try {
+      const { default: mapboxgl } = await import("mapbox-gl")
+      mapboxgl.accessToken = this.accessTokenValue
+
+      if (this.map) return this.map.jumpTo({ center: [place.lng, place.lat], zoom: 16 })
+
+      this.map = new mapboxgl.Map({
+        container: this.mapTarget,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [place.lng, place.lat],
+        zoom: 16
+      })
+      // Only a move the user made (it carries the pointer/touch event), not
+      // the jump to a newly picked result.
+      // The name on screen stops describing the pin as soon as it moves, and
+      // the next one is SETTLE_MS away - so say so rather than show it.
+      this.map.on("movestart", (event) => {
+        if (!event.originalEvent) return
+
+        this.nameRequest = (this.nameRequest || 0) + 1 // drop any answer still on its way
+        this.showPending("Stop moving the map to see where this is")
+      })
+      this.map.on("moveend", (event) => {
+        if (!event.originalEvent) return
+
+        clearTimeout(this.settleTimer)
+        this.settleTimer = setTimeout(() => this.nameSpot(), SETTLE_MS)
+      })
+    } catch {
+      this.adjustTarget.hidden = true
+      this.showError("Couldn't load the map. Try again, or pick a recent place.")
+    }
+  }
+
+  // One reverse geocode per settle, and only once the map has been moved: an
+  // untouched pin keeps the name that was picked.
+  async nameSpot() {
+    const { lat, lng } = this.map.getCenter()
+    if (this.metersBetween(this.namedAt, { lat, lng }) < RENAME_DISTANCE_METERS) {
+      this.showSpot()
+      return
+    }
+
+    this.namedAt = { lat, lng }
+    const request = (this.nameRequest = (this.nameRequest || 0) + 1)
+    this.spotName = null
+    this.showPending("Finding this spot…")
+
+    try {
+      const response = await fetch(`/location/reverse?latitude=${lat}&longitude=${lng}`, {
+        headers: { Accept: "application/json" }
+      })
+      const { name } = response.ok ? await response.json() : {}
+      if (request !== this.nameRequest) return // a later move has taken over
+
+      this.spotName = name || null
+      this.showSpot()
+    } catch {
+      if (request === this.nameRequest) this.showSpot()
+    }
+  }
+
+  // "Starting from Shibuya", like the bar above. The picked result keeps its
+  // own name; a spot named from the map is only ever "near" a neighbourhood,
+  // and one with no name yet is just "this spot".
+  showSpot() {
+    const name = this.spotName
+    const place = !name ? "this spot" : name === this.place.name ? name : `near ${name}`
+    this.adjustLabelTarget.innerHTML = `Starting from <strong>${this.escape(place)}</strong>`
+  }
+
+  showPending(message) {
+    this.adjustLabelTarget.innerHTML = `<span class="is-pending">${this.escape(message)}</span>`
+  }
+
+  // Sends the name already on screen, so the server doesn't geocode the same
+  // spot again; with none, it names the spot itself.
+  confirmAdjust() {
+    clearTimeout(this.settleTimer)
+    const { lat, lng } = this.map ? this.map.getCenter() : this.place
+    // Moved since the label was written (confirmed before the map settled):
+    // the label may be stale, so let the server name the spot.
+    const named = this.metersBetween(this.namedAt, { lat, lng }) < RENAME_DISTANCE_METERS
+    const name = named && this.spotName ? this.spotName : undefined
+    this.commit({ latitude: lat, longitude: lng, name, source: "manual" })
+  }
+
+  // Equirectangular is plenty at tens of metres.
+  metersBetween(a, b) {
+    const radians = Math.PI / 180
+    const x = (b.lng - a.lng) * radians * Math.cos(((a.lat + b.lat) / 2) * radians)
+    const y = (b.lat - a.lat) * radians
+    return Math.sqrt(x * x + y * y) * 6371000
+  }
+
+  cancelAdjust() {
+    clearTimeout(this.settleTimer)
+    this.adjustTarget.hidden = true
+    this.inputTarget.focus()
   }
 
   // --- keyboard ------------------------------------------------------------

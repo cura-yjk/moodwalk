@@ -33,6 +33,14 @@ class LocationsController < ApplicationController
     render json: { results: suggest(params[:query].to_s.strip) }
   end
 
+  # Names the spot under the pin while the start is being adjusted on the map,
+  # so the user can see where they've moved it before committing.
+  def reverse
+    return head :bad_request unless coordinates_given?
+
+    render json: { name: MapboxGeocoder.reverse(latitude_param, longitude_param) }
+  end
+
   private
 
   # Three kinds of write, distinguished by `source`:
