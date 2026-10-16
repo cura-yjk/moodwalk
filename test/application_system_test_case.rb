@@ -45,12 +45,25 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # predict, fired late enough to land after the stubs had been torn down. With
   # the permission denied the app takes its "we could not find you" path and
   # uses the location already on the user, which is what the fixtures set.
+  #
+  # The flag alone doesn't do it everywhere: a local Chrome for Testing still
+  # handed out a real fix, and the sync it triggered renamed the fixture user
+  # before the test began. So the permission is also denied outright, before
+  # every test.
   driven_by :selenium, using: :headless_chrome, screen_size: DESKTOP do |options|
     options.add_argument("--deny-permission-prompts")
     options.add_argument("--use-fake-ui-for-media-stream")
   end
 
-  setup { stub_outbound_apis }
+  setup do
+    stub_outbound_apis
+    deny_geolocation
+  end
+
+  def deny_geolocation
+    page.driver.browser.execute_cdp("Browser.setPermission",
+                                    permission: { name: "geolocation" }, setting: "denied")
+  end
 
   def sign_in_as(user, password: "password123")
     visit new_user_session_path
