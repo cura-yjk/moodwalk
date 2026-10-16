@@ -244,9 +244,8 @@ at; don't infer the provider from them.
   path (`NAMED_CARD_PHOTOS` / `bundled_card_photo`; credits beside them). They are generic walking scenes, not the route — the
   route itself is on the live maps (the history card's flip side, the community route page). This
   replaced `JourneyImages`, hand-copied Google photo URLs that had started returning 403. Google
-  Places Photos were ruled out (their terms forbid Places content near a non-Google map; see
-  `docs/research/google-places-photos.md`), and so was a Mapbox static image of the route, which
-  only repeated those live maps.
+  Places Photos were ruled out (their terms forbid Places content near a non-Google map), and so
+  was a Mapbox static image of the route, which only repeated those live maps.
 - **The walker counts and star ratings on community route cards are invented.** `PlaceholderStats`
   derives them from the primary key so a given route always shows the same numbers. `Journey#walker_count`
   and `#rating` — the real figures — still exist and are still tested, but only one walk in the
