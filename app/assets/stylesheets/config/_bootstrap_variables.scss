@@ -25,4 +25,13 @@ $border-radius-lg:            .25rem;
 $border-radius-xl:            .5rem;
 $border-radius-xxl:           1rem;
 
+// Focus rings, ticked checkboxes and other "active" form states. Bootstrap
+// derives them all from this, and left at $primary they were the one blue
+// left on the login, sign-up and location forms.
+$component-active-bg: $forest-green;
+$input-focus-border-color: $forest-green;
+// The glow around a focused field, which follows $primary rather than the
+// above.
+$focus-ring-color: rgba($forest-green, .25);
+
 // Override other variables below!

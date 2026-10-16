@@ -52,6 +52,46 @@
   margin-top: 0.75rem;
 }
 
+// The bar's primary actions ("Use my current location", "Start here") in the
+// app's own button style - .done-btn's green, corners, weight and shadow -
+// rather than Bootstrap's blue. Compact, because .done-btn is sized for the
+// one big call to action on a page and these sit inside a panel.
+.location-action {
+  border: none;
+  border-radius: 16px;
+  padding: 0.6rem 1rem;
+  background-color: $forest-green;
+  color: #f1f0f0;
+  font-weight: bold;
+  box-shadow: 0 10px 18px -6px rgba(10, 10, 10, 0.15);
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+
+  &:hover,
+  &:focus-visible {
+    background-color: darken($forest-green, 6%);
+    color: #f1f0f0;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background-color: darken($forest-green, 10%);
+    color: #f1f0f0;
+    transform: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($forest-green, 0.45);
+    outline-offset: 2px;
+  }
+
+  // "Locating…" while detection runs.
+  &:disabled {
+    background-color: $forest-green;
+    color: #f1f0f0;
+    opacity: 0.65;
+  }
+}
+
 // The no-typing path, so it leads.
 .location-detect {
   width: 100%;
@@ -131,6 +171,139 @@
   padding: 0.6rem 0.85rem;
   font-size: 0.875rem;
   color: rgba($gray, 0.6);
+}
+
+// Adjusting a searched place on the map. The pin is fixed over the centre and
+// the map moves under it: on a phone, a draggable marker sits under the
+// finger dragging it, and is easy to miss for the map.
+//
+// Dressed like the rest of the bar: hints in the pinned-hint's size and tone,
+// the frame in the results list's border, and the pin in the green the
+// route maps mark a start with (map_controller.js).
+$location-pin-green: #4a7c59;
+
+.location-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  // Scrolled into view when it opens (location_entry_controller#openAdjust);
+  // this keeps its buttons clear of the floating bottom nav, which sits about
+  // 110px up (components/_navbar.scss: ~70px tall, 40px margin).
+  scroll-margin-bottom: 8rem;
+}
+
+.location-adjust-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba($gray, 0.6);
+}
+
+// Same shape as .location-bar-current: icon, then "Starting from <name>".
+.location-adjust-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: rgba($gray, 0.75);
+
+  strong {
+    color: $gray;
+    font-weight: 600;
+  }
+
+  // While the map is moving or the name is on its way.
+  .is-pending {
+    font-style: italic;
+    color: rgba($gray, 0.55);
+  }
+}
+
+.location-adjust-frame {
+  position: relative;
+  height: 16rem;
+  border: 1px solid rgba($gray, 0.12);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: $light-gray;
+}
+
+.location-adjust-map {
+  position: absolute;
+  inset: 0;
+}
+
+// The pin's tip, not its middle, marks the spot.
+.location-adjust-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  font-size: 2rem;
+  color: $location-pin-green;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+// Start here is a primary action, like "Use my current location" (see
+// .location-action); Back is a quiet text link, like "Change".
+.location-adjust-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .btn {
+    flex: 1;
+  }
+}
+
+.location-adjust-back {
+  background: none;
+  border: none;
+  padding: 0 0.25rem;
+}
+
+// How to move the map, for the device in hand: a phone has no arrow keys or
+// scroll wheel, and a mouse can't pinch. A hybrid laptop with a touchscreen
+// reports its primary pointer, so it gets the mouse list.
+.location-adjust-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: rgba($gray, 0.65);
+
+  i {
+    width: 1.1rem;
+    margin-right: 0.35rem;
+    text-align: center;
+  }
+}
+
+.location-adjust-legend--touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .location-adjust-legend--touch {
+    display: flex;
+  }
+
+  .location-adjust-legend--pointer {
+    display: none;
+  }
+}
+
+.location-adjust-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  .btn {
+    flex: 1;
+  }
 }
 
 .location-bar-error {

@@ -179,6 +179,63 @@ class LocationsControllerTest < ActionDispatch::IntegrationTest
     assert_requested :get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/forward}, times: 1
   end
 
+  # --- naming the spot under the map pin ------------------------------------
+
+  test "reverse names the spot under the pin" do
+    stub_reverse_geocode("Higashikasai")
+
+    get reverse_location_path, params: { latitude: 35.6719, longitude: 139.8794 }
+
+    assert_response :success
+    assert_equal "Higashikasai", response.parsed_body["name"]
+    assert_requested :get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse},
+                     query: hash_including("latitude" => "35.6719", "longitude" => "139.8794")
+  end
+
+  # The pin is still being dragged around: naming it must not move the user.
+  test "reverse does not change the user's location" do
+    stub_reverse_geocode("Higashikasai")
+    before = users(:walker).current_location_name
+
+    get reverse_location_path, params: { latitude: 35.6719, longitude: 139.8794 }
+
+    user = users(:walker).reload
+    assert_equal before, user.current_location_name
+    assert_not_in_delta 35.6719, user.current_latitude.to_f, 0.0001
+  end
+
+  test "reverse refuses missing or junk coordinates without calling Mapbox" do
+    get reverse_location_path, params: { latitude: "not-a-number", longitude: 139.8794 }
+    assert_response :bad_request
+
+    get reverse_location_path, params: { latitude: 35.6719 }
+    assert_response :bad_request
+
+    assert_not_requested :get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse}
+  end
+
+  # A missing name is cosmetic -- the map says "this spot" -- so a geocoder
+  # outage answers with no name rather than an error, and leaks nothing.
+  test "reverse answers with no name when Mapbox fails" do
+    stub_request(:get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse})
+      .to_return(status: 500, body: "<html>Mapbox internal error, token sk-secret</html>")
+
+    get reverse_location_path, params: { latitude: 35.6719, longitude: 139.8794 }
+
+    assert_response :success
+    assert_nil response.parsed_body["name"]
+    assert_no_match(/mapbox|sk-secret|html/i, response.body)
+  end
+
+  test "reverse requires authentication" do
+    sign_out users(:walker)
+
+    get reverse_location_path, params: { latitude: 35.6719, longitude: 139.8794 }
+
+    assert_redirected_to new_user_session_path
+    assert_not_requested :get, %r{\Ahttps://api\.mapbox\.com/search/geocode/v6/reverse}
+  end
+
   # --- a chosen place stays chosen ------------------------------------------
 
   # Reported: "I changed the location and then after generating a walk, my

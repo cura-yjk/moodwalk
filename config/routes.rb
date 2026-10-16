@@ -10,6 +10,7 @@ Rails.application.routes.draw do
 
   resource :location, only: [:update] do
     get :autocomplete, on: :collection
+    get :reverse, on: :collection
   end
 
   resources :journeys, only: [:create] do

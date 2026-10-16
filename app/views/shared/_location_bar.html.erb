@@ -9,7 +9,8 @@
      data-controller="geolocation location-entry"
      data-geolocation-lat-value="<%= current_user.current_latitude %>"
      data-geolocation-lng-value="<%= current_user.current_longitude %>"
-     data-geolocation-manual-value="<%= current_user.location_manually_set %>">
+     data-geolocation-manual-value="<%= current_user.location_manually_set %>"
+     data-location-entry-access-token-value="<%= ENV.fetch("MAPBOX_ACCESS_TOKEN", nil) %>">
 
   <div class="location-bar-current">
     <i class="fa-solid fa-location-dot"></i>
@@ -32,7 +33,7 @@
   <p class="location-bar-status" data-geolocation-target="status" hidden></p>
 
   <div class="location-panel" data-location-entry-target="panel" hidden>
-    <button type="button" class="btn btn-primary location-detect"
+    <button type="button" class="btn location-action location-detect"
             data-location-entry-target="detect"
             data-action="location-entry#detect">Use my current location</button>
     <% if current_user.location_manually_set %>
@@ -72,6 +73,43 @@
     <ul class="location-results" id="location-results" role="listbox"
         aria-label="Place suggestions"
         data-location-entry-target="results" hidden></ul>
+
+    <%# A searched place is a name's centre point - a station, the middle of a
+        district - and a walk's start decides which places are in reach. So a
+        picked result opens here to be adjusted before it is used. %>
+    <div class="location-adjust" data-location-entry-target="adjust" hidden>
+      <p class="location-adjust-hint">Move the map so the pin sits where you'll start walking.</p>
+      <div class="location-adjust-frame">
+        <div class="location-adjust-map" data-location-entry-target="map"></div>
+        <i class="fa-solid fa-location-dot location-adjust-pin" aria-hidden="true"></i>
+      </div>
+      <%# Reads like the bar's own "Starting from" line above, so it is clear
+          this is the same setting being changed. %>
+      <p class="location-adjust-label">
+        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+        <span data-location-entry-target="adjustLabel" aria-live="polite"></span>
+      </p>
+      <%# Gestures differ by device, so each list shows only where it applies
+          (see .location-adjust-legend). The name under the pin waits until the
+          map has been still for a few seconds - the last line says so, or a
+          slow label reads as broken. %>
+      <ul class="location-adjust-legend location-adjust-legend--touch">
+        <li><i class="fa-solid fa-hand-pointer" aria-hidden="true"></i> Drag with one finger to move the map</li>
+        <li><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i> Pinch to zoom in or out</li>
+        <li><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Let go and wait a moment to see the area's name</li>
+      </ul>
+      <ul class="location-adjust-legend location-adjust-legend--pointer">
+        <li><i class="fa-solid fa-arrows-up-down-left-right" aria-hidden="true"></i> Drag, or use the arrow keys, to move the map</li>
+        <li><i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i> Scroll, or press + and −, to zoom</li>
+        <li><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Stop and wait a moment to see the area's name</li>
+      </ul>
+      <div class="location-adjust-actions">
+        <button type="button" class="link-btn location-adjust-back"
+                data-action="location-entry#cancelAdjust">Back</button>
+        <button type="button" class="btn location-action"
+                data-action="location-entry#confirmAdjust">Start here</button>
+      </div>
+    </div>
   </div>
 
   <p class="location-bar-error" data-location-entry-target="error" hidden></p>

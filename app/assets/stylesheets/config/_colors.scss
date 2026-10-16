@@ -9,6 +9,11 @@ $green: #1EDD88;
 $gray: #0E0000;
 $light-gray: #F4F4F4;
 
+// The app's own green: its buttons (.done-btn, .confirm-btn), text links
+// (.link-btn), and - through $component-active-bg in _bootstrap_variables -
+// every form field's focus ring and ticked checkbox, which were Bootstrap blue.
+$forest-green: #52774c;
+
 // Per-theme mood colors (pastel background + darker accent), keyed by the
 // same theme_key values THEMES uses (config/initializers/themes.rb).
 // Shared between the theme-picker cards (components/_theme_picker.scss) and
