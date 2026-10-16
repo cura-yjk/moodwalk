@@ -1,6 +1,5 @@
 <div class="route-hero">
-  <%= image_tag @recent_photos.first&.photo || @journey.placeholder_image,
-        class: "route-hero-image" %>
+  <%= journey_card_image @journey, class: "route-hero-image" %>
 </div>
 
 <div class="community-route-detail container">
@@ -50,29 +49,30 @@
          data-map-route-value="<%= @journey.route_coordinates.to_json %>">
     </div>
 
-    <% moment_photos = @recent_photos.any? ? @recent_photos.map(&:photo) : @journey.carousel_images %>
-    <div class="photo-carousel my-4">
-      <h2 class="route-detail-heading">Other moments from walkers</h2>
+    <% if @recent_photos.any? %>
+      <div class="photo-carousel my-4">
+        <h2 class="route-detail-heading">Other moments from walkers</h2>
 
-      <div id="momentsCarousel" class="carousel slide route-moments-carousel" data-controller="auto-carousel">
-        <div class="carousel-inner">
-          <% moment_photos.each_with_index do |photo, index| %>
-            <div class="carousel-item <%= "active" if index.zero? %>">
-              <%= image_tag photo, class: "d-block w-100 route-moments-photo" %>
-            </div>
-          <% end %>
+        <div id="momentsCarousel" class="carousel slide route-moments-carousel" data-controller="auto-carousel">
+          <div class="carousel-inner">
+            <% @recent_photos.map(&:photo).each_with_index do |photo, index| %>
+              <div class="carousel-item <%= "active" if index.zero? %>">
+                <%= image_tag photo, class: "d-block w-100 route-moments-photo" %>
+              </div>
+            <% end %>
+          </div>
+
+          <button class="carousel-control-prev" type="button" data-bs-target="#momentsCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#momentsCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
         </div>
-
-        <button class="carousel-control-prev" type="button" data-bs-target="#momentsCarousel" data-bs-slide="prev">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#momentsCarousel" data-bs-slide="next">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Next</span>
-        </button>
       </div>
-    </div>
+    <% end %>
   </div>
 
   <div class="d-flex flex-column w-100 gap-3 route-detail-actions">

@@ -189,6 +189,27 @@ class JourneyTest < ActiveSupport::TestCase
     end
   end
 
+  # --- latest_community_photo: the picture on a journey's cards ------------
+
+  test "a route nobody has photographed has no photo" do
+    assert_nil journeys(:meguro_loop).latest_community_photo
+  end
+
+  test "a walker's shared photo is the route's photo" do
+    walk = walks(:completed_walk)
+    attach_photo(walk)
+    walk.share!
+
+    assert_equal walk.photo.blob, journeys(:meguro_loop).reload.latest_community_photo.blob
+  end
+
+  # A walker's photo stays private until they share the walk.
+  test "an unshared photo is not the route's photo" do
+    attach_photo(walks(:completed_walk))
+
+    assert_nil journeys(:meguro_loop).reload.latest_community_photo
+  end
+
   test "saved_by? reflects whether the user bookmarked it" do
     journey = journeys(:meguro_loop)
     assert_not journey.saved_by?(users(:walker))
@@ -286,6 +307,10 @@ class JourneyTest < ActiveSupport::TestCase
   def saved_walk(theme_key:, lng:, lat:, seconds: 1200)
     Journey.create!(name: "Walk", theme_key: theme_key, encoded_polyline: journeys(:meguro_loop).encoded_polyline,
                     start_point: "SRID=4326;POINT(#{lng} #{lat})", estimated_duration_seconds: seconds)
+  end
+
+  def attach_photo(walk)
+    walk.photo.attach(io: file_fixture("walk_photo.png").open, filename: "walk_photo.png", content_type: "image/png")
   end
 
 end

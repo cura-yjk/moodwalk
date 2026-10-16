@@ -29,6 +29,23 @@ class CommunityRoutesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  # The cards used to show hand-copied Google photo URLs, some of which had
+  # started returning 403, so a card could show a broken image. Now a route
+  # nobody has photographed shows one of the app's own bundled photos.
+  test "a route nobody has photographed shows a bundled photo on its card" do
+    get community_routes_path
+
+    assert_select ".route-card-image[src*=?]", "/assets/cards/"
+  end
+
+  # "Other moments from walkers" used to fill up with stock photos of other
+  # places when no walker had shared one of this route.
+  test "show has no walkers' moments when no walker has shared a photo" do
+    get community_route_path(journeys(:unmeasured))
+
+    assert_select ".photo-carousel", count: 0
+  end
+
   test "show refuses a themed journey that nobody has shared a walk on" do
     get community_route_path(journeys(:meguro_loop))
 
