@@ -1,7 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 
-const DEBOUNCE_MS = 250
-const MIN_QUERY_LENGTH = 2
+// Every search is a Mapbox call or two (LocationsController#suggest falls back
+// to a global search). At 250ms after each keystroke, one session typing and
+// correcting "meiji jingumae" made 30 in 28 seconds.
+const DEBOUNCE_MS = 500
+// Two Latin letters ("ma", "ju") match half of Tokyo, but two characters is a
+// whole place name in Japanese (渋谷, 目黒) - so the shorter minimum applies
+// to anything that isn't plain ASCII.
+const MIN_QUERY_LENGTH = 3
+const MIN_QUERY_LENGTH_NON_ASCII = 2
 
 // Choosing where a walk starts from.
 //
@@ -20,13 +27,30 @@ export default class extends Controller {
 
   // --- typeahead -----------------------------------------------------------
 
-  search() {
+  // Chinese and Japanese are mostly typed through an input method: the field
+  // holds pinyin or romaji ("beij") until the word is converted (北京).
+  // Searching those halfway letters costs a Mapbox call for nothing, so wait
+  // for compositionend, which the field also routes here.
+  search(event) {
+    if (event?.isComposing) return
+
     clearTimeout(this.timer)
     const query = this.inputTarget.value.trim()
+    const minimum = /^[\x00-\x7F]*$/.test(query) ? MIN_QUERY_LENGTH : MIN_QUERY_LENGTH_NON_ASCII
 
-    if (query.length < MIN_QUERY_LENGTH) return this.clearResults()
+    if (query.length < minimum) return this.clearResults()
+
+    // Typing back to something already searched - deleting a letter, fixing a
+    // typo - costs nothing. Kept for the page's life: choosing a place reloads
+    // it, which is also when "nearby" changes.
+    const cached = this.suggestionCache?.get(this.cacheKey(query))
+    if (cached) return this.renderResults(cached)
 
     this.timer = setTimeout(() => this.fetchSuggestions(query), DEBOUNCE_MS)
+  }
+
+  cacheKey(query) {
+    return query.toLowerCase()
   }
 
   async fetchSuggestions(query) {
@@ -39,6 +63,13 @@ export default class extends Controller {
       if (!response.ok) return this.showError("Couldn't search for places just now.")
 
       const { results } = await response.json()
+      this.suggestionCache ??= new Map()
+      this.suggestionCache.set(this.cacheKey(query), results || [])
+
+      // An answer to an older query, arriving after the field has moved on -
+      // more likely now that cached queries render straight away.
+      if (this.cacheKey(this.inputTarget.value.trim()) !== this.cacheKey(query)) return
+
       this.renderResults(results || [])
     } catch {
       this.showError("Couldn't reach the server. Check your connection.")
@@ -82,6 +113,10 @@ export default class extends Controller {
   // you can keep typing to narrow the list, which is why the active option is
   // announced through aria-activedescendant instead.
   navigate(event) {
+    // Enter and the arrow keys belong to the input method while it's
+    // converting - Enter there confirms the characters, not a result. 229 is
+    // what some browsers report instead of isComposing.
+    if (event.isComposing || event.keyCode === 229) return
     if (event.key === "Escape") return this.clearResults()
 
     const options = this.options()
