@@ -236,11 +236,17 @@ at; don't infer the provider from them.
   `db/migrate/20260831110924_drop_pending_journeys.rb`) have both been removed.
 - `bin/ci`'s seed-replant step means `db/seeds.rb` must stay runnable (and idempotent) against a
   real Mapbox token in CI.
-- **A journey's card imagery is a hard-coded URL table.** `JourneyImages` holds thirteen
-  hand-copied Google-hosted photo URLs — lifted out of `Journey` because it was a sixth of the model
-  by RuboCop's count, not because the approach is right. Nothing here requests these properly, so
-  they carry none of the attribution Google Places Photos requires. Replacing them (Places Photos
-  with attribution, or a Mapbox static image of the route itself) is its own piece of work.
+- **A card's picture is a walker's photo or a bundled one.** Journey cards show the newest shared
+  walker photo (`Journey#latest_community_photo`, via `journey_card_image` in `ApplicationHelper`);
+  a walk-history card shows the walker's own photo, never a stranger's. With no photo, both show one
+  of six Unsplash-licensed photos in `app/assets/images/cards/`, picked by journey id — or, for a
+  route whose name mentions a river or Yutenji, a photo of the Meguro River or of a Meguro temple
+  path (`NAMED_CARD_PHOTOS` / `bundled_card_photo`; credits beside them). They are generic walking scenes, not the route — the
+  route itself is on the live maps (the history card's flip side, the community route page). This
+  replaced `JourneyImages`, hand-copied Google photo URLs that had started returning 403. Google
+  Places Photos were ruled out (their terms forbid Places content near a non-Google map; see
+  `docs/research/google-places-photos.md`), and so was a Mapbox static image of the route, which
+  only repeated those live maps.
 - **The walker counts and star ratings on community route cards are invented.** `PlaceholderStats`
   derives them from the primary key so a given route always shows the same numbers. `Journey#walker_count`
   and `#rating` — the real figures — still exist and are still tested, but only one walk in the
@@ -254,7 +260,7 @@ at; don't infer the provider from them.
   read. Coverage is broad: every controller has a test file (`PagesController` since #184), as do
   the jobs and most models and services; `test/system/getting_a_walk_test.rb` drives a real browser
   through generating and walking a route. **Without a test file of their own:** the services
-  `RouteGeometry`, `JourneyHighlights`, `JourneyImages` and `PlaceholderStats`, the model
+  `RouteGeometry`, `JourneyHighlights` and `PlaceholderStats`, the model
   `WalkTrackPoint`, and the helpers — some are exercised through other classes' tests. Keep that list
   true rather than letting it rot into a lie again, and remember system tests need
   `bin/rails test:system` (see the `bin/ci` note above).

@@ -46,6 +46,38 @@ module ApplicationHelper
     MOOD_CHANGE_LABELS.fetch(mood_after, mood_after)
   end
 
+  # A journey's card picture: the newest photo a walker shared of it, or else
+  # one of the app's bundled photos.
+  def journey_card_image(journey, **)
+    image_tag(journey.latest_community_photo || bundled_card_photo(journey), **)
+  end
+
+  # Free photos under the Unsplash License, bundled with the app so nothing on
+  # a card loads from a third party or can break. They replaced hand-copied
+  # Google photo URLs, two of which had started returning 403. Picked by id,
+  # so a journey always shows the same one.
+  #   walk-1  Tsuyoshi Kozu                  unsplash.com/photos/Q6sCJFHCubc
+  #   walk-2  PJH                            unsplash.com/photos/uMXctRQHuqk
+  #   walk-3  Mariola Grobelska              unsplash.com/photos/PDBwoGtYT1A
+  #   walk-4  Jezael Melgoza                 unsplash.com/photos/htW2yNbSx-U
+  #   walk-5  PJH                            unsplash.com/photos/I2e5b8ppox4
+  #   walk-6  Willian Justen de Vasconcellos unsplash.com/photos/ydJpFcxaVH0
+  #   river   Simon Ma (the Meguro River)    unsplash.com/photos/9vfxYMmEsKo
+  #   temple  Johnny Ho (a temple in Meguro) unsplash.com/photos/-ViO1WRq7Hk
+  BUNDLED_CARD_PHOTOS = (1..6).map { |n| "cards/walk-#{n}.jpg" }.freeze
+
+  # A route named for a river shows the river, and one named for Yutenji a
+  # temple path, rather than a street in Kyoto.
+  NAMED_CARD_PHOTOS = {
+    /river/i => "cards/river.jpg",
+    /yutenji|temple/i => "cards/temple.jpg"
+  }.freeze
+
+  def bundled_card_photo(journey)
+    NAMED_CARD_PHOTOS.find { |pattern, _| journey.name.to_s.match?(pattern) }&.last ||
+      BUNDLED_CARD_PHOTOS[journey.id.to_i % BUNDLED_CARD_PHOTOS.size]
+  end
+
   def share_card_datetime(walk)
     timestamp = walk.completed_at || Time.current
     "#{timestamp.strftime('%-d %b').upcase} • #{timestamp.strftime('%-l:%M %p')}"

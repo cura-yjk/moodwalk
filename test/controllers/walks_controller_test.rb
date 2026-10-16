@@ -167,21 +167,44 @@ class WalksControllerTest < ActionDispatch::IntegrationTest
     assert_select ".walk-thumbnail .walk-time", count: cards
   end
 
-  # The card used to call JourneyImages.sample, which picks at random with no
-  # journey to key off -- so a saved route showed a different photo on every
-  # render, and looked like the photos were failing to load.
-  test "a saved journey keeps the same photo across renders" do
-    journey = journeys(:meguro_loop)
+  # Not the journey's shared photo: that could put a stranger's picture on
+  # this walker's own history. The route is a tap away, on the card's back.
+  test "a walk without a photo of its own shows a bundled photo" do
+    walk = walks(:completed_walk)
+
+    get walks_path
+
+    thumbnail = css_select(".walk-thumbnail").find { |node| node.text.include?(walk.journey.name) }
+    assert_includes thumbnail["style"], "/assets/cards/"
+  end
+
+  # The card used to show a hand-copied Google photo URL, picked from a table;
+  # some had started returning 403, so the card showed a broken image.
+  test "a saved journey nobody has photographed shows a bundled photo" do
+    users(:walker).saved_journeys.create!(journey: journeys(:meguro_loop))
+
+    get walks_path(filter: "saved")
+
+    assert_response :success
+    assert_select ".community-image[src*=?]", "/assets/cards/"
+  end
+
+  # A route named for a river should look like one, not a street in Kyoto.
+  test "a river route nobody has photographed shows the river photo" do
+    users(:walker).saved_journeys.create!(journey: journeys(:meguro_loop)) # "Meguro River Loop"
+
+    get walks_path(filter: "saved")
+
+    assert_select ".community-image[src*=?]", "/assets/cards/river"
+  end
+
+  test "a Yutenji route nobody has photographed shows the temple path" do
+    journey = journeys(:meguro_loop).dup.tap { |copy| copy.update!(name: "Yutenji Green Escape") }
     users(:walker).saved_journeys.create!(journey: journey)
 
-    photos = 2.times.map do
-      get walks_path(filter: "saved")
-      assert_response :success
-      css_select(".community-image").first["src"]
-    end
+    get walks_path(filter: "saved")
 
-    assert_equal photos.first, photos.last, "the saved card changed photo between renders"
-    assert_equal journey.placeholder_image, photos.first, "the card is not showing this journey's photo"
+    assert_select ".community-image[src*=?]", "/assets/cards/temple"
   end
 
   # #new renders the journey's duration and picks an alternate journey. The

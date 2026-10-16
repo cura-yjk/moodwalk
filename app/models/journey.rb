@@ -161,14 +161,6 @@ class Journey < ApplicationRecord
       .order(Arel.sql(distance_order))
   }
 
-  def placeholder_image
-    JourneyImages.for(name: name, id: id)
-  end
-
-  def carousel_images
-    JourneyImages.carousel
-  end
-
   # The route's shape: its decoded coordinates, whether it comes back to where
   # it started, where it turns, and how much of it re-walks itself. Owned by
   # RouteGeometry, which needs nothing from the record but the polyline and
