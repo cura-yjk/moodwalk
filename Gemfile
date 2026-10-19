@@ -78,7 +78,7 @@ end
 # custom
 gem 'activerecord-postgis-adapter'
 gem 'faraday'
-gem "ruby_llm", "~> 2.0"
+gem "ruby_llm", "~> 2.1"
 gem "cloudinary"
 gem "activestorage-cloudinary-service"
 gem "ruby_llm-schema"
